@@ -1,0 +1,154 @@
+/* ============================================================
+   gobuy admin — in-page component styles only.
+   The SHELL (fixed/collapsible vertical nav, top nav, .content
+   offset, collapsed view) is owned entirely by the Phoenix theme
+   (theme.min.css + phoenix.js + config.js). Do NOT override it here.
+   ============================================================ */
+
+.admin-page-title { font-weight: 700; letter-spacing: -0.01em; }
+
+/* ---------- Card copy and layout helpers ---------- */
+.admin-card-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--phoenix-border-color-translucent); background: transparent; }
+.admin-card-eyebrow {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--phoenix-tertiary-color);
+}
+.admin-card-subtitle { color: var(--phoenix-tertiary-color); font-size: 0.85rem; }
+.admin-table-toolbar { padding: 0.9rem 1.25rem; }
+.admin-inline-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: center;
+}
+.admin-switch-card {
+  padding: 1rem;
+  border: 1px solid var(--phoenix-border-color-translucent);
+  border-radius: 0.85rem;
+  background: var(--phoenix-body-highlight-bg);
+}
+
+/* ---------- Media placeholder ---------- */
+.admin-media-placeholder {
+  border: 1px dashed var(--phoenix-border-color-translucent);
+  border-radius: 1rem;
+  background: var(--phoenix-body-highlight-bg);
+  min-height: 14rem;
+}
+.admin-media-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--phoenix-primary-bg-subtle);
+  color: var(--phoenix-primary);
+  font-size: 1.1rem;
+}
+.admin-media-thumb {
+  border: 1px solid var(--phoenix-border-color-translucent);
+  border-radius: 0.75rem;
+  background: var(--phoenix-body-bg);
+  padding: 0.35rem;
+  object-fit: contain;
+}
+
+/* ---------- Cards ---------- */
+.admin-card {
+  border: 1px solid var(--phoenix-border-color-translucent);
+  border-radius: 0.85rem;
+  background: var(--phoenix-body-bg);
+  overflow: hidden;
+}
+.admin-card .card-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--phoenix-border-color-translucent);
+  background: transparent;
+}
+
+/* ---------- Stat cards ---------- */
+.admin-stat {
+  border: 1px solid var(--phoenix-border-color-translucent);
+  border-radius: 0.85rem;
+  padding: 1.25rem;
+  height: 100%;
+  background: var(--phoenix-body-bg);
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+}
+.admin-stat:hover { box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08); transform: translateY(-2px); }
+.admin-stat-icon { width: 2.6rem; height: 2.6rem; border-radius: 0.7rem; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+.admin-stat-value { font-size: 1.55rem; font-weight: 700; line-height: 1.1; letter-spacing: -0.01em; color: var(--phoenix-emphasis-color); }
+.kpi-card { border: 1px solid var(--phoenix-border-color-translucent); border-radius: 0.85rem; padding: 1.25rem; height: 100%; background: var(--phoenix-body-bg); }
+.kpi-card .kpi-icon { width: 2.6rem; height: 2.6rem; border-radius: 0.7rem; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+.kpi-card .kpi-value { font-size: 1.55rem; font-weight: 700; line-height: 1.1; color: var(--phoenix-emphasis-color); }
+
+/* ---------- Tables ---------- */
+.admin-table { font-size: 0.85rem; margin-bottom: 0; }
+.admin-table thead th {
+  background: var(--phoenix-body-highlight-bg);
+  color: var(--phoenix-tertiary-color);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--phoenix-border-color-translucent);
+  border-top: 0;
+  padding: 0.75rem 1.1rem;
+  white-space: nowrap;
+}
+.admin-table tbody td {
+  padding: 0.85rem 1.1rem;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--phoenix-border-color-translucent);
+  border-top: 0;
+}
+.admin-table tbody tr:last-child td { border-bottom: 0; }
+.admin-table tbody tr { transition: background 0.12s ease; }
+.admin-table tbody tr:hover { background: var(--phoenix-body-highlight-bg); }
+.admin-table .table-actions { display: inline-flex; gap: 0.4rem; justify-content: flex-end; white-space: nowrap; }
+
+.admin-toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 1rem; }
+.admin-toolbar .admin-toolbar-grow { flex: 1 1 220px; min-width: 0; }
+
+@media (max-width: 991.98px) {
+  .border-end-lg { border-right: 0 !important; }
+  .border-bottom-lg-0 { border-bottom: 0 !important; }
+}
+
+.admin-empty-icon { font-size: 1.7rem; color: var(--phoenix-tertiary-color); opacity: 0.55; }
+
+.admin-thumb {
+  width: 42px; height: 42px; flex: 0 0 auto;
+  border: 1px solid var(--phoenix-border-color-translucent);
+  border-radius: 0.5rem; display: flex; align-items: center; justify-content: center;
+  padding: 3px; background: var(--phoenix-body-bg);
+}
+.admin-thumb img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+/* ---------- Button loading ---------- */
+.btn.is-loading { position: relative; color: transparent !important; pointer-events: none; }
+.btn.is-loading::after {
+  content: ""; position: absolute; inset: 0; margin: auto;
+  width: 1rem; height: 1rem; border: 2px solid currentColor; border-right-color: transparent;
+  border-radius: 50%; color: var(--phoenix-primary); animation: admin-spin 0.6s linear infinite;
+}
+@keyframes admin-spin { to { transform: rotate(360deg); } }
+
+/* ---------- Vertical tab (product inventory) ---------- */
+.vertical-tab .nav-link { border-radius: 0; color: var(--phoenix-secondary-color); font-weight: 600; }
+.vertical-tab .nav-link.active { background: var(--phoenix-primary-bg-subtle); color: var(--phoenix-primary); }
+
+/* ---------- "Not yet functional" tag ---------- */
+.admin-soon-badge {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  font-size: 0.62rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--phoenix-warning); background: var(--phoenix-warning-bg-subtle);
+  border-radius: 0.4rem; padding: 0.1rem 0.45rem;
+}
+
+.admin-chart { height: 220px; display: flex; align-items: flex-end; gap: 0.5rem; }

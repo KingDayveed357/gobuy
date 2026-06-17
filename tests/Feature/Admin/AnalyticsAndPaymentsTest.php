@@ -1,0 +1,45 @@
+<?php
+
+namespace Tests\Feature\Admin;
+
+use App\Modules\Order\Models\Order;
+use App\Modules\Payment\Models\Payment;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Tests\Concerns\InteractsWithAdmin;
+use Tests\TestCase;
+
+class AnalyticsAndPaymentsTest extends TestCase
+{
+    use InteractsWithAdmin, LazilyRefreshDatabase;
+
+    public function test_admin_sees_analytics_with_data(): void
+    {
+        $this->actingAsAdmin('Admin');
+        Order::factory()->paid()->create()->items()->create([
+            'product_id' => null, 'name' => 'Hot Product', 'sku' => 'HP1', 'unit_price' => 5000, 'quantity' => 3, 'line_total' => 15000,
+        ]);
+
+        $this->get(route('admin.analytics'))
+            ->assertOk()
+            ->assertSee('Revenue')
+            ->assertSee('Hot Product');
+    }
+
+    public function test_payments_list_renders(): void
+    {
+        $this->actingAsAdmin('Admin');
+        $order = Order::factory()->paid()->create();
+        Payment::create(['order_id' => $order->id, 'reference' => 'GB-PAY-LIST', 'amount' => $order->total, 'status' => 'success', 'paid_at' => now()]);
+
+        $this->get(route('admin.payments.index'))
+            ->assertOk()
+            ->assertSee('GB-PAY-LIST');
+    }
+
+    public function test_support_cannot_view_analytics(): void
+    {
+        $this->actingAsAdmin('Support'); // Support lacks view_analytics
+
+        $this->get(route('admin.analytics'))->assertForbidden();
+    }
+}
