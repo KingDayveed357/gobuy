@@ -12,7 +12,7 @@
 
     <div class="row g-3 mb-4">
         <div class="col-6 col-lg-3">
-            <x-admin.stat-card label="Revenue (paid)" value="₦{{ number_format($metrics['revenue'], 2) }}" icon="fa-naira-sign" tone="success" />
+            <x-admin.stat-card label="Revenue (paid)" value="{{ money($metrics['revenue']) }}" icon="fa-naira-sign" tone="success" />
         </div>
         <div class="col-6 col-lg-3">
             <x-admin.stat-card label="Paid orders" :value="number_format($metrics['paid_orders'])" icon="fa-receipt" tone="primary" hint="{{ $metrics['pending_orders'] }} awaiting payment" />
@@ -40,7 +40,7 @@
                                     <td><a href="{{ route('admin.orders.show', $order) }}" class="fw-semibold text-body-emphasis text-decoration-none">{{ $order->order_number }}</a></td>
                                     <td>{{ $order->customer_name }}</td>
                                     <td><x-admin.status-badge :value="$order->status" :label="$order->status->label()" /></td>
-                                    <td class="text-end fw-semibold">₦{{ number_format($order->total, 2) }}</td>
+                                    <td class="text-end fw-semibold">{{ money($order->total) }}</td>
                                 </tr>
                             @empty
                                 <tr><td colspan="4"><x-admin.empty-state icon="fa-receipt" text="No orders yet." /></td></tr>

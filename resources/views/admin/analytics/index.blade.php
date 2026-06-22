@@ -10,7 +10,7 @@
         <div class="col-6 col-lg-3">
             <div class="kpi-card">
                 <span class="text-body-tertiary fs-9">Revenue (paid)</span>
-                <div class="kpi-value mt-2">₦{{ number_format($totals['revenue'], 2) }}</div>
+                <div class="kpi-value mt-2">{{ money($totals['revenue']) }}</div>
             </div>
         </div>
         <div class="col-6 col-lg-3">
@@ -22,13 +22,13 @@
         <div class="col-6 col-lg-3">
             <div class="kpi-card">
                 <span class="text-body-tertiary fs-9">Avg order value</span>
-                <div class="kpi-value mt-2">₦{{ number_format($totals['average_order_value'], 2) }}</div>
+                <div class="kpi-value mt-2">{{ money($totals['average_order_value']) }}</div>
             </div>
         </div>
         <div class="col-6 col-lg-3">
             <div class="kpi-card">
                 <span class="text-body-tertiary fs-9">Refunded</span>
-                <div class="kpi-value mt-2">₦{{ number_format($totals['refunded'], 2) }}</div>
+                <div class="kpi-value mt-2">{{ money($totals['refunded']) }}</div>
             </div>
         </div>
     </div>
@@ -38,7 +38,7 @@
             <x-admin.card title="Revenue — last 14 days" subtitle="Daily paid revenue at a glance." class="h-100">
                 <div class="d-flex align-items-end gap-2" style="height: 220px;">
                     @foreach ($revenueByDay as $day)
-                        <div class="flex-1 d-flex flex-column align-items-center justify-content-end h-100" title="{{ $day['label'] }}: ₦{{ number_format($day['value'], 2) }}">
+                        <div class="flex-1 d-flex flex-column align-items-center justify-content-end h-100" title="{{ $day['label'] }}: {{ money($day['value']) }}">
                             <div class="w-100 rounded-top bg-primary" style="height: {{ max(2, round(($day['value'] / $maxRevenue) * 100)) }}%; min-height: 2px; opacity: {{ $day['value'] > 0 ? 1 : 0.25 }};"></div>
                             <span class="fs-10 text-body-tertiary mt-1" style="white-space: nowrap;">{{ $day['label'] }}</span>
                         </div>
@@ -67,7 +67,7 @@
                     <tr>
                         <td class="text-body-emphasis">{{ $product['name'] }}</td>
                         <td class="text-end">{{ $product['quantity'] }}</td>
-                        <td class="text-end fw-semibold">₦{{ number_format($product['revenue'], 2) }}</td>
+                        <td class="text-end fw-semibold">{{ money($product['revenue']) }}</td>
                     </tr>
                 @empty
                     <tr><td colspan="3" class="text-center text-body-tertiary py-4">No sales data yet.</td></tr>

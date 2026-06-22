@@ -18,7 +18,7 @@ class AddToCartRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'product_id' => ['required', Rule::exists('products', 'id')->whereNull('deleted_at')],
+            'product_variant_id' => ['required', Rule::exists('product_variants', 'id')],
             'quantity' => ['nullable', 'integer', 'min:1', 'max:999'],
         ];
     }

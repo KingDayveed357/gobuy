@@ -41,7 +41,11 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
+            // Root-relative so image URLs resolve against whatever host the app
+            // is actually served from (Laragon vhost, artisan serve, production)
+            // instead of a hardcoded APP_URL host. Set FILESYSTEM_PUBLIC_URL to
+            // an absolute URL only if assets live on a separate domain/CDN.
+            'url' => env('FILESYSTEM_PUBLIC_URL', '/storage'),
             'visibility' => 'public',
             'throw' => false,
             'report' => false,

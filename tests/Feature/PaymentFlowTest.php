@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Modules\Cart\Models\CartItem;
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\ProductVariant;
 use App\Modules\Order\Enums\OrderStatus;
 use App\Modules\Order\Models\Order;
 use App\Modules\Payment\Models\Payment;
@@ -19,12 +20,13 @@ class PaymentFlowTest extends TestCase
     {
         Http::fake(['*/transaction/initialize' => Http::response(['status' => true, 'data' => ['authorization_url' => 'https://paystack.test/redirect']])]);
 
-        $product = Product::factory()->create(['stock' => $stock, 'retail_price' => 5000]);
-        $this->post(route('cart.store'), ['product_id' => $product->id, 'quantity' => $qty]);
+        $product = Product::factory()->priced(5000)->stock($stock)->create();
+        $this->post(route('cart.store'), ['product_variant_id' => $product->primaryVariant()->id, 'quantity' => $qty]);
         $this->post(route('checkout.store'), [
             'customer_name' => 'Ada Obi',
             'customer_email' => 'ada@example.com',
             'customer_phone' => '08030000000',
+            'delivery_method' => 'home_delivery',
             'address_line' => '12 Marina Road',
             'city' => 'Lagos',
             'state' => 'Lagos',
@@ -36,7 +38,7 @@ class PaymentFlowTest extends TestCase
     public function test_successful_callback_marks_order_paid_decrements_stock_and_clears_cart(): void
     {
         $payment = $this->placePendingOrder(stock: 10, qty: 2);
-        $productId = $payment->order->items->first()->product_id;
+        $productId = $payment->order->items->first()->product_variant_id;
 
         Http::fake(['*/transaction/verify/*' => Http::response(['status' => true, 'data' => ['status' => 'success']])]);
 
@@ -46,7 +48,7 @@ class PaymentFlowTest extends TestCase
         $this->assertDatabaseHas('orders', ['id' => $payment->order_id, 'status' => 'paid', 'payment_status' => 'paid']);
         $this->assertDatabaseHas('payments', ['id' => $payment->id, 'status' => 'success']);
         $this->assertDatabaseHas('order_status_histories', ['order_id' => $payment->order_id, 'status' => 'paid']);
-        $this->assertSame(8, Product::find($productId)->stock);
+        $this->assertSame(8, ProductVariant::find($productId)->stock);
         $this->assertSame(0, CartItem::count());
     }
 
@@ -75,7 +77,7 @@ class PaymentFlowTest extends TestCase
     public function test_webhook_processes_charge_success_idempotently(): void
     {
         $payment = $this->placePendingOrder(stock: 10, qty: 2);
-        $productId = $payment->order->items->first()->product_id;
+        $productId = $payment->order->items->first()->product_variant_id;
 
         Http::fake(['*/transaction/verify/*' => Http::response(['status' => true, 'data' => ['status' => 'success']])]);
 
@@ -92,13 +94,13 @@ class PaymentFlowTest extends TestCase
         }
 
         $this->assertDatabaseHas('orders', ['id' => $payment->order_id, 'payment_status' => 'paid']);
-        $this->assertSame(8, Product::find($productId)->stock);
+        $this->assertSame(8, ProductVariant::find($productId)->stock);
     }
 
     public function test_paid_order_shows_success_receipt(): void
     {
         $order = Order::factory()->paid()->create();
-        $order->items()->create(['product_id' => null, 'name' => 'Sample', 'sku' => 'S1', 'unit_price' => 1000, 'quantity' => 1, 'line_total' => 1000]);
+        $order->items()->create(['product_variant_id' => null, 'name' => 'Sample', 'sku' => 'S1', 'unit_price' => 1000, 'quantity' => 1, 'line_total' => 1000]);
         $order->statusHistories()->create(['status' => OrderStatus::Paid, 'note' => 'Payment confirmed']);
 
         $this->get(route('orders.success', $order))

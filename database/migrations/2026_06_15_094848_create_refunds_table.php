@@ -13,7 +13,7 @@ return new class extends Migration
             $table->foreignId('order_id')->constrained()->cascadeOnDelete();
             $table->foreignId('payment_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('admin_id')->nullable()->constrained()->nullOnDelete();
-            $table->decimal('amount', 12, 2);
+            $table->unsignedBigInteger('amount'); // kobo
             $table->string('reason')->nullable();
             $table->string('status')->default('pending')->index();
             $table->string('provider_reference')->nullable();

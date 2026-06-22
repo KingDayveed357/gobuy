@@ -4,7 +4,11 @@
 @section('page-title', 'Orders')
 
 @section('content')
-    <x-admin.page-header title="Orders" subtitle="{{ $orders->total() }} order(s)" />
+    <x-admin.page-header title="Orders" subtitle="{{ $orders->total() }} order(s)">
+        <x-slot:actions>
+            <a href="{{ route('admin.orders.export', request()->query()) }}" class="btn btn-phoenix-secondary"><span class="fas fa-file-csv me-2"></span>Export CSV</a>
+        </x-slot:actions>
+    </x-admin.page-header>
 
     <x-admin.table
         :cols="[
@@ -47,7 +51,7 @@
                 <td class="text-center">{{ $order->items_count }}</td>
                 <td><x-admin.status-badge :value="$order->payment_status" :label="$order->payment_status->label()" /></td>
                 <td><x-admin.status-badge :value="$order->status" :label="$order->status->label()" /></td>
-                <td class="text-end fw-semibold">₦{{ number_format($order->total, 2) }}</td>
+                <td class="text-end fw-semibold">{{ money($order->total) }}</td>
                 <td class="text-end"><a href="{{ route('admin.orders.show', $order) }}" class="btn btn-sm btn-phoenix-secondary">View</a></td>
             </tr>
         @endforeach

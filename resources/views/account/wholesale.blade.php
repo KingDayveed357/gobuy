@@ -32,7 +32,7 @@
 
                     <div class="card">
                         <div class="card-body">
-                            <form action="{{ route('account.wholesale') }}" method="POST">
+                            <form action="{{ route('account.wholesale') }}" method="POST" enctype="multipart/form-data">
                                 @csrf
                                 @php($profile = $user->wholesaleProfile)
                                 <div class="row g-3">
@@ -48,9 +48,24 @@
                                         <label class="form-label">Business phone</label>
                                         <input class="form-control" type="text" name="business_phone" value="{{ old('business_phone', $profile?->business_phone) }}" required>
                                     </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Industry <span class="text-body-tertiary">(optional)</span></label>
+                                        <input class="form-control" type="text" name="industry" value="{{ old('industry', $profile?->industry) }}" placeholder="e.g. Construction, Oil & Gas">
+                                    </div>
                                     <div class="col-12">
                                         <label class="form-label">Business address</label>
                                         <input class="form-control" type="text" name="business_address" value="{{ old('business_address', $profile?->business_address) }}" required>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">Why do you want a wholesale account?</label>
+                                        <textarea class="form-control" name="intent" rows="3" required placeholder="Tell us about your buying needs and expected volumes…">{{ old('intent', $profile?->intent) }}</textarea>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">Supporting documents <span class="text-body-tertiary">(optional — CAC certificate, utility bill)</span></label>
+                                        <input class="form-control" type="file" name="documents[]" accept=".pdf,image/*" multiple>
+                                        @if ($profile && $profile->documents()->isNotEmpty())
+                                            <p class="fs-9 text-body-tertiary mt-2 mb-0">{{ $profile->documents()->count() }} document(s) already uploaded.</p>
+                                        @endif
                                     </div>
                                 </div>
                                 <button class="btn btn-primary mt-4" type="submit">Submit application</button>

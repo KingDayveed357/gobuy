@@ -4,7 +4,11 @@
 @section('page-title', 'Customers')
 
 @section('content')
-    <x-admin.page-header title="Customers" subtitle="{{ $customers->total() }} customer(s)" />
+    <x-admin.page-header title="Customers" subtitle="{{ $customers->total() }} customer(s)">
+        <x-slot:actions>
+            <a href="{{ route('admin.customers.export', request()->query()) }}" class="btn btn-phoenix-secondary"><span class="fas fa-file-csv me-2"></span>Export CSV</a>
+        </x-slot:actions>
+    </x-admin.page-header>
 
     <x-admin.table
         :cols="[

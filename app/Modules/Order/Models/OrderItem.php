@@ -2,7 +2,8 @@
 
 namespace App\Modules\Order\Models;
 
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\ProductVariant;
+use App\Support\Money;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -10,10 +11,11 @@ class OrderItem extends Model
 {
     protected $fillable = [
         'order_id',
-        'product_id',
+        'product_variant_id',
         'name',
         'sku',
         'unit_price',
+        'discount_amount',
         'quantity',
         'line_total',
     ];
@@ -21,9 +23,10 @@ class OrderItem extends Model
     protected function casts(): array
     {
         return [
-            'unit_price' => 'decimal:2',
+            'unit_price' => Money::class,
+            'discount_amount' => Money::class,
             'quantity' => 'integer',
-            'line_total' => 'decimal:2',
+            'line_total' => Money::class,
         ];
     }
 
@@ -32,8 +35,8 @@ class OrderItem extends Model
         return $this->belongsTo(Order::class);
     }
 
-    public function product(): BelongsTo
+    public function variant(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(ProductVariant::class, 'product_variant_id');
     }
 }

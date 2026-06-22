@@ -3,15 +3,14 @@
 namespace App\Modules\Catalog\Queries;
 
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\ProductVariant;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * Lightweight, chainable query object for product listings.
- *
- * Used by the storefront and admin to filter/search without scattering
- * query logic across controllers. Not a repository — it wraps the Eloquent
- * builder and returns it, so callers keep full Eloquent power.
+ * Lightweight, chainable query object for product listings. Pricing, SKU and
+ * stock live on variants, so price/sku filters reach through the default
+ * variant via correlated subqueries.
  */
 class ProductQuery
 {
@@ -19,7 +18,7 @@ class ProductQuery
 
     public function __construct()
     {
-        $this->query = Product::query()->with(['category', 'images']);
+        $this->query = Product::query()->with(['category', 'brand', 'media', 'variants', 'quantityDiscounts']);
     }
 
     public static function make(): self
@@ -39,19 +38,43 @@ class ProductQuery
         if (filled($term)) {
             $this->query->where(function (Builder $q) use ($term): void {
                 $q->where('name', 'like', "%{$term}%")
-                    ->orWhere('sku', 'like', "%{$term}%");
+                    ->orWhereHas('variants', fn (Builder $v) => $v->where('sku', 'like', "%{$term}%"));
             });
         }
 
         return $this;
     }
 
-    public function inCategory(?string $categorySlug): self
+    public function inCategory(?string $categorySlugOrId): self
     {
-        if (filled($categorySlug)) {
-            $this->query->whereHas('category', function (Builder $q) use ($categorySlug): void {
-                $q->where('slug', $categorySlug);
+        if (filled($categorySlugOrId)) {
+            $this->query->whereHas('category', function (Builder $q) use ($categorySlugOrId): void {
+                is_numeric($categorySlugOrId)
+                    ? $q->where('id', $categorySlugOrId)
+                    : $q->where('slug', $categorySlugOrId);
             });
+        }
+
+        return $this;
+    }
+
+    public function inBrand(?string $brandSlugOrId): self
+    {
+        if (filled($brandSlugOrId)) {
+            $this->query->whereHas('brand', function (Builder $q) use ($brandSlugOrId): void {
+                is_numeric($brandSlugOrId)
+                    ? $q->where('id', $brandSlugOrId)
+                    : $q->where('slug', $brandSlugOrId);
+            });
+        }
+
+        return $this;
+    }
+
+    public function withStatus(?string $status): self
+    {
+        if (filled($status) && $status !== 'all') {
+            $this->query->where('status', $status);
         }
 
         return $this;
@@ -60,7 +83,7 @@ class ProductQuery
     public function inStockOnly(bool $only): self
     {
         if ($only) {
-            $this->query->inStock();
+            $this->query->whereHas('variants', fn (Builder $q) => $q->where('stock', '>', 0));
         }
 
         return $this;
@@ -68,12 +91,15 @@ class ProductQuery
 
     public function priceBetween(?int $min, ?int $max): self
     {
-        if ($min !== null) {
-            $this->query->where('retail_price', '>=', $min);
-        }
-
-        if ($max !== null) {
-            $this->query->where('retail_price', '<=', $max);
+        if ($min !== null || $max !== null) {
+            $this->query->whereHas('variants', function (Builder $q) use ($min, $max): void {
+                if ($min !== null) {
+                    $q->where('retail_price', '>=', $min);
+                }
+                if ($max !== null) {
+                    $q->where('retail_price', '<=', $max);
+                }
+            });
         }
 
         return $this;
@@ -81,9 +107,14 @@ class ProductQuery
 
     public function sort(?string $sort): self
     {
+        $defaultPrice = ProductVariant::select('retail_price')
+            ->whereColumn('product_id', 'products.id')
+            ->orderByDesc('is_default')->orderBy('id')
+            ->limit(1);
+
         match ($sort) {
-            'price_asc' => $this->query->orderBy('retail_price'),
-            'price_desc' => $this->query->orderByDesc('retail_price'),
+            'price_asc' => $this->query->orderBy($defaultPrice),
+            'price_desc' => $this->query->orderByDesc($defaultPrice),
             'name' => $this->query->orderBy('name'),
             default => $this->query->latest(),
         };

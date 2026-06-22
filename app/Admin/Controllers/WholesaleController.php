@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Modules\Customer\Services\WholesaleApprovalService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class WholesaleController extends Controller
@@ -15,7 +16,7 @@ class WholesaleController extends Controller
 
     public function index(): View
     {
-        $applicants = User::with('wholesaleProfile')
+        $applicants = User::with('wholesaleProfile.media')
             ->where('wholesale_status', User::WHOLESALE_PENDING)
             ->latest()
             ->paginate(20);
@@ -23,9 +24,13 @@ class WholesaleController extends Controller
         return view('admin.wholesale.index', ['applicants' => $applicants]);
     }
 
-    public function approve(User $user): RedirectResponse
+    public function approve(Request $request, User $user): RedirectResponse
     {
-        $this->wholesale->approve($user, Auth::guard('admin')->user());
+        $this->wholesale->approve(
+            $user,
+            Auth::guard('admin')->user(),
+            $request->string('tier')->toString() ?: null,
+        );
 
         return back()->with('status', "{$user->name} approved for wholesale.");
     }

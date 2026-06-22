@@ -26,7 +26,11 @@ class WholesaleApplicationController extends Controller
 
     public function store(WholesaleApplicationRequest $request): RedirectResponse
     {
-        $this->wholesale->apply(Auth::user(), $request->validated());
+        $this->wholesale->apply(
+            Auth::user(),
+            $request->validated(),
+            (array) $request->file('documents', []),
+        );
 
         return redirect()->route('account.dashboard')
             ->with('status', 'Your wholesale application has been submitted for review.');

@@ -13,7 +13,7 @@ return new class extends Migration
             $table->foreignId('order_id')->constrained()->cascadeOnDelete();
             $table->string('provider')->default('paystack');
             $table->string('reference')->unique(); // idempotency key
-            $table->decimal('amount', 12, 2);
+            $table->unsignedBigInteger('amount'); // kobo
             $table->string('status')->default('pending')->index();
             $table->timestamp('paid_at')->nullable();
             $table->json('payload')->nullable();

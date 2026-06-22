@@ -11,14 +11,14 @@ return new class extends Migration
         Schema::create('order_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('order_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('product_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('product_variant_id')->nullable()->constrained()->nullOnDelete();
 
-            // Snapshots — the order must stay correct even if the product changes.
+            // Snapshots — the order stays correct even if the variant changes.
             $table->string('name');
             $table->string('sku');
-            $table->decimal('unit_price', 12, 2);
+            $table->unsignedBigInteger('unit_price'); // kobo
             $table->unsignedInteger('quantity');
-            $table->decimal('line_total', 12, 2);
+            $table->unsignedBigInteger('line_total'); // kobo
 
             $table->timestamps();
 

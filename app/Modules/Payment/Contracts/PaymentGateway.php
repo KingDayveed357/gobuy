@@ -21,10 +21,10 @@ interface PaymentGateway
     public function verify(string $reference): array;
 
     /**
-     * Refund a transaction (full or partial). Amount is in the major currency
-     * unit (Naira); null refunds the full transaction.
+     * Refund a transaction (full or partial). Amount is in integer kobo;
+     * null refunds the full transaction.
      *
      * @return array{success: bool, raw: array<string, mixed>}
      */
-    public function refund(string $reference, ?float $amount = null): array;
+    public function refund(string $reference, ?int $amountKobo = null): array;
 }

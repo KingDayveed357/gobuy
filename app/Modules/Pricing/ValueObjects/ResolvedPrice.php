@@ -2,27 +2,39 @@
 
 namespace App\Modules\Pricing\ValueObjects;
 
+use App\Support\Money;
+
 /**
- * Immutable result of a price resolution.
- *
- * Not a request DTO — a lightweight value object so the UI and cart/order
- * math have a single, consistent shape to read from.
+ * Immutable result of the pricing pipeline — the single shape the UI,
+ * cart, and order math read from. All amounts are {@see Money} (kobo).
  */
 final class ResolvedPrice
 {
     public function __construct(
-        public readonly float $unitPrice,
-        public readonly float $retailPrice,
-        public readonly bool $isWholesale,
+        public readonly Money $unitPrice,    // what the customer pays per unit
+        public readonly Money $retailPrice,  // list price, for strike-through
+        public readonly bool $isWholesale = false,
+        public readonly bool $isOnSale = false,
     ) {}
 
-    public function lineTotal(int $quantity): float
+    public function lineTotal(int $quantity): Money
     {
-        return round($this->unitPrice * $quantity, 2);
+        return $this->unitPrice->times($quantity);
     }
 
     public function hasDiscount(): bool
     {
-        return $this->isWholesale && $this->unitPrice < $this->retailPrice;
+        return $this->unitPrice->lessThan($this->retailPrice);
+    }
+
+    public function discountPercent(): int
+    {
+        if (! $this->retailPrice->isPositive() || ! $this->unitPrice->lessThan($this->retailPrice)) {
+            return 0;
+        }
+
+        return (int) round(
+            (($this->retailPrice->kobo - $this->unitPrice->kobo) / $this->retailPrice->kobo) * 100
+        );
     }
 }

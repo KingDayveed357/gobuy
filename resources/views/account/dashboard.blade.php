@@ -16,6 +16,13 @@
                 </form>
             </div>
 
+            @if (! $user->hasVerifiedEmail())
+                <div class="alert alert-subtle-warning d-flex flex-between-center flex-wrap gap-2" role="alert">
+                    <span><span class="fas fa-envelope me-2"></span>Please verify your email address to secure your account.</span>
+                    <a href="{{ route('verification.notice') }}" class="btn btn-sm btn-warning">Verify now</a>
+                </div>
+            @endif
+
             <div class="row g-3 mb-5">
                 <div class="col-md-4">
                     <div class="card h-100">
@@ -37,6 +44,30 @@
                         <div class="card-body">
                             <h6 class="text-body-tertiary mb-2">Orders</h6>
                             <a href="{{ route('account.orders') }}" class="btn btn-link p-0">View order history →</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="text-body-tertiary mb-2">Addresses</h6>
+                            <a href="{{ route('account.addresses.index') }}" class="btn btn-link p-0">Manage address book →</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="text-body-tertiary mb-2">Wishlist</h6>
+                            <a href="{{ route('account.wishlist') }}" class="btn btn-link p-0">View saved items →</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="text-body-tertiary mb-2">Account Settings</h6>
+                            <a href="{{ route('account.settings') }}" class="btn btn-link p-0">Manage profile & security →</a>
                         </div>
                     </div>
                 </div>

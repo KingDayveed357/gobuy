@@ -1,30 +1,25 @@
 <?php
 
-namespace App\Modules\Catalog\Models;
+namespace App\Modules\Pricing\Models;
 
+use App\Modules\Catalog\Models\Product;
+use App\Support\Money;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class ProductImage extends Model
+class QuantityDiscount extends Model
 {
     protected $fillable = [
         'product_id',
-        'path',
-        'alt',
-        'is_primary',
-        'sort_order',
-    ];
-
-    protected $attributes = [
-        'is_primary' => false,
-        'sort_order' => 0,
+        'min_qty',
+        'unit_price',
     ];
 
     protected function casts(): array
     {
         return [
-            'is_primary' => 'boolean',
-            'sort_order' => 'integer',
+            'min_qty' => 'integer',
+            'unit_price' => Money::class,
         ];
     }
 

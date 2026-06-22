@@ -19,29 +19,31 @@ class CartMergeTest extends TestCase
         $token = 'guest-token-123';
         session(['cart_token' => $token]);
 
-        $shared = Product::factory()->create(['stock' => 100]);
-        $guestOnly = Product::factory()->create(['stock' => 100]);
+        $shared = Product::factory()->stock(100)->create();
+        $guestOnly = Product::factory()->stock(100)->create();
+        $sharedVid = $shared->primaryVariant()->id;
+        $guestOnlyVid = $guestOnly->primaryVariant()->id;
 
         $guestCart = Cart::factory()->create(['session_token' => $token]);
-        $guestCart->items()->create(['product_id' => $shared->id, 'quantity' => 2]);
-        $guestCart->items()->create(['product_id' => $guestOnly->id, 'quantity' => 1]);
+        $guestCart->items()->create(['product_variant_id' => $sharedVid, 'quantity' => 2]);
+        $guestCart->items()->create(['product_variant_id' => $guestOnlyVid, 'quantity' => 1]);
 
         $user = User::factory()->create();
         $userCart = Cart::factory()->forUser($user->id)->create();
-        $userCart->items()->create(['product_id' => $shared->id, 'quantity' => 3]);
+        $userCart->items()->create(['product_variant_id' => $sharedVid, 'quantity' => 3]);
 
         app(CartService::class)->mergeGuestCartIntoUser($user);
 
         // Shared product: 3 (user) + 2 (guest) = 5
         $this->assertDatabaseHas('cart_items', [
             'cart_id' => $userCart->id,
-            'product_id' => $shared->id,
+            'product_variant_id' => $sharedVid,
             'quantity' => 5,
         ]);
         // Guest-only product moved into the user cart
         $this->assertDatabaseHas('cart_items', [
             'cart_id' => $userCart->id,
-            'product_id' => $guestOnly->id,
+            'product_variant_id' => $guestOnlyVid,
             'quantity' => 1,
         ]);
         // Guest cart removed, session token cleared
@@ -54,21 +56,22 @@ class CartMergeTest extends TestCase
         $token = 'guest-token-cap';
         session(['cart_token' => $token]);
 
-        $product = Product::factory()->create(['stock' => 4]);
+        $product = Product::factory()->stock(4)->create();
+        $vid = $product->primaryVariant()->id;
 
         $guestCart = Cart::factory()->create(['session_token' => $token]);
-        $guestCart->items()->create(['product_id' => $product->id, 'quantity' => 3]);
+        $guestCart->items()->create(['product_variant_id' => $vid, 'quantity' => 3]);
 
         $user = User::factory()->create();
         $userCart = Cart::factory()->forUser($user->id)->create();
-        $userCart->items()->create(['product_id' => $product->id, 'quantity' => 3]);
+        $userCart->items()->create(['product_variant_id' => $vid, 'quantity' => 3]);
 
         app(CartService::class)->mergeGuestCartIntoUser($user);
 
         // 3 + 3 = 6, capped at stock 4
         $this->assertDatabaseHas('cart_items', [
             'cart_id' => $userCart->id,
-            'product_id' => $product->id,
+            'product_variant_id' => $vid,
             'quantity' => 4,
         ]);
     }
@@ -78,16 +81,17 @@ class CartMergeTest extends TestCase
         $token = 'guest-token-login';
         session(['cart_token' => $token]);
 
-        $product = Product::factory()->create(['stock' => 100]);
+        $product = Product::factory()->stock(100)->create();
+        $vid = $product->primaryVariant()->id;
         $guestCart = Cart::factory()->create(['session_token' => $token]);
-        $guestCart->items()->create(['product_id' => $product->id, 'quantity' => 2]);
+        $guestCart->items()->create(['product_variant_id' => $vid, 'quantity' => 2]);
 
         $user = User::factory()->create();
 
         event(new Login('web', $user, false));
 
         $this->assertDatabaseHas('carts', ['user_id' => $user->id]);
-        $this->assertDatabaseHas('cart_items', ['product_id' => $product->id, 'quantity' => 2]);
+        $this->assertDatabaseHas('cart_items', ['product_variant_id' => $vid, 'quantity' => 2]);
         $this->assertDatabaseMissing('carts', ['id' => $guestCart->id]);
     }
 }

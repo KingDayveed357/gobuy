@@ -4,8 +4,9 @@ namespace App\Modules\Payment\Services;
 
 use App\Admin\Models\Admin;
 use App\Admin\Notifications\NewPaidOrderNotification;
-use App\Modules\Catalog\Models\Product;
+use App\Modules\Catalog\Models\ProductVariant;
 use App\Modules\Catalog\Services\CatalogService;
+use App\Modules\Notification\Services\CustomerNotifier;
 use App\Modules\Order\Enums\OrderStatus;
 use App\Modules\Order\Enums\PaymentStatus;
 use App\Modules\Order\Mail\OrderConfirmationMail;
@@ -25,6 +26,7 @@ class PaymentService
         private readonly PaymentGateway $gateway,
         private readonly OrderStatusService $status,
         private readonly CatalogService $catalog,
+        private readonly CustomerNotifier $notifier,
     ) {}
 
     /**
@@ -79,43 +81,93 @@ class PaymentService
             return false;
         }
 
-        $this->markPaid($payment, $result['raw']);
+        $payment->update(['status' => 'success', 'paid_at' => now(), 'payload' => $result['raw']]);
+        $this->completeOrder($payment->order, paymentReceived: true);
+
+        Log::info('Payment successful', ['reference' => $reference, 'order_number' => $payment->order->order_number]);
 
         return true;
     }
 
     /**
-     * @param  array<string, mixed>  $raw
+     * Accept a Pay-on-Delivery order: commit stock and confirm the order, but
+     * leave payment outstanding until cash is collected on delivery.
      */
-    private function markPaid(Payment $payment, array $raw): void
+    public function placePodOrder(Order $order): void
     {
-        DB::transaction(function () use ($payment, $raw): void {
-            $order = $payment->order;
+        $this->completeOrder($order, paymentReceived: false);
 
-            $payment->update(['status' => 'success', 'paid_at' => now(), 'payload' => $raw]);
-            $order->update(['payment_status' => PaymentStatus::Paid]);
-            $this->status->transitionTo($order, OrderStatus::Paid, 'Payment confirmed');
+        Log::info('POD order accepted', ['order_number' => $order->order_number]);
+    }
 
-            foreach ($order->items as $item) {
-                $product = $item->product_id ? Product::find($item->product_id) : null;
+    /**
+     * Mark a Pay-on-Delivery order as paid once cash has been collected.
+     */
+    public function markPodCollected(Order $order): void
+    {
+        $order->update(['payment_status' => PaymentStatus::Paid]);
 
-                if ($product) {
-                    $this->catalog->decrementStock($product, $item->quantity);
+        Log::info('POD payment collected', ['order_number' => $order->order_number]);
+    }
+
+    /**
+     * Confirm a manually-reconciled bank transfer: completes the order exactly
+     * like an online payment would.
+     */
+    public function confirmManualPayment(Order $order): void
+    {
+        $this->completeOrder($order, paymentReceived: true);
+
+        Log::info('Manual bank transfer confirmed', ['order_number' => $order->order_number]);
+    }
+
+    /**
+     * The single place an order transitions from "placed" to "accepted":
+     * commits stock, advances the order, and notifies. Idempotent — the
+     * stock/transition only runs while the order is still pending.
+     */
+    public function completeOrder(Order $order, bool $paymentReceived = true): void
+    {
+        $firstAcceptance = $order->status === OrderStatus::Pending;
+
+        DB::transaction(function () use ($order, $paymentReceived, $firstAcceptance): void {
+            if ($firstAcceptance) {
+                $this->status->transitionTo(
+                    $order,
+                    OrderStatus::Paid,
+                    $paymentReceived ? 'Payment confirmed' : 'Order accepted (Pay on Delivery)',
+                );
+
+                foreach ($order->items as $item) {
+                    $variant = $item->product_variant_id ? ProductVariant::find($item->product_variant_id) : null;
+
+                    if ($variant) {
+                        $this->catalog->decrementStock($variant, $item->quantity);
+                    }
                 }
+            }
+
+            if ($paymentReceived) {
+                $order->update(['payment_status' => PaymentStatus::Paid]);
             }
         });
 
-        Log::info('Payment successful', [
-            'reference' => $payment->reference,
-            'order_number' => $payment->order->order_number,
-        ]);
+        if ($firstAcceptance) {
+            $this->notifyOrderAccepted($order);
+        }
+    }
 
+    private function notifyOrderAccepted(Order $order): void
+    {
         // Queued so the webhook/callback returns fast (the only async work in MVP).
-        Mail::to($payment->order->customer_email)->queue(new OrderConfirmationMail($payment->order));
+        Mail::to($order->customer_email)->queue(new OrderConfirmationMail($order));
+
+        // SMS/WhatsApp confirmation to the customer.
+        $this->notifier->orderAccepted($order);
 
         // Alert admins who handle orders (can() is null-safe if RBAC is absent).
         $admins = Admin::where('is_active', true)->get()
             ->filter(fn (Admin $admin) => $admin->can('manage_orders'));
-        Notification::send($admins, new NewPaidOrderNotification($payment->order));
+        Notification::send($admins, new NewPaidOrderNotification($order));
     }
 }

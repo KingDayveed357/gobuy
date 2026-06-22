@@ -9,4 +9,6 @@
 <script src="{{ asset('theme/vendors/dayjs/dayjs.min.js') }}"></script>
 <script src="{{ asset('theme/vendors/swiper/swiper-bundle.min.js') }}"></script>
 <script src="{{ asset('theme/js/phoenix.js') }}"></script>
+<script src="{{ asset('theme/js/mega-menu.js') }}"></script>
+<script src="{{ asset('theme/js/wizard-engine.js') }}"></script>
 @stack('scripts')

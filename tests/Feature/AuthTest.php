@@ -28,7 +28,8 @@ class AuthTest extends TestCase
             'password_confirmation' => 'password123',
         ]);
 
-        $response->assertRedirect(route('account.dashboard'));
+        // New users are sent to verify their email via OTP.
+        $response->assertRedirect(route('verification.notice'));
         $this->assertAuthenticated();
         $this->assertDatabaseHas('users', [
             'email' => 'new@example.com',
@@ -68,8 +69,9 @@ class AuthTest extends TestCase
 
     public function test_guest_cart_merges_into_user_on_login(): void
     {
-        $product = Product::factory()->create(['stock' => 50]);
-        $this->post(route('cart.store'), ['product_id' => $product->id, 'quantity' => 2]);
+        $product = Product::factory()->stock(50)->create();
+        $vid = $product->primaryVariant()->id;
+        $this->post(route('cart.store'), ['product_variant_id' => $vid, 'quantity' => 2]);
 
         $user = User::factory()->create(['email' => 'merge@example.com', 'password' => Hash::make('secret123')]);
 
@@ -77,6 +79,6 @@ class AuthTest extends TestCase
 
         $cart = Cart::firstWhere('user_id', $user->id);
         $this->assertNotNull($cart);
-        $this->assertDatabaseHas('cart_items', ['cart_id' => $cart->id, 'product_id' => $product->id, 'quantity' => 2]);
+        $this->assertDatabaseHas('cart_items', ['cart_id' => $cart->id, 'product_variant_id' => $vid, 'quantity' => 2]);
     }
 }

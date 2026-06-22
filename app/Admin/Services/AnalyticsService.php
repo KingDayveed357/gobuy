@@ -23,7 +23,7 @@ class AnalyticsService
             ->where('placed_at', '>=', now()->subDays($days - 1)->startOfDay())
             ->get(['total', 'placed_at'])
             ->groupBy(fn (Order $o) => $o->placed_at->toDateString())
-            ->map(fn (Collection $group) => (float) $group->sum('total'));
+            ->map(fn (Collection $group) => $group->sum(fn (Order $o) => $o->total->kobo)); // kobo
 
         return collect(range($days - 1, 0))->map(function (int $offset) use ($rows) {
             $date = Carbon::today()->subDays($offset);

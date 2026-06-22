@@ -4,6 +4,7 @@ namespace App\Modules\Payment\Models;
 
 use App\Admin\Models\Admin;
 use App\Modules\Order\Models\Order;
+use App\Support\Money;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -23,7 +24,7 @@ class Refund extends Model
     protected function casts(): array
     {
         return [
-            'amount' => 'decimal:2',
+            'amount' => Money::class,
             'payload' => 'array',
         ];
     }

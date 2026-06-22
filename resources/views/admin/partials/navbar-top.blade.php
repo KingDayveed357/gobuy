@@ -50,7 +50,7 @@
                                 @forelse ($admin->notifications()->latest()->take(8)->get() as $note)
                                     <a class="px-3 py-3 d-block border-bottom border-translucent text-decoration-none {{ $note->read_at ? '' : 'bg-primary-subtle bg-opacity-25' }}" href="{{ route('admin.orders.show', $note->data['order_number']) }}">
                                         <p class="fs-9 text-body-emphasis mb-1 fw-semibold"><span class="fas fa-receipt text-primary me-2"></span>New paid order {{ $note->data['order_number'] }}</p>
-                                        <p class="fs-9 text-body-tertiary mb-0">{{ $note->data['customer'] }} · ₦{{ number_format($note->data['total'], 2) }} · {{ $note->created_at->diffForHumans() }}</p>
+                                        <p class="fs-9 text-body-tertiary mb-0">{{ $note->data['customer'] }} · {{ money($note->data['total_kobo'] ?? 0) }} · {{ $note->created_at->diffForHumans() }}</p>
                                     </a>
                                 @empty
                                     <p class="text-center text-body-tertiary fs-9 py-4 mb-0">No notifications.</p>
@@ -81,6 +81,17 @@
                         </div>
                         <div class="card-footer p-0 border-top border-translucent">
                             <div class="px-3 py-2"><p class="fs-9 text-body-tertiary mb-0">{{ $admin->email }}</p></div>
+                            <hr class="my-0">
+                            <div class="px-3 ">
+                                <a href="{{ route('admin.settings') }}" class="btn btn-link px-0 text-decoration-none">
+                                    <span class="me-2 text-body-tertiary" data-feather="user"></span>Account
+                                </a>
+                            </div>
+                            <div class="px-3 pb-2">
+                                <a href="{{ route('admin.settings.store') }}" class="btn btn-link px-0 text-decoration-none">
+                                    <span class="me-2 text-body-tertiary" data-feather="shopping-bag"></span>Store settings
+                                </a>
+                            </div>
                             <hr class="my-0">
                             <div class="px-3 py-3">
                                 <form action="{{ route('admin.logout') }}" method="POST">@csrf

@@ -9,11 +9,7 @@
     <td class="text-end">
         <div class="table-actions">
             <button class="btn btn-sm btn-phoenix-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#cat-edit-{{ $category->id }}">Edit</button>
-            <form action="{{ route('admin.categories.destroy', $category) }}" method="POST"
-                  onsubmit="return confirm('Delete this category?');">
-                @csrf @method('DELETE')
-                <button class="btn btn-sm btn-phoenix-danger" type="submit">Delete</button>
-            </form>
+            <button class="btn btn-sm btn-phoenix-danger" type="button" data-bs-toggle="modal" data-bs-target="#deleteModal" data-action="{{ route('admin.categories.destroy', $category) }}">Delete</button>
         </div>
     </td>
 </tr>

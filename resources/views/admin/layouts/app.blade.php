@@ -4,6 +4,7 @@
 <head>
     @include('partials.head')
     <link href="{{ asset('theme/css/admin.css') }}" type="text/css" rel="stylesheet">
+    <link href="{{ asset('theme/css/toast.css') }}" type="text/css" rel="stylesheet">
 </head>
 
 <body>
@@ -13,16 +14,7 @@
 
         <div class="content">
             <div class="container-fluid px-3 px-lg-4 px-xxl-5 py-3 py-lg-4">
-                @if (session('status'))
-                    <div class="alert alert-subtle-success d-flex align-items-center" role="alert">
-                        <span class="fas fa-circle-check me-2"></span>{{ session('status') }}
-                    </div>
-                @endif
-                @if (session('error'))
-                    <div class="alert alert-subtle-danger d-flex align-items-center" role="alert">
-                        <span class="fas fa-circle-exclamation me-2"></span>{{ session('error') }}
-                    </div>
-                @endif
+                {{-- Flash messages are handled by Toast via JS below --}}
 
                 @yield('content')
             </div>
@@ -34,7 +26,24 @@
     window.config.mapboxToken = "{{ config('services.mapbox.token') }}";
 </script>
     @include('partials.scripts')
+    <script src="{{ asset('theme/js/toast.js') }}"></script>
     <script src="{{ asset('theme/js/admin.js') }}"></script>
+
+    {{-- Trigger Premium Toast Notifications --}}
+    @if(session('status'))
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                Toast.success("{{ session('status') }}");
+            });
+        </script>
+    @endif
+    @if(session('error'))
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                Toast.error("{{ session('error') }}");
+            });
+        </script>
+    @endif
 
 
     {{-- Loading state on POST form submission. --}}
@@ -46,6 +55,7 @@
             }
         }, true);
     </script>
+    <x-admin.action-modal />
 </body>
 
 </html>

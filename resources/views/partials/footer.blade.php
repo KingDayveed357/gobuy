@@ -2,8 +2,16 @@
     <div class="container-small">
         <div class="row g-4 justify-content-between">
             <div class="col-6 col-md-3">
-                <h5 class="text-primary mb-3">gobuy</h5>
-                <p class="fs-9 text-body-tertiary mb-0">Retail &amp; wholesale, locally stocked and delivered fast across Nigeria.</p>
+                <h5 class="text-primary mb-3">{{ setting('store_name', 'gobuy') }}</h5>
+                <p class="fs-9 text-body-tertiary mb-3">Retail &amp; wholesale, locally stocked and delivered fast across Nigeria.</p>
+                @php($socials = array_filter(['instagram' => setting('instagram_url'), 'facebook' => setting('facebook_url'), 'x-twitter' => setting('x_url')]))
+                @if (! empty($socials))
+                    <div class="d-flex gap-2">
+                        @foreach ($socials as $icon => $url)
+                            <a href="{{ $url }}" target="_blank" rel="noopener" class="btn btn-sm btn-phoenix-secondary" aria-label="{{ $icon }}"><span class="fab fa-{{ $icon }}"></span></a>
+                        @endforeach
+                    </div>
+                @endif
             </div>
             <div class="col-6 col-md-2">
                 <h6 class="mb-3">Shop</h6>

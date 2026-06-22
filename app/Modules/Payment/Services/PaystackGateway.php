@@ -19,7 +19,7 @@ class PaystackGateway implements PaymentGateway
         $response = $this->client()
             ->post('/transaction/initialize', [
                 'email' => $order->customer_email,
-                'amount' => (int) round($order->total * 100), // Paystack expects kobo
+                'amount' => $order->total->kobo, // Paystack expects kobo
                 'reference' => $reference,
                 'callback_url' => $callbackUrl,
                 'metadata' => ['order_number' => $order->order_number],
@@ -50,12 +50,12 @@ class PaystackGateway implements PaymentGateway
         return ['success' => $success, 'raw' => $response];
     }
 
-    public function refund(string $reference, ?float $amount = null): array
+    public function refund(string $reference, ?int $amountKobo = null): array
     {
         $payload = ['transaction' => $reference];
 
-        if ($amount !== null) {
-            $payload['amount'] = (int) round($amount * 100); // kobo
+        if ($amountKobo !== null) {
+            $payload['amount'] = $amountKobo; // already kobo
         }
 
         $response = $this->client()

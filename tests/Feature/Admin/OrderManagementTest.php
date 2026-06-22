@@ -41,7 +41,7 @@ class OrderManagementTest extends TestCase
     public function test_admin_can_view_order_detail(): void
     {
         $order = Order::factory()->paid()->create();
-        $order->items()->create(['product_id' => null, 'name' => 'Detail Item', 'sku' => 'D1', 'unit_price' => 1000, 'quantity' => 1, 'line_total' => 1000]);
+        $order->items()->create(['product_variant_id' => null, 'name' => 'Detail Item', 'sku' => 'D1', 'unit_price' => 1000, 'quantity' => 1, 'line_total' => 1000]);
 
         $this->get(route('admin.orders.show', $order))
             ->assertOk()

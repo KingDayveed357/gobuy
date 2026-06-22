@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Modules\Catalog\Models\Brand;
 use App\Modules\Catalog\Models\Category;
 use App\Modules\Catalog\Models\Product;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -54,5 +55,19 @@ class ProductCatalogTest extends TestCase
             ->assertOk()
             ->assertSee('Phone Charger')
             ->assertDontSee('Rice Bag');
+    }
+
+    public function test_listing_can_filter_by_brand_and_shows_a_removable_chip(): void
+    {
+        $apple = Brand::create(['name' => 'Apple', 'slug' => 'apple', 'is_active' => true]);
+        $samsung = Brand::create(['name' => 'Samsung', 'slug' => 'samsung', 'is_active' => true]);
+        Product::factory()->for($apple)->create(['name' => 'iThing']);
+        Product::factory()->for($samsung)->create(['name' => 'GalaxyThing']);
+
+        $this->get(route('products.index', ['brand' => 'apple']))
+            ->assertOk()
+            ->assertSee('iThing')
+            ->assertDontSee('GalaxyThing')
+            ->assertSee('Apple');           // chip label
     }
 }

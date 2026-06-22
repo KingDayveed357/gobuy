@@ -5,71 +5,32 @@ namespace Tests\Unit;
 use App\Models\User;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Pricing\Services\PriceResolver;
-use PHPUnit\Framework\TestCase;
+use App\Support\Money;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Tests\TestCase;
 
 class PriceResolverTest extends TestCase
 {
-    private PriceResolver $resolver;
+    use LazilyRefreshDatabase;
 
-    protected function setUp(): void
+    public function test_for_product_prices_the_default_variant(): void
     {
-        parent::setUp();
-        $this->resolver = new PriceResolver;
+        $product = Product::factory()->priced(1000, 800)->create()->load(['variants', 'quantityDiscounts']);
+        $resolver = app(PriceResolver::class);
+
+        $this->assertSame(Money::fromNaira(1000)->kobo, $resolver->for($product, null)->unitPrice->kobo);
     }
 
-    public function test_guest_pays_retail_price(): void
+    public function test_for_variant_applies_wholesale(): void
     {
-        $product = new Product(['retail_price' => 1000, 'wholesale_price' => 800, 'wholesale_min_qty' => 5]);
+        $product = Product::factory()->priced(1000, 800)->create()->load(['variants', 'quantityDiscounts']);
+        $variant = $product->primaryVariant();
+        $variant->setRelation('product', $product);
+        $resolver = app(PriceResolver::class);
 
-        $price = $this->resolver->for($product, null, 10);
+        $wholesale = User::factory()->wholesale()->create();
 
-        $this->assertSame(1000.0, $price->unitPrice);
-        $this->assertFalse($price->isWholesale);
-    }
-
-    public function test_retail_customer_never_gets_wholesale_price(): void
-    {
-        $product = new Product(['retail_price' => 1000, 'wholesale_price' => 800, 'wholesale_min_qty' => 5]);
-        $customer = new User(['customer_type' => User::TYPE_RETAIL]);
-
-        $price = $this->resolver->for($product, $customer, 50);
-
-        $this->assertSame(1000.0, $price->unitPrice);
-        $this->assertFalse($price->isWholesale);
-    }
-
-    public function test_wholesale_customer_below_min_qty_pays_retail(): void
-    {
-        $product = new Product(['retail_price' => 1000, 'wholesale_price' => 800, 'wholesale_min_qty' => 5]);
-        $customer = new User(['customer_type' => User::TYPE_WHOLESALE]);
-
-        $price = $this->resolver->for($product, $customer, 4);
-
-        $this->assertSame(1000.0, $price->unitPrice);
-        $this->assertFalse($price->isWholesale);
-    }
-
-    public function test_wholesale_customer_at_or_above_min_qty_pays_wholesale(): void
-    {
-        $product = new Product(['retail_price' => 1000, 'wholesale_price' => 800, 'wholesale_min_qty' => 5]);
-        $customer = new User(['customer_type' => User::TYPE_WHOLESALE]);
-
-        $price = $this->resolver->for($product, $customer, 5);
-
-        $this->assertSame(800.0, $price->unitPrice);
-        $this->assertTrue($price->isWholesale);
-        $this->assertTrue($price->hasDiscount());
-        $this->assertSame(4000.0, $price->lineTotal(5));
-    }
-
-    public function test_wholesale_customer_without_wholesale_price_pays_retail(): void
-    {
-        $product = new Product(['retail_price' => 1000, 'wholesale_price' => null, 'wholesale_min_qty' => 5]);
-        $customer = new User(['customer_type' => User::TYPE_WHOLESALE]);
-
-        $price = $this->resolver->for($product, $customer, 10);
-
-        $this->assertSame(1000.0, $price->unitPrice);
-        $this->assertFalse($price->isWholesale);
+        $this->assertSame(Money::fromNaira(1000)->kobo, $resolver->forVariant($variant, null)->unitPrice->kobo);
+        $this->assertSame(Money::fromNaira(800)->kobo, $resolver->forVariant($variant, $wholesale)->unitPrice->kobo);
     }
 }

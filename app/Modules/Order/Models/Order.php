@@ -3,10 +3,16 @@
 namespace App\Modules\Order\Models;
 
 use App\Models\User;
+use App\Modules\Logistics\Models\Shipment;
 use App\Modules\Order\Database\Factories\OrderFactory;
 use App\Modules\Order\Enums\OrderStatus;
+use App\Modules\Order\Enums\PaymentMethod;
 use App\Modules\Order\Enums\PaymentStatus;
+use App\Modules\Payment\Models\BankTransferProof;
 use App\Modules\Payment\Models\Payment;
+use App\Modules\Payment\Models\Refund;
+use App\Modules\Pricing\Models\Coupon;
+use App\Support\Money;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -30,16 +36,22 @@ class Order extends Model
         'state',
         'status',
         'payment_status',
+        'payment_method',
         'subtotal',
+        'discount_amount',
+        'tax_amount',
         'delivery_fee',
         'total',
         'placed_at',
+        'coupon_id',
+        'coupon_code',
     ];
 
     protected $attributes = [
         'status' => 'pending',
         'payment_status' => 'unpaid',
         'delivery_fee' => 0,
+        'discount_amount' => 0,
     ];
 
     protected function casts(): array
@@ -47,9 +59,12 @@ class Order extends Model
         return [
             'status' => OrderStatus::class,
             'payment_status' => PaymentStatus::class,
-            'subtotal' => 'decimal:2',
-            'delivery_fee' => 'decimal:2',
-            'total' => 'decimal:2',
+            'payment_method' => PaymentMethod::class,
+            'subtotal' => Money::class,
+            'discount_amount' => Money::class,
+            'tax_amount' => Money::class,
+            'delivery_fee' => Money::class,
+            'total' => Money::class,
             'placed_at' => 'datetime',
         ];
     }
@@ -57,6 +72,11 @@ class Order extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function coupon(): BelongsTo
+    {
+        return $this->belongsTo(Coupon::class);
     }
 
     public function items(): HasMany
@@ -74,9 +94,19 @@ class Order extends Model
         return $this->hasOne(Payment::class)->latestOfMany();
     }
 
+    public function shipment(): HasOne
+    {
+        return $this->hasOne(Shipment::class);
+    }
+
     public function refunds(): HasMany
     {
-        return $this->hasMany(\App\Modules\Payment\Models\Refund::class);
+        return $this->hasMany(Refund::class);
+    }
+
+    public function transferProofs(): HasMany
+    {
+        return $this->hasMany(BankTransferProof::class)->latest();
     }
 
     public function isPaid(): bool

@@ -1,0 +1,189 @@
+/* =============================================================
+   GoBuy Premium Mega Menu
+   ============================================================= */
+
+/* ---- Container & Trigger ---- */
+.mega-menu-container {
+    position: static;
+    
+}
+
+.mega-menu-trigger {
+    border-radius: 0.375rem;
+    padding: 0.45rem 0.85rem !important;
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    transition: background 0.15s ease, color 0.15s ease;
+    gap: 0.5rem;
+}
+
+.mega-menu-trigger:hover,
+.mega-menu-trigger[aria-expanded="true"] {
+    background: var(--phoenix-primary-bg-subtle) !important;
+    color: var(--phoenix-primary) !important;
+}
+
+.mega-menu-trigger .fas.fa-bars {
+    font-size: 0.875rem;
+}
+
+/* ---- Desktop Panel ---- */
+.mega-menu-panel {
+    border: 1px solid var(--phoenix-border-color-translucent) !important;
+    border-radius: 0.75rem !important;
+    overflow: hidden;
+    box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.08),
+        0 20px 50px -10px rgba(0, 0, 0, 0.2) !important;
+    animation: megaMenuSlideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+    transform-origin: top left;
+}
+
+@keyframes megaMenuSlideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* ---- Left Panel (Category List) ---- */
+.mega-menu-left-panel {
+    background: var(--phoenix-body-tertiary-bg) !important;
+    border-right: 1px solid var(--phoenix-border-color-translucent);
+}
+
+.mega-menu-root-list {
+    padding: 0.5rem !important;
+}
+
+.mega-menu-root-link {
+    display: flex;
+    align-items: center;
+    padding: 0.6rem 0.85rem !important;
+    border-radius: 0.5rem;
+    margin-bottom: 0.15rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--phoenix-secondary-color);
+    text-decoration: none;
+    transition: background 0.15s ease, color 0.15s ease;
+    position: relative;
+}
+
+.mega-menu-root-link:hover {
+    background: var(--phoenix-emphasis-bg);
+    color: var(--phoenix-body-color);
+}
+
+.mega-menu-root-link.active {
+    background: var(--phoenix-primary-bg-subtle);
+    color: var(--phoenix-primary) !important;
+    font-weight: 600;
+}
+
+.mega-menu-root-link.active .fa-chevron-right {
+    color: var(--phoenix-primary) !important;
+}
+
+/* ---- Right Panel (Subcategories) ---- */
+.mega-menu-right-panel {
+    background: var(--phoenix-body-bg);
+}
+
+.mega-menu-search {
+    border-radius: 0.5rem;
+    font-size: 0.8125rem;
+    border: 1px solid var(--phoenix-border-color-translucent);
+    background: var(--phoenix-body-tertiary-bg);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mega-menu-search:focus {
+    border-color: var(--phoenix-primary);
+    box-shadow: 0 0 0 3px rgba(var(--phoenix-primary-rgb), 0.12);
+    background: var(--phoenix-body-bg);
+}
+
+/* ---- Content Panel ---- */
+.mega-menu-content {
+    animation: megaContentFadeIn 0.18s ease both;
+}
+
+@keyframes megaContentFadeIn {
+    from { opacity: 0; transform: translateX(6px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+.mega-menu-content h5 a {
+    transition: color 0.15s ease;
+}
+
+.mega-menu-content h5 a:hover {
+    color: var(--phoenix-primary) !important;
+}
+
+/* ---- Subcategory Cards ---- */
+.subcategory-item a {
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.subcategory-item a:hover {
+    color: var(--phoenix-primary) !important;
+}
+
+.subcategory-item ul li a {
+    transition: color 0.15s ease, padding-left 0.15s ease;
+    display: block;
+    padding: 0.2rem 0;
+}
+
+.subcategory-item ul li a:hover {
+    color: var(--phoenix-primary) !important;
+    padding-left: 0.25rem;
+}
+
+/* ---- Empty State ---- */
+.mega-menu-empty-state {
+    padding: 3rem 1rem;
+}
+
+.mega-menu-empty-state p {
+    font-size: 0.875rem;
+}
+
+/* ---- Mobile Offcanvas ---- */
+.offcanvas .accordion-button {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.offcanvas .accordion-button:not(.collapsed) {
+    background-color: var(--phoenix-primary-bg-subtle);
+    color: var(--phoenix-primary);
+    box-shadow: none;
+}
+
+.offcanvas .accordion-button:focus {
+    box-shadow: none;
+}
+
+.offcanvas .list-group-item {
+    padding-top: 0.6rem;
+    padding-bottom: 0.6rem;
+}
+
+.offcanvas .mobile-subcategory-item a {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.mega-menu-mobile-search {
+    border-radius: 0.5rem;
+    font-size: 0.8125rem;
+}

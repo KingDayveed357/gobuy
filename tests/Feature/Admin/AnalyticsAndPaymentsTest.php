@@ -16,7 +16,7 @@ class AnalyticsAndPaymentsTest extends TestCase
     {
         $this->actingAsAdmin('Admin');
         Order::factory()->paid()->create()->items()->create([
-            'product_id' => null, 'name' => 'Hot Product', 'sku' => 'HP1', 'unit_price' => 5000, 'quantity' => 3, 'line_total' => 15000,
+            'product_variant_id' => null, 'name' => 'Hot Product', 'sku' => 'HP1', 'unit_price' => 5000, 'quantity' => 3, 'line_total' => 15000,
         ]);
 
         $this->get(route('admin.analytics'))

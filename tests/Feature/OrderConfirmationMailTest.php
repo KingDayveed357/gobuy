@@ -21,7 +21,7 @@ class OrderConfirmationMailTest extends TestCase
         Http::fake(['*/transaction/verify/*' => Http::response(['status' => true, 'data' => ['status' => 'success']])]);
 
         $order = Order::factory()->create(['customer_email' => 'buyer@example.com']);
-        $order->items()->create(['product_id' => null, 'name' => 'Item', 'sku' => 'I1', 'unit_price' => 1000, 'quantity' => 1, 'line_total' => 1000]);
+        $order->items()->create(['product_variant_id' => null, 'name' => 'Item', 'sku' => 'I1', 'unit_price' => 1000, 'quantity' => 1, 'line_total' => 1000]);
         $order->statusHistories()->create(['status' => OrderStatus::Pending, 'note' => 'Order placed']);
         $payment = $order->payment()->create(['reference' => 'GB-PAY-MAILTEST', 'amount' => $order->total, 'status' => 'pending']);
 

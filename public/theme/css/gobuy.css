@@ -100,17 +100,97 @@
 .products-slider .swiper-button-disabled { opacity: 0; }
 .products-slider .swiper-slide { height: auto; }
 
+.related-products-slider {
+  overflow: hidden;
+  padding: 0.25rem 2.75rem 0.35rem;
+}
+
+.related-products-slider .swiper {
+  overflow: visible;
+}
+
+.related-products-slider .swiper-slide {
+  height: auto;
+}
+
+.related-products-slider .product-card-container {
+  justify-content: stretch;
+}
+
+.related-products-slider .product-card {
+  width: 100%;
+}
+
+.related-products-slider .related-products-nav [class*=swiper-] {
+  top: 42%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid var(--phoenix-border-color-translucent);
+  border-radius: 50%;
+  color: var(--phoenix-primary);
+  background: var(--phoenix-emphasis-bg);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.14);
+  transition:
+    transform 0.18s ease,
+    color 0.18s ease,
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    opacity 0.18s ease;
+}
+
+.related-products-slider .related-products-nav [class*=swiper-]:hover,
+.related-products-slider .related-products-nav [class*=swiper-]:focus {
+  color: #fff;
+  background: var(--phoenix-primary);
+  border-color: var(--phoenix-primary);
+  transform: translateY(-50%) scale(1.04);
+}
+
+.related-products-slider .related-products-nav .swiper-button-prev {
+  left: 0.25rem;
+}
+
+.related-products-slider .related-products-nav .swiper-button-next {
+  right: 0.25rem;
+}
+
+.related-products-slider .related-products-nav .swiper-button-disabled {
+  opacity: 0.35;
+}
+
+.related-products-slider .related-products-nav .fas {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+@media (max-width: 575.98px) {
+  .related-products-slider {
+    padding-inline: 0;
+  }
+
+  .related-products-slider .related-products-nav {
+    display: none;
+  }
+}
+
 /* ---------- Product filter page: Phoenix template glue ---------- */
 .gb-template-product-media {
-  min-height: 13.25rem;
+  height: 13.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1rem;
+  overflow: hidden;
 }
 
 .gb-template-product-media img {
-  max-height: 11.5rem;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
   object-fit: contain;
 }
 
@@ -136,3 +216,466 @@
     width: 16.66666667%;
   }
 }
+
+/* =============================================================
+   GoBuy Premium Wizard Stepper
+   ============================================================= */
+
+/* ---- Vertical Wizard: body LEFT, steps RIGHT ---- */
+.gb-wizard {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  width: 100%;
+}
+
+/* Form content (left, grows) */
+.gb-wizard-body {
+  flex: 1;
+  min-width: 0;
+  order: 1;
+}
+
+/* Stepper sidebar (right, fixed width, sticky) */
+.gb-wizard-steps {
+  flex: 0 0 190px;
+  max-width: 190px;
+  list-style: none;
+  padding: 1rem;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  order: 2;
+  position: sticky;
+  top: 1.5rem;
+  border: 1px solid var(--phoenix-border-color-translucent);
+  border-radius: 0.75rem;
+  background: var(--phoenix-body-tertiary-bg);
+}
+
+/* Nav footer sits below form body */
+.gb-wizard-nav-wrap {
+  order: 3;
+  width: 100%;
+}
+
+/* ---- Step Item ---- */
+.gb-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  position: relative;
+  padding-bottom: 1.75rem;
+  cursor: pointer;
+}
+
+/* Vertical connector line */
+.gb-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 1.0625rem;  /* half of 2.125rem circle */
+  top: 2.4rem;
+  bottom: 0;
+  width: 2px;
+  background: var(--phoenix-border-color-translucent);
+  transition: background 0.3s ease;
+  transform: translateX(-50%);
+}
+
+.gb-step.is-done:not(:last-child)::after {
+  background: var(--phoenix-primary);
+}
+
+/* ---- Circle ---- */
+.gb-step-circle {
+  width: 2.125rem;
+  height: 2.125rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  border: 2px solid var(--phoenix-border-color-translucent);
+  background: var(--phoenix-body-bg);
+  color: var(--phoenix-secondary-color);
+  transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.gb-step.is-done .gb-step-circle {
+  background: var(--phoenix-primary);
+  border-color: var(--phoenix-primary);
+  color: #fff;
+}
+
+.gb-step.is-active .gb-step-circle {
+  background: var(--phoenix-primary-bg-subtle);
+  border-color: var(--phoenix-primary);
+  color: var(--phoenix-primary);
+  box-shadow: 0 0 0 4px rgba(var(--phoenix-primary-rgb, 94, 95, 213), 0.18);
+}
+
+/* Done: show checkmark, hide icon */
+.gb-step.is-done .gb-step-circle::after {
+  content: '\f00c';
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  font-size: 0.7rem;
+}
+
+.gb-step.is-done .gb-step-circle i { display: none; }
+
+/* ---- Label ---- */
+.gb-step-label {
+  display: flex;
+  flex-direction: column;
+  padding-top: 0.25rem;
+  min-width: 0;
+}
+
+.gb-step-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--phoenix-secondary-color);
+  transition: color 0.2s ease;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gb-step.is-active .gb-step-title  { color: var(--phoenix-primary); }
+.gb-step.is-done   .gb-step-title  { color: var(--phoenix-body-emphasis-color); }
+
+.gb-step-subtitle {
+  font-size: 0.7rem;
+  color: var(--phoenix-tertiary-color);
+  margin-top: 0.1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- Pane ---- */
+.gb-step-pane {
+  display: none;
+  animation: gbPaneFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.gb-step-pane.is-active { display: block; }
+
+@keyframes gbPaneFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- Nav footer ---- */
+.gb-wizard-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1.25rem;
+  margin-top: 1.25rem;
+  border-top: 1px solid var(--phoenix-border-color-translucent);
+}
+
+.gb-wizard-nav .btn-prev {
+  font-size: 0.8125rem;
+  color: var(--phoenix-secondary-color);
+  font-weight: 600;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.gb-wizard-nav .btn-prev:hover { color: var(--phoenix-body-emphasis-color); }
+
+/* ---- Mobile: steps collapse to horizontal bar at TOP ---- */
+@media (max-width: 767.98px) {
+  .gb-wizard {
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .gb-wizard-body  { order: 2; width: 100%; }
+
+  .gb-wizard-steps {
+    order: 1;
+    flex: none;
+    width: 100%;
+    max-width: 100%;
+    flex-direction: row;
+    position: static;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    overflow-x: auto;
+    justify-content: space-between;
+    gap: 0;
+  }
+
+  .gb-step {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding-bottom: 0;
+    padding-inline: 0.25rem;
+    flex: 1;
+    min-width: 64px;
+  }
+
+  /* Horizontal connector on mobile */
+  .gb-step:not(:last-child)::after {
+    left: 50%;
+    top: 1.0625rem;
+    bottom: auto;
+    width: calc(100% - 2rem);
+    height: 2px;
+    transform: none;
+  }
+
+  .gb-step-label { align-items: center; padding-top: 0.4rem; }
+
+  .gb-step-subtitle { display: none; }
+}
+
+/* ---- Form group polish ---- */
+.gb-form-section {
+  border: 1px solid var(--phoenix-border-color-translucent);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  margin-bottom: 1.25rem;
+}
+
+.gb-form-section-header {
+  background: var(--phoenix-body-tertiary-bg);
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--phoenix-border-color-translucent);
+}
+
+.gb-form-section-header h5 {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--phoenix-body-emphasis-color);
+}
+
+.gb-form-section-body {
+  padding: 1.25rem;
+}
+
+.gb-form-section-footer {
+  background: var(--phoenix-body-tertiary-bg);
+  padding: 0.875rem 1.25rem;
+  border-top: 1px solid var(--phoenix-border-color-translucent);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+/* ---- Form label polish ---- */
+.gb-form-section .form-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--phoenix-secondary-color);
+  margin-bottom: 0.4rem;
+}
+
+.gb-form-section .form-control,
+.gb-form-section .form-select {
+  border-radius: 0.5rem;
+  border: 1.5px solid var(--phoenix-border-color-translucent);
+  font-size: 0.9rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  background: var(--phoenix-body-bg);
+}
+
+.gb-form-section .form-control:focus,
+.gb-form-section .form-select:focus {
+  border-color: var(--phoenix-primary);
+  box-shadow: 0 0 0 3px rgba(var(--phoenix-primary-rgb, 94, 95, 213), 0.15);
+}
+
+.gb-form-section .form-control.is-valid {
+  border-color: var(--phoenix-success);
+}
+
+.gb-form-section .form-control.is-invalid {
+  border-color: var(--phoenix-danger);
+}
+
+/* =============================================================
+   Theme Preference Picker (Account Settings — Preferences step)
+   ============================================================= */
+
+.gb-theme-option {
+  cursor: pointer;
+  display: block;
+}
+
+.gb-theme-card {
+  padding: 0.875rem 1rem;
+  border: 2px solid var(--phoenix-border-color-translucent);
+  border-radius: 0.625rem;
+  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+  background: var(--phoenix-body-bg);
+}
+
+.gb-theme-card:hover {
+  border-color: var(--phoenix-primary-bg-subtle);
+  background: var(--phoenix-primary-bg-subtle);
+}
+
+.gb-theme-card.active {
+  border-color: var(--phoenix-primary);
+  background: var(--phoenix-primary-bg-subtle);
+  box-shadow: 0 0 0 3px rgba(var(--phoenix-primary-rgb, 94, 95, 213), 0.12);
+}
+
+.gb-theme-check {
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  font-size: 1.1rem;
+}
+
+/* ---- Mini theme preview swatch ---- */
+.gb-theme-preview {
+  width: 3rem;
+  height: 2.25rem;
+  border-radius: 0.375rem;
+  border: 1px solid var(--phoenix-border-color-translucent);
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.gb-theme-preview-header {
+  flex: 0 0 0.6rem;
+  background: #e9ecef;
+}
+
+.gb-theme-preview-body {
+  flex: 1;
+  background: #fff;
+}
+
+.gb-theme-preview-dark .gb-theme-preview-header {
+  background: #1e2130;
+}
+
+.gb-theme-preview-dark .gb-theme-preview-body {
+  background: #13151f;
+}
+
+/* System: split half-light / half-dark */
+.gb-theme-preview-system {
+  flex-direction: row;
+}
+
+.gb-theme-preview-half {
+  flex: 1;
+  height: 100%;
+}
+
+.gb-theme-preview-half-light { background: #fff; }
+.gb-theme-preview-half-dark  { background: #13151f; }
+
+/* =============================================================
+   Storefront Nav — Mobile fixes
+   ============================================================= */
+
+/* Prevent secondary nav from wrapping awkwardly */
+.navbar-responsive-navitems,
+nav[aria-label="Category and page links"] {
+  overflow-x: clip;
+}
+
+nav[aria-label="Category and page links"] .container-small > div {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
+}
+
+nav[aria-label="Category and page links"] .container-small > div::-webkit-scrollbar {
+  display: none;
+}
+
+/* Ensure mega-menu panel doesn't overflow viewport on mobile */
+@media (max-width: 767.98px) {
+  #desktopMegaMenu {
+    width: calc(100vw - 1.5rem) !important;
+    max-width: 100vw !important;
+    left: 0 !important;
+  }
+
+  /* Hide cart link from secondary bar on very small screens (already in top icons) */
+  nav[aria-label="Category and page links"] .d-none.d-sm-block {
+    display: none !important;
+  }
+}
+
+/* Logo sizing */
+.logo-text {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+/* Dropdown profile min-width guard */
+.dropdown-profile {
+  min-width: 260px;
+  max-width: 320px;
+}
+
+
+/* ---------- Wishlist (unified DB + guest) ---------- */
+.wishlist-badge {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--phoenix-danger);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+/* Persistent "saved" state for any wishlist heart button (cards + PDP button) */
+.is-wished .far.fa-heart,
+.is-wished .fa-heart.d-none-hover { display: none !important; }
+.is-wished .fas.fa-heart,
+.is-wished .fa-heart.d-block-hover { display: inline-block !important; color: var(--phoenix-danger) !important; }
+.is-wished .wishlist-icon { color: var(--phoenix-danger) !important; }
+/* Ensure the card heart is always clickable above the stretched-link overlay. */
+.product-card .btn-wish { z-index: 5; }
+
+/* ---------- Predictive search ---------- */
+.gb-search { }
+.gb-search-input { padding-left: 2.4rem; border-radius: 999px; }
+.gb-search-icon {
+  position: absolute;
+  left: 0.95rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--phoenix-tertiary-color);
+  pointer-events: none;
+  font-size: 0.85rem;
+}
+.gb-search-panel {
+  max-height: 70vh;
+  overflow-y: auto;
+  border-radius: 0.75rem;
+}
+.gb-search-panel .dropdown-item.active,
+.gb-search-panel .dropdown-item:hover { background: var(--phoenix-primary-bg-subtle); }
+.gb-search-panel mark { color: inherit; border-radius: 2px; }

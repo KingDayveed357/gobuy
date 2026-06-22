@@ -1,0 +1,146 @@
+/* ============================================================
+   Premium Toast Notification System
+   ============================================================ */
+
+   .premium-toast-container {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    z-index: 1060;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    pointer-events: none;
+    max-width: 400px;
+    width: calc(100vw - 3rem);
+  }
+  
+  .premium-toast {
+    position: relative;
+    pointer-events: auto;
+    background: var(--phoenix-body-bg);
+    color: var(--phoenix-body-color);
+    border: 1px solid var(--phoenix-border-color-translucent);
+    border-radius: 0.75rem;
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    transform: translateX(120%);
+    opacity: 0;
+    transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.4s ease;
+    will-change: transform, opacity;
+  }
+  
+  .premium-toast.toast-show {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  
+  .premium-toast.toast-hide {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+  
+  .premium-toast-icon {
+    flex-shrink: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    margin-top: 0.1rem;
+  }
+  
+  /* Status Colors */
+  .premium-toast.toast-success .premium-toast-icon {
+    background: var(--phoenix-success-bg-subtle);
+    color: var(--phoenix-success);
+  }
+  .premium-toast.toast-error .premium-toast-icon {
+    background: var(--phoenix-danger-bg-subtle);
+    color: var(--phoenix-danger);
+  }
+  .premium-toast.toast-warning .premium-toast-icon {
+    background: var(--phoenix-warning-bg-subtle);
+    color: var(--phoenix-warning);
+  }
+  .premium-toast.toast-info .premium-toast-icon {
+    background: var(--phoenix-info-bg-subtle);
+    color: var(--phoenix-info);
+  }
+  
+  .premium-toast-content {
+    flex-grow: 1;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    padding-top: 0.15rem;
+  }
+  
+  .premium-toast-close {
+    background: transparent;
+    border: none;
+    color: var(--phoenix-tertiary-color);
+    cursor: pointer;
+    padding: 0.2rem;
+    margin: -0.2rem -0.2rem 0 0;
+    transition: color 0.15s ease;
+    border-radius: 0.25rem;
+  }
+  
+  .premium-toast-close:hover {
+    color: var(--phoenix-emphasis-color);
+    background: var(--phoenix-body-highlight-bg);
+  }
+  
+  /* Progress Bar */
+  .premium-toast-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: rgba(0, 0, 0, 0.05);
+    width: 100%;
+    border-bottom-left-radius: 0.75rem;
+    border-bottom-right-radius: 0.75rem;
+    overflow: hidden;
+  }
+  
+  html[data-bs-theme="dark"] .premium-toast-progress {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  
+  .premium-toast-progress-bar {
+    height: 100%;
+    width: 100%;
+    transform-origin: left;
+  }
+  
+  .premium-toast.toast-success .premium-toast-progress-bar { background: var(--phoenix-success); }
+  .premium-toast.toast-error .premium-toast-progress-bar { background: var(--phoenix-danger); }
+  .premium-toast.toast-warning .premium-toast-progress-bar { background: var(--phoenix-warning); }
+  .premium-toast.toast-info .premium-toast-progress-bar { background: var(--phoenix-info); }
+  
+  @media (max-width: 575.98px) {
+    .premium-toast-container {
+      top: 1rem;
+      right: 1rem;
+      left: 1rem;
+      width: auto;
+      max-width: none;
+    }
+    
+    .premium-toast {
+      transform: translateY(-120%);
+    }
+    
+    .premium-toast.toast-show {
+      transform: translateY(0);
+    }
+    
+    .premium-toast.toast-hide {
+      transform: translateY(-120%);
+    }
+  }

@@ -2,34 +2,15 @@
 
 namespace App\Modules\Catalog\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
+use App\Modules\Catalog\Models\Product;
 
-class UpdateProductRequest extends FormRequest
+class UpdateProductRequest extends StoreProductRequest
 {
-    public function authorize(): bool
+    protected function ignoredProductId(): ?int
     {
-        return true;
-    }
+        /** @var Product $product */
+        $product = $this->route('product');
 
-    /**
-     * @return array<string, mixed>
-     */
-    public function rules(): array
-    {
-        $productId = $this->route('product')->id;
-
-        return [
-            'category_id' => ['required', Rule::exists('categories', 'id')],
-            'name' => ['required', 'string', 'max:255'],
-            'sku' => ['required', 'string', 'max:64', Rule::unique('products', 'sku')->ignore($productId)],
-            'description' => ['nullable', 'string'],
-            'retail_price' => ['required', 'numeric', 'min:0'],
-            'wholesale_price' => ['nullable', 'numeric', 'min:0'],
-            'wholesale_min_qty' => ['required', 'integer', 'min:1'],
-            'stock' => ['required', 'integer', 'min:0'],
-            'status' => ['required', Rule::in(['draft', 'active', 'archived'])],
-            'is_featured' => ['boolean'],
-        ];
+        return $product?->id;
     }
 }

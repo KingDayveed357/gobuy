@@ -10,13 +10,13 @@ Hi {{ $order->customer_name }}, we've received your payment and your order is co
 | Item | Qty | Total |
 |:-----|:---:|------:|
 @foreach ($order->items as $item)
-| {{ $item->name }} | {{ $item->quantity }} | ₦{{ number_format($item->line_total, 2) }} |
+| {{ $item->name }} | {{ $item->quantity }} | {{ money($item->line_total) }} |
 @endforeach
 @endcomponent
 
-**Subtotal:** ₦{{ number_format($order->subtotal, 2) }}
-**Delivery:** ₦{{ number_format($order->delivery_fee, 2) }}
-**Total:** ₦{{ number_format($order->total, 2) }}
+**Subtotal:** {{ money($order->subtotal) }}
+**Delivery:** {{ money($order->delivery_fee) }}
+**Total:** {{ money($order->total) }}
 
 **Delivery to:**
 {{ $order->customer_name }}

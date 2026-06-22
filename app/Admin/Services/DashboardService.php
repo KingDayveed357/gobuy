@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Order\Enums\PaymentStatus;
 use App\Modules\Order\Models\Order;
+use Illuminate\Support\Collection;
 
 class DashboardService
 {
@@ -24,12 +25,12 @@ class DashboardService
             'pending_orders' => Order::where('payment_status', PaymentStatus::Unpaid->value)->count(),
             'customers' => User::where('role', User::ROLE_CUSTOMER)->count(),
             'products' => Product::count(),
-            'low_stock' => Product::where('stock', '<=', 5)->count(),
+            'low_stock' => Product::whereHas('variants', fn ($q) => $q->where('stock', '<=', 5))->count(),
         ];
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, Order>
+     * @return Collection<int, Order>
      */
     public function recentOrders(int $limit = 8)
     {
@@ -37,10 +38,13 @@ class DashboardService
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, Product>
+     * @return Collection<int, Product>
      */
     public function lowStockProducts(int $limit = 5)
     {
-        return Product::with('category')->where('stock', '<=', 5)->orderBy('stock')->take($limit)->get();
+        return Product::with(['category', 'variants'])
+            ->whereHas('variants', fn ($q) => $q->where('stock', '<=', 5))
+            ->take($limit)
+            ->get();
     }
 }

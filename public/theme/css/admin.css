@@ -58,6 +58,89 @@
   object-fit: contain;
 }
 
+/* ---------- Dropzone + gallery ---------- */
+.admin-dropzone {
+  border: 1px dashed var(--phoenix-border-color-translucent);
+  border-radius: 1rem;
+  background: var(--phoenix-body-highlight-bg);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.admin-dropzone.is-dragging {
+  border-color: var(--phoenix-primary);
+  background: var(--phoenix-primary-bg-subtle);
+}
+.admin-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 0.75rem;
+}
+.admin-gallery-item {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border: 1px solid var(--phoenix-border-color-translucent);
+  border-radius: 0.75rem;
+  background: var(--phoenix-body-bg);
+  overflow: hidden;
+}
+.admin-gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0.35rem;
+}
+.admin-gallery-item.is-removed {
+  opacity: 0.4;
+}
+.admin-gallery-item.is-removed img {
+  filter: grayscale(1);
+}
+.admin-gallery-remove {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--phoenix-body-bg);
+  border: 1px solid var(--phoenix-border-color-translucent);
+  color: var(--phoenix-danger);
+  font-size: 0.7rem;
+  cursor: pointer;
+  margin: 0;
+}
+.admin-gallery-remove:hover {
+  background: var(--phoenix-danger);
+  color: #fff;
+}
+.admin-gallery-badge {
+  position: absolute;
+  bottom: 0.3rem;
+  left: 0.3rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.4rem;
+  background: var(--phoenix-primary);
+  color: #fff;
+}
+.admin-gallery-badge--new {
+  background: var(--phoenix-success);
+}
+
+/* ---------- Repeaters (variants / tiers) ---------- */
+.admin-repeater-row {
+  padding: 0.85rem;
+  border: 1px solid var(--phoenix-border-color-translucent);
+  border-radius: 0.75rem;
+  background: var(--phoenix-body-highlight-bg);
+  margin-bottom: 0.75rem;
+}
+
 /* ---------- Cards ---------- */
 .admin-card {
   border: 1px solid var(--phoenix-border-color-translucent);
@@ -152,3 +235,47 @@
 }
 
 .admin-chart { height: 220px; display: flex; align-items: flex-end; gap: 0.5rem; }
+
+/* ---------- Layout Bug Fixes ---------- */
+/* Fix sidebar scrolling with page when collapsed. */
+html.navbar-vertical-collapsed .navbar-vertical {
+  position: fixed !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  height: 100vh !important;
+  z-index: 1020 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+html.navbar-vertical-collapsed .navbar-vertical .navbar-collapse {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Enable scrolling for the collapsed sidebar's content */
+html.navbar-vertical-collapsed .navbar-vertical .navbar-vertical-content {
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  min-height: 0 !important;
+  height: auto !important;
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(150, 150, 150, 0.4) transparent;
+}
+
+/* Webkit Scrollbar */
+html.navbar-vertical-collapsed .navbar-vertical .navbar-vertical-content::-webkit-scrollbar {
+  width: 4px;
+  background-color: transparent;
+}
+html.navbar-vertical-collapsed .navbar-vertical .navbar-vertical-content::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background-color: rgba(150, 150, 150, 0.4);
+}
+html[data-bs-theme="dark"].navbar-vertical-collapsed .navbar-vertical .navbar-vertical-content::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+}

@@ -50,8 +50,8 @@
                                             <tr>
                                                 <td class="fw-semibold text-body-emphasis">{{ $item->name }}<br><span class="fs-10 text-body-tertiary fw-normal">{{ $item->sku }}</span></td>
                                                 <td class="text-center">{{ $item->quantity }}</td>
-                                                <td class="text-end">₦{{ number_format($item->unit_price, 2) }}</td>
-                                                <td class="text-end fw-semibold">₦{{ number_format($item->line_total, 2) }}</td>
+                                                <td class="text-end">{{ money($item->unit_price) }}</td>
+                                                <td class="text-end fw-semibold">{{ money($item->line_total) }}</td>
                                             </tr>
                                         @endforeach
                                     </tbody>
@@ -69,9 +69,12 @@
                                     </p>
                                 </div>
                                 <div class="col-md-6">
-                                    <div class="d-flex justify-content-between"><span class="text-body-tertiary">Subtotal</span><span>₦{{ number_format($order->subtotal, 2) }}</span></div>
-                                    <div class="d-flex justify-content-between"><span class="text-body-tertiary">Delivery</span><span>₦{{ number_format($order->delivery_fee, 2) }}</span></div>
-                                    <div class="d-flex justify-content-between border-top border-translucent pt-2 mt-2"><h5 class="mb-0">Total</h5><h5 class="mb-0">₦{{ number_format($order->total, 2) }}</h5></div>
+                                    <div class="d-flex justify-content-between"><span class="text-body-tertiary">Subtotal</span><span>{{ money($order->subtotal) }}</span></div>
+                                    <div class="d-flex justify-content-between"><span class="text-body-tertiary">Delivery</span><span>{{ money($order->delivery_fee) }}</span></div>
+                                    @if ($order->tax_amount->isPositive())
+                                        <div class="d-flex justify-content-between"><span class="text-body-tertiary">VAT</span><span>{{ money($order->tax_amount) }}</span></div>
+                                    @endif
+                                    <div class="d-flex justify-content-between border-top border-translucent pt-2 mt-2"><h5 class="mb-0">Total</h5><h5 class="mb-0">{{ money($order->total) }}</h5></div>
                                 </div>
                             </div>
                         </div>

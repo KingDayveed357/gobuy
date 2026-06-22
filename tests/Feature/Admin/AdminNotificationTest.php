@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin;
 
 use App\Admin\Models\Admin;
+use App\Admin\Notifications\NewPaidOrderNotification;
 use App\Modules\Order\Enums\OrderStatus;
 use App\Modules\Order\Models\Order;
 use App\Modules\Payment\Services\PaymentService;
@@ -24,7 +25,7 @@ class AdminNotificationTest extends TestCase
         Http::fake(['*/transaction/verify/*' => Http::response(['status' => true, 'data' => ['status' => 'success']])]);
 
         $order = Order::factory()->create(['customer_email' => 'buyer@example.com']);
-        $order->items()->create(['product_id' => null, 'name' => 'Item', 'sku' => 'I1', 'unit_price' => 1000, 'quantity' => 1, 'line_total' => 1000]);
+        $order->items()->create(['product_variant_id' => null, 'name' => 'Item', 'sku' => 'I1', 'unit_price' => 1000, 'quantity' => 1, 'line_total' => 1000]);
         $order->statusHistories()->create(['status' => OrderStatus::Pending, 'note' => 'Order placed']);
         $payment = $order->payment()->create(['reference' => 'GB-PAY-NOTIFY', 'amount' => $order->total, 'status' => 'pending']);
 
@@ -42,7 +43,7 @@ class AdminNotificationTest extends TestCase
     {
         $admin = $this->actingAsAdmin('Super Admin');
         $order = Order::factory()->paid()->create();
-        $admin->notify(new \App\Admin\Notifications\NewPaidOrderNotification($order));
+        $admin->notify(new NewPaidOrderNotification($order));
 
         $this->assertSame(1, $admin->fresh()->unreadNotifications()->count());
 

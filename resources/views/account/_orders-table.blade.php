@@ -7,8 +7,8 @@
     </div>
 @else
     <div class="card">
-        <div class="card-body p-0">
-            <table class="table table-sm mb-0 fs-9">
+        <div class="card-body p-2">
+            <table class="table table-sm mb-0 fs-9 ">
                 <thead>
                     <tr>
                         <th>Order</th>
@@ -30,8 +30,16 @@
                                     {{ $order->status->label() }}
                                 </span>
                             </td>
-                            <td class="text-end fw-semibold">₦{{ number_format($order->total, 2) }}</td>
-                            <td class="text-end"><a href="{{ route('orders.success', $order) }}" class="btn btn-sm btn-phoenix-secondary">View</a></td>
+                            <td class="text-end fw-semibold">{{ money($order->total) }}</td>
+                            <td class="text-end">
+                                <div class="d-inline-flex gap-2">
+                                    <a href="{{ route('orders.success', $order) }}" class="btn btn-sm btn-phoenix-secondary">View</a>
+                                    <form action="{{ route('account.orders.reorder', $order) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-phoenix-primary" title="Add these items to your cart"><span class="fas fa-rotate-right me-1"></span>Reorder</button>
+                                    </form>
+                                </div>
+                            </td>
                         </tr>
                     @endforeach
                 </tbody>

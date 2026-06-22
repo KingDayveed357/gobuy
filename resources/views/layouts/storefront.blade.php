@@ -3,17 +3,14 @@
 
 <head>
     @include('partials.head')
+    <link href="{{ asset('theme/css/toast.css') }}" type="text/css" rel="stylesheet">
 </head>
 
 <body>
     <main class="main" id="top">
         @include('partials.storefront-nav')
 
-        @if (session('status'))
-            <div class="container-small mt-3">
-                <div class="alert alert-subtle-success" role="alert">{{ session('status') }}</div>
-            </div>
-        @endif
+        {{-- Flash messages are handled by Toast via JS below --}}
 
         @yield('content')
 
@@ -21,6 +18,25 @@
     </main>
 
     @include('partials.scripts')
+    <script src="{{ asset('theme/js/toast.js') }}"></script>
+    @include('partials.wishlist-script')
+    @include('partials.search-script')
+
+    {{-- Trigger Premium Toast Notifications --}}
+    @if(session('status'))
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                Toast.success("{{ session('status') }}");
+            });
+        </script>
+    @endif
+    @if(session('error'))
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                Toast.error("{{ session('error') }}");
+            });
+        </script>
+    @endif
 </body>
 
 </html>

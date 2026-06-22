@@ -3,7 +3,7 @@
 @section('title', 'Products — gobuy')
 
 @php
-    $hasFilters = request()->hasAny(['q', 'category', 'in_stock', 'min', 'max']);
+    $hasFilters = request()->hasAny(['q', 'category', 'brand', 'in_stock', 'min', 'max']);
 @endphp
 
 @section('content')
@@ -93,6 +93,28 @@
                             </div>
                         </div>
 
+                        @if ($brands->isNotEmpty())
+                            <a class="btn px-0 y-4 d-block collapse-indicator" data-bs-toggle="collapse" href="#collapseBrand" role="button" aria-expanded="true" aria-controls="collapseBrand">
+                                <div class="d-flex align-items-center justify-content-between w-100">
+                                    <div class="fs-8 text-body-highlight">Brand</div><span class="fa-solid fa-angle-down toggle-icon text-body-quaternary"></span>
+                                </div>
+                            </a>
+                            <div class="collapse show" id="collapseBrand">
+                                <div class="d-flex flex-column gap-2 mb-3" style="max-height: 220px; overflow-y: auto;">
+                                    <div class="form-check mb-0">
+                                        <input class="form-check-input mt-0" id="brand-all" type="radio" name="brand" value="" @checked(! request('brand'))>
+                                        <label class="form-check-label d-block lh-sm fs-8 text-body fw-normal mb-0" for="brand-all">All brands</label>
+                                    </div>
+                                    @foreach ($brands as $brand)
+                                        <div class="form-check mb-0">
+                                            <input class="form-check-input mt-0" id="brand-{{ $brand->id }}" type="radio" name="brand" value="{{ $brand->slug }}" @checked(request('brand') === $brand->slug)>
+                                            <label class="form-check-label d-block lh-sm fs-8 text-body fw-normal mb-0" for="brand-{{ $brand->id }}">{{ $brand->name }}</label>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+
                         <a class="btn px-0 y-4 d-block collapse-indicator" data-bs-toggle="collapse" href="#collapseRating" role="button" aria-expanded="true" aria-controls="collapseRating">
                             <div class="d-flex align-items-center justify-content-between w-100">
                                 <div class="fs-8 text-body-highlight">Rating</div><span class="fa-solid fa-angle-down toggle-icon text-body-quaternary"></span>
@@ -120,6 +142,25 @@
                 </div>
 
                 <div class="col-lg-9 col-xxl-10">
+                    <nav aria-label="breadcrumb" class="mb-3">
+                        <ol class="breadcrumb mb-0 fs-9">
+                            <li class="breadcrumb-item"><a href="{{ route('home') }}">Home</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Products</li>
+                        </ol>
+                    </nav>
+
+                    @if (! empty($activeFilters))
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+                            <span class="fs-9 text-body-tertiary me-1">Filters:</span>
+                            @foreach ($activeFilters as $filter)
+                                <a href="{{ $filter['remove_url'] }}" class="badge badge-phoenix badge-phoenix-secondary text-decoration-none d-inline-flex align-items-center">
+                                    {{ $filter['label'] }}<span class="fas fa-xmark ms-2"></span>
+                                </a>
+                            @endforeach
+                            <a href="{{ route('products.index') }}" class="fs-9 fw-semibold text-danger text-decoration-none ms-1">Clear all</a>
+                        </div>
+                    @endif
+
                     <div class="d-flex flex-between-center mb-4">
                         <p class="text-body-tertiary mb-0">{{ $products->total() }} product(s)</p>
                         <form method="GET" action="{{ route('products.index') }}">

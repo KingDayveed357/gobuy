@@ -10,15 +10,17 @@ return new class extends Migration
     {
         Schema::create('products', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('category_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('category_id')->nullable()->constrained()->nullOnDelete();
             $table->string('name');
             $table->string('slug')->unique();
-            $table->string('sku')->unique();
             $table->text('description')->nullable();
-            $table->decimal('retail_price', 12, 2);
-            $table->decimal('wholesale_price', 12, 2)->nullable();
-            $table->unsignedInteger('wholesale_min_qty')->default(1);
-            $table->unsignedInteger('stock')->default(0);
+
+            // Tax (applied at checkout). Default rate is the centralised
+            // config('gobuy.vat_rate'); kept literal here as the schema default.
+            $table->boolean('is_vat_inclusive')->default(true);
+            $table->boolean('is_tax_exempt')->default(false);
+            $table->decimal('vat_rate', 5, 2)->default(7.5);
+
             $table->string('status')->default('draft');
             $table->boolean('is_featured')->default(false);
             $table->timestamps();

@@ -25,9 +25,10 @@ return new class extends Migration
             $table->string('status')->default('pending')->index();
             $table->string('payment_status')->default('unpaid')->index();
 
-            $table->decimal('subtotal', 12, 2);
-            $table->decimal('delivery_fee', 12, 2)->default(0);
-            $table->decimal('total', 12, 2);
+            // Money is stored as integer kobo.
+            $table->unsignedBigInteger('subtotal');
+            $table->unsignedBigInteger('delivery_fee')->default(0);
+            $table->unsignedBigInteger('total');
 
             $table->timestamp('placed_at')->nullable();
             $table->timestamps();

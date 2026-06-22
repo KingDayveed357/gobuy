@@ -71,18 +71,33 @@
                 </div>
 
                 <div class="col-12 col-lg-5">
+                    @if ($order->shipment)
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <div class="d-flex flex-between-center mb-3">
+                                    <h4 class="mb-0">Delivery</h4>
+                                    <span class="badge badge-phoenix badge-phoenix-info">{{ $order->shipment->methodLabel() }}</span>
+                                </div>
+                                @if ($order->shipment->isPickup() && $order->shipment->pickupLocation)
+                                    <p class="fs-9 text-body-secondary mb-3">Pick up from <span class="fw-semibold">{{ $order->shipment->pickupLocation->name }}</span> — {{ $order->shipment->pickupLocation->formatted() }}@if ($order->shipment->pickupLocation->opening_hours) ({{ $order->shipment->pickupLocation->opening_hours }})@endif</p>
+                                @endif
+                                <x-shipment-timeline :shipment="$order->shipment" />
+                            </div>
+                        </div>
+                    @endif
+
                     <div class="card">
                         <div class="card-body">
                             <h4 class="mb-3">Order summary</h4>
                             @foreach ($order->items as $item)
                                 <div class="d-flex justify-content-between mb-2">
                                     <span class="fs-9 text-body line-clamp-1 me-2">{{ $item->name }} <span class="text-body-tertiary">x{{ $item->quantity }}</span></span>
-                                    <span class="fs-9 fw-semibold text-nowrap">₦{{ number_format($item->line_total, 2) }}</span>
+                                    <span class="fs-9 fw-semibold text-nowrap">{{ money($item->line_total) }}</span>
                                 </div>
                             @endforeach
                             <div class="d-flex justify-content-between border-top border-translucent pt-2 mt-2">
                                 <h5 class="mb-0">Total</h5>
-                                <h5 class="mb-0">₦{{ number_format($order->total, 2) }}</h5>
+                                <h5 class="mb-0">{{ money($order->total) }}</h5>
                             </div>
                             <hr class="border-translucent">
                             <h6 class="mb-2">Delivery to</h6>

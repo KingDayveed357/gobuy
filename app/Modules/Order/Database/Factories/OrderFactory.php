@@ -5,6 +5,7 @@ namespace App\Modules\Order\Database\Factories;
 use App\Modules\Order\Enums\OrderStatus;
 use App\Modules\Order\Enums\PaymentStatus;
 use App\Modules\Order\Models\Order;
+use App\Support\Money;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -32,9 +33,9 @@ class OrderFactory extends Factory
             'state' => 'Lagos',
             'status' => OrderStatus::Pending,
             'payment_status' => PaymentStatus::Unpaid,
-            'subtotal' => $subtotal,
-            'delivery_fee' => $delivery,
-            'total' => $subtotal + $delivery,
+            'subtotal' => Money::fromNaira($subtotal),
+            'delivery_fee' => Money::fromNaira($delivery),
+            'total' => Money::fromNaira($subtotal + $delivery),
             'placed_at' => now(),
         ];
     }

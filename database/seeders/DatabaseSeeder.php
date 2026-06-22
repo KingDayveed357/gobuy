@@ -5,6 +5,8 @@ namespace Database\Seeders;
 use App\Admin\Database\Seeders\AdminAccessSeeder;
 use App\Models\User;
 use App\Modules\Catalog\Database\Seeders\CatalogSeeder;
+use App\Modules\Logistics\Database\Seeders\LogisticsSeeder;
+use App\Modules\Marketing\Models\Banner;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -31,5 +33,17 @@ class DatabaseSeeder extends Seeder
         );
 
         $this->call(CatalogSeeder::class);
+        $this->call(LogisticsSeeder::class);
+
+        Banner::firstOrCreate(['title' => 'Industrial safety, delivered fast'], [
+            'subtitle' => 'Helmets, boots and gloves — sourced direct, priced right.',
+            'cta_label' => 'Shop safety gear', 'link_url' => '/products', 'placement' => 'home_hero',
+            'layout' => 'hero', 'theme' => 'indigo', 'text_theme' => 'light', 'sort_order' => 1,
+        ]);
+        Banner::firstOrCreate(['title' => 'Wholesale pricing for your business'], [
+            'subtitle' => 'Apply for a wholesale account and unlock tiered prices.',
+            'cta_label' => 'Become a wholesaler', 'link_url' => '/account/wholesale', 'placement' => 'home_hero',
+            'layout' => 'split', 'theme' => 'emerald', 'text_theme' => 'light', 'sort_order' => 2,
+        ]);
     }
 }

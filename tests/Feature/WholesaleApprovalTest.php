@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Pricing\Services\PriceResolver;
+use App\Support\Money;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\Concerns\InteractsWithAdmin;
 use Tests\TestCase;
@@ -23,6 +24,7 @@ class WholesaleApprovalTest extends TestCase
             'rc_number' => 'RC123456',
             'business_phone' => '08030000000',
             'business_address' => '5 Trade Fair Complex, Lagos',
+            'intent' => 'We buy safety equipment in bulk for construction sites.',
         ];
     }
 
@@ -46,15 +48,11 @@ class WholesaleApprovalTest extends TestCase
         $user = User::factory()->pendingWholesale()->create();
         $user->wholesaleProfile()->create($this->application());
 
-        $product = Product::factory()->create([
-            'retail_price' => 1000,
-            'wholesale_price' => 800,
-            'wholesale_min_qty' => 5,
-        ]);
+        $product = Product::factory()->priced(retail: 1000, wholesale: 800)->create();
         $resolver = app(PriceResolver::class);
 
         // Before approval: retail price even at qualifying quantity.
-        $this->assertSame(1000.0, $resolver->for($product, $user->fresh(), 10)->unitPrice);
+        $this->assertSame(Money::fromNaira(1000)->kobo, $resolver->for($product, $user->fresh(), 10)->unitPrice->kobo);
 
         $this->post(route('admin.wholesale.approve', $user))->assertRedirect();
 
@@ -63,7 +61,7 @@ class WholesaleApprovalTest extends TestCase
         $this->assertSame(User::WHOLESALE_APPROVED, $user->wholesale_status);
 
         // After approval: wholesale price applies at qualifying quantity.
-        $this->assertSame(800.0, $resolver->for($product, $user, 10)->unitPrice);
+        $this->assertSame(Money::fromNaira(800)->kobo, $resolver->for($product, $user, 10)->unitPrice->kobo);
     }
 
     public function test_admin_can_reject_application(): void

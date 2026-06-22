@@ -29,7 +29,7 @@ class NewPaidOrderNotification extends Notification
             'type' => 'new_paid_order',
             'order_id' => $this->order->id,
             'order_number' => $this->order->order_number,
-            'total' => (float) $this->order->total,
+            'total_kobo' => $this->order->total->kobo,
             'customer' => $this->order->customer_name,
         ];
     }

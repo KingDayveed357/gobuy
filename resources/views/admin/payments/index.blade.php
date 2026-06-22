@@ -40,7 +40,7 @@
             </form>
         </x-slot:toolbar>
 
-        @forelse ($payments as $payment)
+        @foreach ($payments as $payment)
             <tr>
                 <td class="text-body-emphasis">{{ $payment->reference }}</td>
                 <td>
@@ -48,7 +48,7 @@
                         <a href="{{ route('admin.orders.show', $payment->order) }}" class="text-decoration-none">{{ $payment->order->order_number }}</a>
                     @else — @endif
                 </td>
-                <td class="fw-semibold text-end">₦{{ number_format($payment->amount, 2) }}</td>
+                <td class="fw-semibold text-end">{{ money($payment->amount) }}</td>
                 <td>
                     <span class="badge badge-phoenix {{ ['success' => 'badge-phoenix-success', 'failed' => 'badge-phoenix-danger', 'pending' => 'badge-phoenix-warning'][$payment->status] ?? 'badge-phoenix-secondary' }}">
                         {{ ucfirst($payment->status) }}
@@ -56,7 +56,7 @@
                 </td>
                 <td>{{ $payment->paid_at?->format('M j, Y g:i A') ?? '—' }}</td>
             </tr>
-        @endforelse
+        @endforeach
     </x-admin.table>
 
     <div class="mt-4">{{ $payments->links() }}</div>

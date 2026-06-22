@@ -24,7 +24,7 @@
                                 <a href="{{ route('admin.orders.show', $note->data['order_number']) }}">{{ $note->data['order_number'] }}</a>
                                 from {{ $note->data['customer'] }}
                             </td>
-                            <td class="text-end">₦{{ number_format($note->data['total'], 2) }}</td>
+                            <td class="text-end">{{ money($note->data['total_kobo'] ?? 0) }}</td>
                             <td class="text-end text-body-tertiary">{{ $note->created_at->diffForHumans() }}</td>
                         </tr>
                     @empty

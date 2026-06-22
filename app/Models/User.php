@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Modules\Customer\Models\Address;
+use App\Modules\Customer\Models\OtpCode;
 use App\Modules\Customer\Models\WholesaleProfile;
+use App\Modules\Marketing\Models\WishlistItem;
 use App\Modules\Order\Models\Order;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,10 +19,12 @@ use Illuminate\Notifications\Notifiable;
 
 #[Fillable(['name', 'email', 'password', 'phone', 'role', 'customer_type', 'wholesale_status'])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
+
+    use \Illuminate\Auth\MustVerifyEmail;
 
     public const TYPE_RETAIL = 'retail';
 
@@ -56,6 +61,33 @@ class User extends Authenticatable
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class)->latest();
+    }
+
+    public function addresses(): HasMany
+    {
+        return $this->hasMany(Address::class)->latest('is_default_shipping')->latest('id');
+    }
+
+    public function otpCodes(): HasMany
+    {
+        return $this->hasMany(OtpCode::class);
+    }
+
+    public function wishlistItems(): HasMany
+    {
+        return $this->hasMany(WishlistItem::class)->latest();
+    }
+
+    public function defaultShippingAddress(): ?Address
+    {
+        return $this->addresses()->where('is_default_shipping', true)->first()
+            ?? $this->addresses()->first();
+    }
+
+    public function defaultBillingAddress(): ?Address
+    {
+        return $this->addresses()->where('is_default_billing', true)->first()
+            ?? $this->defaultShippingAddress();
     }
 
     /**

@@ -3,11 +3,20 @@
 namespace App\Modules\Customer\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Cart\Services\CartService;
+use App\Modules\Catalog\Models\ProductVariant;
+use App\Modules\Order\Models\Order;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 
 class AccountController extends Controller
 {
+    public function __construct(private readonly CartService $cart) {}
+
     public function dashboard(): View
     {
         $user = Auth::user();
@@ -23,5 +32,76 @@ class AccountController extends Controller
         $orders = Auth::user()->orders()->with('items')->paginate(10);
 
         return view('account.orders', ['orders' => $orders]);
+    }
+
+    /**
+     * Re-add a past order's still-available items to the cart (capped at the
+     * stock on hand), then send the shopper to their cart.
+     */
+    public function reorder(Order $order): RedirectResponse
+    {
+        abort_unless($order->user_id === Auth::id(), 403);
+
+        $added = 0;
+        $skipped = 0;
+
+        foreach ($order->items as $item) {
+            $variant = ProductVariant::with('product')->find($item->product_variant_id);
+
+            if (! $variant || $variant->product?->status !== 'active' || $variant->stock < 1) {
+                $skipped++;
+
+                continue;
+            }
+
+            $this->cart->add($variant, min($item->quantity, $variant->stock));
+            $added++;
+        }
+
+        if ($added === 0) {
+            return redirect()->route('account.orders')
+                ->with('error', 'None of the items from that order are available to reorder right now.');
+        }
+
+        $message = "{$added} item(s) added to your cart.".($skipped > 0 ? " {$skipped} item(s) were unavailable and skipped." : '');
+
+        return redirect()->route('cart.index')->with('status', $message);
+    }
+
+    public function settings(): View
+    {
+        return view('account.settings', [
+            'user' => Auth::user(),
+        ]);
+    }
+
+    public function updateProfile(Request $request): RedirectResponse
+    {
+        $user = Auth::user();
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,'.$user->id],
+        ]);
+
+        $user->update($validated);
+
+        return back()->with('status', 'Profile updated successfully.');
+    }
+
+    public function updateSecurity(Request $request): RedirectResponse
+    {
+        $user = Auth::user();
+
+        $validated = $request->validate([
+            'current_password' => ['required', 'current_password'],
+            'password' => ['required', 'confirmed', Password::defaults()],
+        ]);
+
+        $user->update([
+            'password' => Hash::make($validated['password']),
+        ]);
+
+        return back()->with('status', 'Password updated successfully.');
     }
 }

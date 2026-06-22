@@ -3,14 +3,32 @@
 @section('title', 'gobuy — Retail & Wholesale, delivered fast')
 
 @php
-    $categoryIcons = [
-        'groceries' => 'fa-basket-shopping',
-        'electronics' => 'fa-laptop',
-        'home-kitchen' => 'fa-house',
-        'fashion' => 'fa-shirt',
-        'mobile' => 'fa-mobile-screen-button',
-        'gifts' => 'fa-gift',
-    ];
+    // Resolve a fitting Font Awesome icon for a category: exact slug first,
+    // then a keyword match on the name, then a sensible default.
+    $iconFor = function ($category) {
+        $bySlug = [
+            'electronics' => 'fa-laptop', 'phones' => 'fa-mobile-screen-button', 'fashion' => 'fa-shirt',
+            'home-kitchen' => 'fa-house', 'groceries' => 'fa-basket-shopping', 'gifts' => 'fa-gift',
+        ];
+        if (isset($bySlug[$category->slug])) {
+            return $bySlug[$category->slug];
+        }
+        $name = \Illuminate\Support\Str::lower($category->name);
+        $byKeyword = [
+            'phone' => 'fa-mobile-screen-button', 'laptop' => 'fa-laptop', 'computer' => 'fa-desktop',
+            'electronic' => 'fa-plug', 'fashion' => 'fa-shirt', 'cloth' => 'fa-shirt', 'shoe' => 'fa-shoe-prints',
+            'home' => 'fa-house', 'kitchen' => 'fa-utensils', 'grocer' => 'fa-basket-shopping', 'food' => 'fa-utensils',
+            'beauty' => 'fa-spa', 'health' => 'fa-heart-pulse', 'safety' => 'fa-helmet-safety', 'tool' => 'fa-screwdriver-wrench',
+            'sport' => 'fa-futbol', 'toy' => 'fa-puzzle-piece', 'book' => 'fa-book', 'car' => 'fa-car', 'auto' => 'fa-car',
+            'baby' => 'fa-baby', 'furniture' => 'fa-couch', 'gift' => 'fa-gift', 'watch' => 'fa-clock', 'game' => 'fa-gamepad',
+        ];
+        foreach ($byKeyword as $kw => $icon) {
+            if (str_contains($name, $kw)) {
+                return $icon;
+            }
+        }
+        return 'fa-tags';
+    };
     $dealsSwiper = '{"slidesPerView":2,"spaceBetween":12,"breakpoints":{"768":{"slidesPerView":3,"spaceBetween":16},"992":{"slidesPerView":4,"spaceBetween":16},"1200":{"slidesPerView":5,"spaceBetween":16}}}';
 @endphp
 
@@ -21,14 +39,14 @@
                       {{-- Categories --}}
                 @if ($categories->isNotEmpty())
                     <div class="d-flex flex-between-center mb-3">
-                        <!-- <h3 class="mb-0">Shop by category</h3> -->
-                        <!-- <a class="btn btn-link btn-sm p-0 d-none d-md-block" href="{{ route('products.index') }}">View all<span class="fas fa-chevron-right fs-10 ms-1"></span></a> -->
+                        <h3 class="mb-0">Shop by category</h3>
+                        <a class="btn btn-link btn-sm p-0 d-none d-md-block" href="{{ route('products.index') }}">View all<span class="fas fa-chevron-right fs-10 ms-1"></span></a>
                     </div>
                     <div class="gb-category-strip mb-7">
                         @foreach ($categories as $category)
                             <a class="gb-category-item" href="{{ route('products.index', ['category' => $category->slug]) }}">
                                 <div class="gb-category-tile">
-                                    <span class="fas {{ $categoryIcons[$category->slug] ?? 'fa-tags' }}"></span>
+                                    <span class="fas {{ $iconFor($category) }}"></span>
                                 </div>
                                 <p class="gb-category-label text-nowrap">{{ $category->name }}</p>
                             </a>
@@ -36,8 +54,24 @@
                     </div>
                 @endif
 
+                {{-- Admin-managed hero banners (layout-aware, responsive, scheduled) --}}
+                @if (isset($heroBanners) && $heroBanners->isNotEmpty())
+                    <div class="row g-3 mb-7">
+                        @foreach ($heroBanners as $banner)
+                            @php($col = match ($banner->layout) {
+                                'grid' => 'col-12 col-md-6 col-lg-4',
+                                'split' => 'col-12 col-lg-6',
+                                default => 'col-12',
+                            })
+                            <div class="{{ $col }}">
+                                <x-banner :banner="$banner" class="h-100" />
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+
                 {{-- Banners --}}
-                <div class="row g-3 mb-6">
+                <!-- <div class="row g-3 mb-6">
                     <div class="col-12">
                         <div class="whooping-banner w-100 rounded-3 overflow-hidden">
                             <div class="bg-holder z-n1 product-bg" style="background-image:url({{ asset('theme/img/e-commerce/whooping_banner_product.png') }});background-position: bottom right;"></div>
@@ -73,8 +107,44 @@
                             </div>
                         </div>
                     </div>
+                </div> -->
+<div class="row g-3 mb-9">
+              <div class="col-12">
+                <div class="whooping-banner w-100 rounded-3 overflow-hidden">
+                  <div class="bg-holder z-n1 product-bg" style="background-image:url({{ asset('theme/img/e-commerce/whooping_banner_product.png') }});background-position: bottom right;"></div>
+                  <!--/.bg-holder-->
+                  <div class="bg-holder z-n1 shape-bg" style="background-image:url({{ asset('theme/img/e-commerce/whooping_banner_shape_2.png') }});background-position: bottom left;"></div>
+                  <!--/.bg-holder-->
+                  <div class="banner-text" data-bs-theme="light">
+                    <h2 class="text-warning-light fw-bolder fs-lg-3 fs-xxl-2">Whooping <span class="gradient-text">60% </span>Off</h2>
+                    <h3 class="fw-bolder fs-lg-5 fs-xxl-3 text-white">on everyday items</h3>
+                  </div><a class="btn btn-lg btn-primary rounded-pill banner-button" href="#!">Shop Now</a>
                 </div>
-
+              </div>
+              <div class="col-12 col-xl-6">
+                <div class="gift-items-banner w-100 rounded-3 overflow-hidden">
+                  <div class="bg-holder z-n1 banner-bg" style="background-image:url({{ asset('theme/img/e-commerce/gift-items-banner-bg.png') }});"></div>
+                  <!--/.bg-holder-->
+                  <div class="banner-text text-md-center">
+                    <h2 class="text-white fw-bolder fs-xl-4">Get <span class="gradient-text">10% Off </span><br class="d-md-none"> on gift items</h2><a class="btn btn-lg btn-primary rounded-pill banner-button" href="#!">Buy Now</a>
+                  </div>
+                </div>
+              </div>
+              <div class="col-12 col-xl-6">
+                <div class="best-in-market-banner d-flex h-100 px-4 px-sm-7 py-5 px-md-11 rounded-3 overflow-hidden">
+                  <div class="bg-holder z-n1 banner-bg" style="background-image:url({{ asset('theme/img/e-commerce/best-in-market-bg.png') }});"></div>
+                  <!--/.bg-holder-->
+                  <div class="row align-items-center w-sm-100">
+                    <div class="col-8">
+                      <div class="banner-text">
+                        <h2 class="text-white fw-bolder fs-sm-4 mb-5">MI 11 Pro<br><span class="fs-7 fs-sm-6"> Best in the market</span></h2><a class="btn btn-lg btn-warning rounded-pill banner-button" href="#!">Buy Now</a>
+                      </div>
+                    </div>
+                    <div class="col-4"><img class="w-100 w-sm-75" src="{{ asset('theme/img/e-commerce/5.png') }}" alt=""></div>
+                  </div>
+                </div>
+              </div>
+            </div>
           
 
                 {{-- Top deals carousel --}}

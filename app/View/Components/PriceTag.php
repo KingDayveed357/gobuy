@@ -3,7 +3,7 @@
 namespace App\View\Components;
 
 use App\Modules\Catalog\Models\Product;
-use App\Modules\Pricing\Services\PriceResolver;
+use App\Modules\Pricing\Services\PricingEngine;
 use App\Modules\Pricing\ValueObjects\ResolvedPrice;
 use Illuminate\Contracts\View\View;
 use Illuminate\View\Component;
@@ -14,7 +14,7 @@ class PriceTag extends Component
 
     public function __construct(Product $product, int $quantity = 1)
     {
-        $this->price = app(PriceResolver::class)->for($product, auth()->user(), $quantity);
+        $this->price = app(PricingEngine::class)->priceForProduct($product, auth()->user(), $quantity);
     }
 
     public function render(): View

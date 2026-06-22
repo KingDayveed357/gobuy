@@ -3,6 +3,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <title>@yield('title', 'gobuy')</title>
+<link rel="canonical" href="{{ url()->current() }}">
+@stack('meta')
 
 <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('theme/img/favicons/favicon-32x32.png') }}">
 <link rel="shortcut icon" type="image/x-icon" href="{{ asset('theme/img/favicons/favicon.ico') }}">
@@ -17,4 +19,5 @@
 <link href="{{ asset('theme/css/theme.min.css') }}" type="text/css" rel="stylesheet" id="style-default">
 <link href="{{ asset('theme/css/user.min.css') }}" type="text/css" rel="stylesheet" id="user-style-default">
 <link href="{{ asset('theme/css/gobuy.css') }}" type="text/css" rel="stylesheet">
+<link href="{{ asset('theme/css/mega-menu.css') }}" type="text/css" rel="stylesheet">
 @stack('styles')
