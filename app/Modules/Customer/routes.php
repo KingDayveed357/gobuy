@@ -33,7 +33,9 @@ Route::middleware('auth')->group(function (): void {
 
     Route::get('/account', [AccountController::class, 'dashboard'])->name('account.dashboard');
     Route::get('/account/orders', [AccountController::class, 'orders'])->name('account.orders');
+    Route::get('/account/orders/{order}/reorder/preview', [AccountController::class, 'reorderPreview'])->name('account.orders.reorder.preview');
     Route::post('/account/orders/{order}/reorder', [AccountController::class, 'reorder'])->name('account.orders.reorder');
+    Route::get('/account/wallet', [AccountController::class, 'wallet'])->name('account.wallet');
     Route::get('/account/settings', [AccountController::class, 'settings'])->name('account.settings');
     Route::post('/account/settings/profile', [AccountController::class, 'updateProfile'])->name('account.settings.profile');
     Route::post('/account/settings/security', [AccountController::class, 'updateSecurity'])->name('account.settings.security');

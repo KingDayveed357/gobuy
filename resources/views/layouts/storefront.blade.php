@@ -4,6 +4,7 @@
 <head>
     @include('partials.head')
     <link href="{{ asset('theme/css/toast.css') }}" type="text/css" rel="stylesheet">
+    @livewireStyles
 </head>
 
 <body>
@@ -19,8 +20,22 @@
 
     @include('partials.scripts')
     <script src="{{ asset('theme/js/toast.js') }}"></script>
+    @livewireScripts
     @include('partials.wishlist-script')
+    @include('partials.cart-script')
     @include('partials.search-script')
+
+    {{-- Bridge: let any Livewire component raise a Toast via $this->dispatch('toast', type, message). --}}
+    <script>
+        document.addEventListener('livewire:init', function () {
+            Livewire.on('toast', function (e) {
+                var p = Array.isArray(e) ? e[0] : e;
+                if (window.Toast && p && typeof Toast[p.type] === 'function') {
+                    Toast[p.type](p.message);
+                }
+            });
+        });
+    </script>
 
     {{-- Trigger Premium Toast Notifications --}}
     @if(session('status'))

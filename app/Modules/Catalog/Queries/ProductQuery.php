@@ -18,7 +18,10 @@ class ProductQuery
 
     public function __construct()
     {
-        $this->query = Product::query()->with(['category', 'brand', 'media', 'variants', 'quantityDiscounts']);
+        // `variants.promotionalPrices` is eager-loaded so PricingEngine's
+        // livePromotionalPrice() check doesn't lazy-load per variant (N+1 across
+        // every card on a listing page).
+        $this->query = Product::query()->with(['category', 'brand', 'media', 'variants.promotionalPrices', 'quantityDiscounts']);
     }
 
     public static function make(): self

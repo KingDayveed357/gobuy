@@ -12,6 +12,7 @@ use App\Modules\Payment\Models\BankTransferProof;
 use App\Modules\Payment\Models\Payment;
 use App\Modules\Payment\Models\Refund;
 use App\Modules\Pricing\Models\Coupon;
+use App\Modules\Returns\Models\ReturnRequest;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -42,7 +43,10 @@ class Order extends Model
         'tax_amount',
         'delivery_fee',
         'total',
+        'refunded_total',
+        'store_credit_applied',
         'placed_at',
+        'delivered_at',
         'coupon_id',
         'coupon_code',
     ];
@@ -65,13 +69,44 @@ class Order extends Model
             'tax_amount' => Money::class,
             'delivery_fee' => Money::class,
             'total' => Money::class,
+            'refunded_total' => Money::class,
+            'store_credit_applied' => Money::class,
             'placed_at' => 'datetime',
+            'delivered_at' => 'datetime',
         ];
+    }
+
+    /**
+     * What the gateway / POD / bank transfer must actually collect — the order
+     * total minus any store credit tendered against it.
+     */
+    public function amountDue(): Money
+    {
+        $due = $this->total->kobo - ($this->store_credit_applied?->kobo ?? 0);
+
+        return Money::fromKobo(max(0, $due));
     }
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function returnRequests(): HasMany
+    {
+        return $this->hasMany(ReturnRequest::class);
+    }
+
+    /**
+     * The amount still refundable on this order (order total minus everything
+     * already refunded/credited). The single guard against over-refunding,
+     * shared by the legacy admin refund path and the Returns module.
+     */
+    public function refundableRemaining(): Money
+    {
+        $remaining = $this->total->kobo - ($this->refunded_total?->kobo ?? 0);
+
+        return Money::fromKobo(max(0, $remaining));
     }
 
     public function coupon(): BelongsTo

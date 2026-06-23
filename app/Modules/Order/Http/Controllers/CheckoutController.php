@@ -14,6 +14,7 @@ use App\Modules\Order\Http\Requests\CheckoutRequest;
 use App\Modules\Order\Services\PaymentOptionsService;
 use App\Modules\Payment\Services\PaymentService;
 use App\Modules\Pricing\Services\CouponService;
+use App\Modules\Returns\Services\StoreCreditService;
 use App\Support\Money;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -30,7 +31,20 @@ class CheckoutController extends Controller
         private readonly DeliveryFeeService $deliveryFees,
         private readonly PaymentOptionsService $paymentOptions,
         private readonly CouponService $coupons,
+        private readonly StoreCreditService $storeCredit,
     ) {}
+
+    private const CREDIT_SESSION_KEY = 'checkout.apply_credit';
+
+    /**
+     * Toggle whether the customer's store credit is applied to this order.
+     */
+    public function toggleStoreCredit(Request $request): RedirectResponse
+    {
+        session([self::CREDIT_SESSION_KEY => $request->boolean('apply')]);
+
+        return redirect()->route('checkout.show');
+    }
 
     public function show(): View|RedirectResponse
     {
@@ -56,13 +70,23 @@ class CheckoutController extends Controller
         $coupon = $this->coupons->resolveForCart($summary, $user);
         $discount = $coupon['discount'] ?? Money::zero();
         $discountedSubtotal = $summary['subtotal']->minus($discount);
+        $total = $discountedSubtotal->plus($initial['fee']);
+
+        // Store credit (a tender against the bill, not a discount).
+        $creditAvailable = $user ? $this->storeCredit->balanceFor($user) : Money::zero();
+        $applyCredit = (bool) session(self::CREDIT_SESSION_KEY) && $creditAvailable->isPositive();
+        $creditApplied = $applyCredit && $user ? $this->storeCredit->redeemableFor($user, $total) : Money::zero();
 
         return view('storefront.checkout.show', [
             ...$summary,
             'deliveryFee' => $initial['fee'],
             'appliedCoupon' => $coupon['coupon'] ?? null,
             'discount' => $discount,
-            'total' => $discountedSubtotal->plus($initial['fee']),
+            'total' => $total,
+            'creditAvailable' => $creditAvailable,
+            'applyCredit' => $applyCredit,
+            'creditApplied' => $creditApplied,
+            'amountDue' => $total->minus($creditApplied),
             'addresses' => $addresses,
             'defaultAddress' => $defaultAddress,
             'pickupLocations' => PickupLocation::active()->orderBy('name')->get(),
@@ -124,6 +148,18 @@ class CheckoutController extends Controller
 
         try {
             $order = $this->placeOrder->execute(CheckoutData::fromArray($data));
+
+            session()->forget(self::CREDIT_SESSION_KEY);
+
+            // Store credit covers the whole bill → no gateway/POD needed.
+            if ($order->amountDue()->isZero() && $order->store_credit_applied->isPositive()) {
+                $this->payments->confirmManualPayment($order); // completes + spends the credit
+                $note = $order->store_credit_applied->equals($order->total)
+                    ? 'Order confirmed! Paid in full with store credit.'
+                    : 'Order confirmed! Paid with store credit.';
+
+                return redirect()->route('orders.success', $order)->with('status', $note);
+            }
 
             return match ($method) {
                 PaymentMethod::BankTransfer->value => redirect()->route('orders.transfer.show', $order)

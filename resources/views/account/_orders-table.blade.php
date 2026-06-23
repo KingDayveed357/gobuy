@@ -34,10 +34,10 @@
                             <td class="text-end">
                                 <div class="d-inline-flex gap-2">
                                     <a href="{{ route('orders.success', $order) }}" class="btn btn-sm btn-phoenix-secondary">View</a>
-                                    <form action="{{ route('account.orders.reorder', $order) }}" method="POST">
-                                        @csrf
-                                        <button type="submit" class="btn btn-sm btn-phoenix-primary" title="Add these items to your cart"><span class="fas fa-rotate-right me-1"></span>Reorder</button>
-                                    </form>
+                                    @if (in_array($order->status->value, ['delivered', 'completed'], true))
+                                        <a href="{{ route('account.returns.create', $order) }}" class="btn btn-sm btn-phoenix-secondary" title="Request a return"><span class="fas fa-rotate-left me-1"></span>Return</a>
+                                    @endif
+                                    <a href="{{ route('account.orders.reorder.preview', $order) }}" class="btn btn-sm btn-phoenix-primary" title="Review and add these items to your cart"><span class="fas fa-rotate-right me-1"></span>Reorder</a>
                                 </div>
                             </td>
                         </tr>

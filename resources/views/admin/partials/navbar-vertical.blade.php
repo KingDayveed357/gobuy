@@ -93,6 +93,24 @@
                             </div>
                         </li>
                     @endif
+                    @if ($admin->can('manage_returns'))
+                        <li class="nav-item">
+                            <div class="nav-item-wrapper">
+                                <a class="nav-link label-1 {{ request()->routeIs('admin.returns.*') ? 'active' : '' }}" href="{{ route('admin.returns.index') }}">
+                                    <div class="d-flex align-items-center"><span class="nav-link-icon"><span data-feather="rotate-ccw"></span></span><span class="nav-link-text">Returns</span></div>
+                                </a>
+                            </div>
+                        </li>
+                    @endif
+                    @if ($admin->can('manage_refunds'))
+                        <li class="nav-item">
+                            <div class="nav-item-wrapper">
+                                <a class="nav-link label-1 {{ request()->routeIs('admin.store-credits.*') ? 'active' : '' }}" href="{{ route('admin.store-credits.index') }}">
+                                    <div class="d-flex align-items-center"><span class="nav-link-icon"><span data-feather="credit-card"></span></span><span class="nav-link-text">Store credit</span></div>
+                                </a>
+                            </div>
+                        </li>
+                    @endif
                     @if ($admin->can('manage_payments'))
                         <li class="nav-item">
                             <div class="nav-item-wrapper">

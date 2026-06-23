@@ -17,12 +17,8 @@ class WishlistController extends Controller
 
     public function index(): View
     {
-        $items = Auth::user()->wishlistItems()
-            ->whereHas('product') // skip any orphaned rows
-            ->with(['product.variants', 'product.media', 'product.category'])
-            ->paginate(9);
-
-        return view('account.wishlist', ['items' => $items]);
+        // The reactive Livewire page (wishlist.wishlist-page) fetches + paginates itself.
+        return view('account.wishlist');
     }
 
     /**

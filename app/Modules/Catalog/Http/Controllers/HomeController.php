@@ -14,12 +14,12 @@ class HomeController extends Controller
     {
         $featured = Product::active()
             ->featured()
-            ->with(['variants', 'quantityDiscounts', 'media'])
+            ->with(['variants.promotionalPrices', 'quantityDiscounts', 'media'])
             ->take(8)
             ->get();
 
         $latest = Product::active()
-            ->with(['variants', 'quantityDiscounts', 'media'])
+            ->with(['variants.promotionalPrices', 'quantityDiscounts', 'media'])
             ->latest()
             ->take(8)
             ->get();

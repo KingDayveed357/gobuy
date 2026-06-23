@@ -4,8 +4,10 @@ namespace App\Modules\Notification\Services;
 
 use App\Modules\Logistics\Models\Shipment;
 use App\Modules\Notification\Notifications\OrderAcceptedMessage;
+use App\Modules\Notification\Notifications\ReturnStatusMessage;
 use App\Modules\Notification\Notifications\ShipmentStageMessage;
 use App\Modules\Order\Models\Order;
+use App\Modules\Returns\Models\ReturnRequest;
 use Illuminate\Support\Facades\Notification;
 
 /**
@@ -35,5 +37,17 @@ class CustomerNotifier
 
         Notification::route('messaging', $phone)
             ->notify(new ShipmentStageMessage($shipment));
+    }
+
+    public function returnUpdate(ReturnRequest $return): void
+    {
+        $phone = $return->order?->customer_phone;
+
+        if (! $phone) {
+            return;
+        }
+
+        Notification::route('messaging', $phone)
+            ->notify(new ReturnStatusMessage($return));
     }
 }

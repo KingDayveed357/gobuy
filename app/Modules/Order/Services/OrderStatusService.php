@@ -26,7 +26,15 @@ class OrderStatusService
         }
 
         DB::transaction(function () use ($order, $target, $note): void {
-            $order->update(['status' => $target]);
+            $attributes = ['status' => $target];
+
+            // Stamp the authoritative delivery time once — it starts the return
+            // window. Don't overwrite it on later edits/re-deliveries.
+            if ($target === OrderStatus::Delivered && $order->delivered_at === null) {
+                $attributes['delivered_at'] = now();
+            }
+
+            $order->update($attributes);
             $order->statusHistories()->create(['status' => $target, 'note' => $note]);
         });
 

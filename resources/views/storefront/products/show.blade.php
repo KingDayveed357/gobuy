@@ -46,11 +46,6 @@
 @section('content')
     <section class="py-0 pt-5">
         <div class="container-small">
-            @if (session('status') || session('error') || $errors->any())
-                <div class="alert alert-subtle-{{ session('error') || $errors->any() ? 'danger' : 'success' }} mt-3">
-                    {{ session('status') ?? session('error') ?? $errors->first() }}
-                </div>
-            @endif
             <nav class="mb-3" aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0">
                     <li class="breadcrumb-item"><a href="{{ route('home') }}">Home</a></li>
@@ -101,17 +96,16 @@
                         </div>
                     </div>
                     <div class="d-flex">
-                        <button type="button" class="btn btn-lg btn-outline-warning rounded-pill w-100 me-3 px-2 px-sm-4 fs-9 fs-sm-8 gb-wish" data-wishlist-toggle data-product-id="{{ $product->id }}" data-product-name="{{ $product->name }}">
+                        <button type="button" class="btn btn-lg btn-outline-warning rounded-pill w-100 me-3 px-2 px-sm-4 fs-9 fs-sm-8 gb-wish" data-wishlist-toggle data-product-id="{{ $product->id }}" data-product-slug="{{ $product->slug }}" data-product-name="{{ $product->name }}">
                             <span class="far fa-heart me-2"></span><span class="fas fa-heart me-2 d-none"></span><span class="wishlist-text">Add to wishlist</span>
                         </button>
-                        <form id="pd-add-to-cart-form" action="{{ route('cart.set-quantity') }}" method="POST" class="w-100">
-                            @csrf
-                            <input type="hidden" name="product_variant_id" id="pd-variant-id" value="{{ $selected?->id }}">
-                            <input type="hidden" name="quantity" id="pd-hidden-qty" value="{{ max(1, $sel['cartQty']) }}">
-                            <button type="submit" id="pd-add" class="btn btn-lg btn-warning rounded-pill w-100 fs-9 fs-sm-8" @disabled($sel['stock'] < 1)>
-                                <span class="fas fa-shopping-cart me-2"></span><span id="pd-add-text">{{ $sel['cartQty'] > 0 ? 'Update cart' : 'Add to cart' }}</span>
-                            </button>
-                        </form>
+                        {{-- Livewire add-to-cart (no reload). Variant/qty UI stays client-side
+                             (zero network); this fires one server action via CartService. --}}
+                        <livewire:product.product-purchase
+                            :product="$product"
+                            :selected-id="$selected?->id"
+                            :cart-qty="$sel['cartQty']"
+                            :stock="$sel['stock']" />
                     </div>
                 </div>
 
@@ -321,7 +315,7 @@
                                             <div>
                                                 <div class="border border-1 border-translucent rounded-3 position-relative mb-3">
                                                     <!-- The z-index and isolated pointer-events are crucial here for the wishlist button -->
-                                                    <button type="button" class="btn btn-wish btn-wish-primary z-2 d-toggle-container" data-wishlist-toggle data-product-id="{{ $item->id }}" data-product-name="{{ $item->name }}" data-bs-toggle="tooltip" data-bs-placement="top" title="Add to wishlist" style="position: absolute; top: 10px; right: 10px; z-index: 10; pointer-events: auto;">
+                                                    <button type="button" class="btn btn-wish btn-wish-primary z-2 d-toggle-container" data-wishlist-toggle data-product-id="{{ $item->id }}" data-product-slug="{{ $item->slug }}" data-product-name="{{ $item->name }}" data-bs-toggle="tooltip" data-bs-placement="top" title="Add to wishlist" style="position: absolute; top: 10px; right: 10px; z-index: 10; pointer-events: auto;">
                                                         <span class="fas fa-heart d-block-hover" data-fa-transform="down-1"></span><span class="far fa-heart d-none-hover" data-fa-transform="down-1"></span>
                                                     </button>
                                                     <img class="img-fluid" src="{{ $item->imageUrl() }}" alt="{{ $item->name }}">

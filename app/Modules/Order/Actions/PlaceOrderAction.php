@@ -10,6 +10,7 @@ use App\Modules\Order\Models\Order;
 use App\Modules\Order\Services\OrderService;
 use App\Modules\Order\Services\OrderStatusService;
 use App\Modules\Pricing\Services\CouponService;
+use App\Modules\Returns\Services\StoreCreditService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -29,6 +30,7 @@ class PlaceOrderAction
         private readonly DeliveryFeeService $deliveryFees,
         private readonly ShipmentService $shipments,
         private readonly CouponService $coupons,
+        private readonly StoreCreditService $storeCredit,
     ) {}
 
     public function execute(CheckoutData $data): Order
@@ -57,6 +59,14 @@ class PlaceOrderAction
         if ($coupon) {
             $this->coupons->redeem($coupon['coupon'], $user, $order, $coupon['discount']);
             session()->forget(CouponService::SESSION_KEY);
+        }
+
+        // Tender store credit against the order (spent later, at acceptance).
+        if ($user && session('checkout.apply_credit')) {
+            $applied = $this->storeCredit->redeemableFor($user, $order->total);
+            if ($applied->isPositive()) {
+                $order->update(['store_credit_applied' => $applied]);
+            }
         }
 
         $this->shipments->createForOrder($order, $data, $weight, $quote['zone']);

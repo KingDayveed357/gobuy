@@ -6,6 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Modules\Cart\Services\CartService;
 use App\Modules\Catalog\Models\ProductVariant;
 use App\Modules\Order\Models\Order;
+use App\Modules\Order\Services\ReorderService;
+use App\Modules\Returns\Models\StoreCredit;
+use App\Modules\Returns\Models\StoreCreditEntry;
+use App\Modules\Returns\Services\StoreCreditService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,7 +19,40 @@ use Illuminate\Validation\Rules\Password;
 
 class AccountController extends Controller
 {
-    public function __construct(private readonly CartService $cart) {}
+    public function __construct(
+        private readonly CartService $cart,
+        private readonly StoreCreditService $storeCredit,
+        private readonly ReorderService $reorder,
+    ) {}
+
+    public function reorderPreview(Order $order): View|RedirectResponse
+    {
+        abort_unless($order->user_id === Auth::id(), 403);
+
+        $preview = $this->reorder->preview($order, Auth::user());
+
+        if ($preview['addable'] === 0) {
+            return redirect()->route('account.orders')
+                ->with('error', 'None of the items from that order are available to reorder right now.');
+        }
+
+        return view('account.reorder-preview', ['order' => $order, 'preview' => $preview]);
+    }
+
+    public function wallet(): View
+    {
+        $user = Auth::user();
+        $walletId = StoreCredit::where('user_id', $user->id)->value('id');
+
+        $entries = StoreCreditEntry::where('store_credit_id', $walletId ?? 0)
+            ->latest('id')
+            ->paginate(15);
+
+        return view('account.wallet', [
+            'balance' => $this->storeCredit->balanceFor($user),
+            'entries' => $entries,
+        ]);
+    }
 
     public function dashboard(): View
     {

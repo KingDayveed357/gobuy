@@ -17,6 +17,7 @@ class OrderItem extends Model
         'unit_price',
         'discount_amount',
         'quantity',
+        'returned_quantity',
         'line_total',
     ];
 
@@ -26,6 +27,7 @@ class OrderItem extends Model
             'unit_price' => Money::class,
             'discount_amount' => Money::class,
             'quantity' => 'integer',
+            'returned_quantity' => 'integer',
             'line_total' => Money::class,
         ];
     }
@@ -38,5 +40,13 @@ class OrderItem extends Model
     public function variant(): BelongsTo
     {
         return $this->belongsTo(ProductVariant::class, 'product_variant_id');
+    }
+
+    /**
+     * Units of this line still eligible to be returned.
+     */
+    public function returnableQuantity(): int
+    {
+        return max(0, $this->quantity - (int) $this->returned_quantity);
     }
 }

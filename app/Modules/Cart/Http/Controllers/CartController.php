@@ -11,6 +11,7 @@ use App\Modules\Catalog\Models\ProductVariant;
 use App\Modules\Pricing\Services\CouponService;
 use App\Support\Money;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -34,7 +35,7 @@ class CartController extends Controller
         ]);
     }
 
-    public function store(AddToCartRequest $request): RedirectResponse
+    public function store(AddToCartRequest $request): RedirectResponse|JsonResponse
     {
         $variant = ProductVariant::with('product')->findOrFail($request->integer('product_variant_id'));
 
@@ -42,9 +43,15 @@ class CartController extends Controller
 
         $this->cart->add($variant, $request->integer('quantity', 1));
 
-        return redirect()
-            ->route('cart.index')
-            ->with('status', "{$variant->product->name} added to cart.");
+        $message = "{$variant->product->name} added to cart.";
+
+        // The product-card add button enhances itself with a single delegated
+        // fetch (no per-card Livewire component) — return JSON for that path.
+        if ($request->expectsJson()) {
+            return response()->json(['count' => $this->cart->count(), 'message' => $message]);
+        }
+
+        return redirect()->route('cart.index')->with('status', $message);
     }
 
     public function update(UpdateCartItemRequest $request, CartItem $item): RedirectResponse

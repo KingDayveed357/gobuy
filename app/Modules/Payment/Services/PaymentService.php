@@ -14,6 +14,7 @@ use App\Modules\Order\Models\Order;
 use App\Modules\Order\Services\OrderStatusService;
 use App\Modules\Payment\Contracts\PaymentGateway;
 use App\Modules\Payment\Models\Payment;
+use App\Modules\Returns\Services\StoreCreditService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -27,6 +28,7 @@ class PaymentService
         private readonly OrderStatusService $status,
         private readonly CatalogService $catalog,
         private readonly CustomerNotifier $notifier,
+        private readonly StoreCreditService $storeCredit,
     ) {}
 
     /**
@@ -38,7 +40,7 @@ class PaymentService
 
         $payment = $order->payment()->create([
             'reference' => $reference,
-            'amount' => $order->total,
+            'amount' => $order->amountDue(), // net of any store credit tendered
             'status' => 'pending',
         ]);
 
@@ -143,6 +145,23 @@ class PaymentService
 
                     if ($variant) {
                         $this->catalog->decrementStock($variant, $item->quantity);
+                    }
+                }
+
+                // Consume any store credit tendered against this order — exactly
+                // once, only when the order is actually accepted (so abandoned
+                // gateway payments never burn the customer's credit). Capped at
+                // the live balance so it can't throw, and idempotent on the key.
+                if ($order->store_credit_applied?->isPositive() && $order->user) {
+                    $spendable = $this->storeCredit->redeemableFor($order->user, $order->store_credit_applied);
+                    if ($spendable->isPositive()) {
+                        $this->storeCredit->spend(
+                            $order->user,
+                            $spendable,
+                            $order,
+                            "order-spend:{$order->id}",
+                            "Applied to order {$order->order_number}",
+                        );
                     }
                 }
             }

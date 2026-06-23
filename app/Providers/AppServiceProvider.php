@@ -6,6 +6,7 @@ use App\Modules\Cart\Listeners\MergeGuestCart;
 use App\Modules\Cart\Services\CartService;
 use App\Modules\Catalog\Models\Category;
 use App\Modules\Catalog\Models\SearchTerm;
+use App\Modules\Catalog\Services\CategoryService;
 use App\Modules\Inventory\Listeners\DeductInventoryForOrder;
 use App\Modules\Inventory\Listeners\ReleaseInventoryForOrder;
 use App\Modules\Inventory\Listeners\ReserveInventoryForOrder;
@@ -52,9 +53,10 @@ class AppServiceProvider extends ServiceProvider
             $view->with('wishlistIds', $wishlistIds);
             $view->with('wishlistCount', $wishlistIds->count());
 
-            $view->with('trendingSearches', SearchTerm::trending());
+            // Trending tolerates staleness — cache it off the hot path (runs on every page).
+            $view->with('trendingSearches', Cache::remember('trending_searches', 600, fn () => SearchTerm::trending()));
 
-            $view->with('navCategories', Cache::remember('nav_categories', 3600, function () {
+            $view->with('navCategories', Cache::remember(CategoryService::NAV_CACHE_KEY, 3600, function () {
                 return Category::active()
                     ->roots()
                     ->with(['children' => function ($query) {

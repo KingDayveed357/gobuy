@@ -10,3 +10,6 @@ Artisan::command('inspire', function () {
 
 // Free up stock held by abandoned carts.
 Schedule::command('inventory:release-reservations')->everyFiveMinutes();
+
+// Expire unspent store credit past its window.
+Schedule::command('store-credit:expire')->daily();

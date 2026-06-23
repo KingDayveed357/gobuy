@@ -92,7 +92,7 @@ class ProductController extends Controller
     {
         abort_if($product->status !== 'active', 404);
 
-        $product->load(['category', 'brand', 'variants.optionValues', 'options.values', 'specifications', 'quantityDiscounts', 'media']);
+        $product->load(['category', 'brand', 'variants.optionValues', 'variants.promotionalPrices', 'options.values', 'specifications', 'quantityDiscounts', 'media']);
 
         $related = Product::active()
             ->whereBelongsTo($product->category)
@@ -171,30 +171,46 @@ class ProductController extends Controller
 
     public function wishlist(): View
     {
-        // Authenticated users get their persisted wishlist; guests get the
-        // localStorage-driven page that hydrates client-side.
-        if ($user = auth()->user()) {
-            $items = $user->wishlistItems()
-                ->whereHas('product')
-                ->with(['product.variants', 'product.media', 'product.category'])
-                ->paginate(9);
-
-            return view('account.wishlist', ['items' => $items]);
-        }
-
-        return view('storefront.wishlist');
+        // Authenticated users get their persisted wishlist (a Livewire page that
+        // fetches + paginates itself); guests get the localStorage-driven page.
+        return auth()->check()
+            ? view('account.wishlist')
+            : view('storefront.wishlist');
     }
 
     public function wishlistItems(Request $request): JsonResponse
     {
         $ids = $request->input('ids', []);
         if (empty($ids)) {
-            return response()->json(['html' => '']);
+            return response()->json([
+                'html'         => '',
+                'total'        => 0,
+                'current_page' => 1,
+                'last_page'    => 1,
+                'per_page'     => 9,
+                'from'         => 0,
+                'to'           => 0,
+            ]);
         }
 
-        $products = Product::whereIn('id', $ids)->with(['media', 'variants'])->get();
-        $html = view('storefront.wishlist-items', compact('products'))->render();
+        $perPage = max(1, min(50, (int) $request->input('per_page', 9)));
+        $page    = max(1, (int) $request->input('page', 1));
 
-        return response()->json(['html' => $html]);
+        $paginator = Product::whereIn('id', $ids)
+            ->with(['media', 'variants'])
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        $html = view('storefront.wishlist-items', ['products' => $paginator->getCollection()])->render();
+
+        return response()->json([
+            'html'         => $html,
+            'total'        => $paginator->total(),
+            'current_page' => $paginator->currentPage(),
+            'last_page'    => $paginator->lastPage(),
+            'per_page'     => $paginator->perPage(),
+            'from'         => $paginator->firstItem() ?? 0,
+            'to'           => $paginator->lastItem() ?? 0,
+        ]);
     }
 }
+

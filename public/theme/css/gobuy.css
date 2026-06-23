@@ -679,3 +679,6 @@ nav[aria-label="Category and page links"] .container-small > div::-webkit-scroll
 .gb-search-panel .dropdown-item.active,
 .gb-search-panel .dropdown-item:hover { background: var(--phoenix-primary-bg-subtle); }
 .gb-search-panel mark { color: inherit; border-radius: 2px; }
+
+/* Progressive enhancement: hide no-JS-only controls when JS is available. */
+.js [data-js-hidden] { display: none !important; }

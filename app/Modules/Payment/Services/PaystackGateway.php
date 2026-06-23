@@ -19,7 +19,7 @@ class PaystackGateway implements PaymentGateway
         $response = $this->client()
             ->post('/transaction/initialize', [
                 'email' => $order->customer_email,
-                'amount' => $order->total->kobo, // Paystack expects kobo
+                'amount' => $order->amountDue()->kobo, // net of store credit; Paystack expects kobo
                 'reference' => $reference,
                 'callback_url' => $callbackUrl,
                 'metadata' => ['order_number' => $order->order_number],

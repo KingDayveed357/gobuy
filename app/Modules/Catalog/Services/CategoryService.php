@@ -4,18 +4,28 @@ namespace App\Modules\Catalog\Services;
 
 use App\Modules\Catalog\Models\Category;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 class CategoryService
 {
+    /**
+     * Cache key for the navbar/footer category tree (shared with the View
+     * composer in AppServiceProvider). Busted on every write so admin changes
+     * appear immediately rather than after the TTL.
+     */
+    public const NAV_CACHE_KEY = 'nav_categories';
+
     /**
      * @param  array<string, mixed>  $data
      */
     public function create(array $data): Category
     {
         $data['slug'] = $this->uniqueSlug($data['name']);
+        $category = Category::create($data);
+        $this->flushNavCache();
 
-        return Category::create($data);
+        return $category;
     }
 
     /**
@@ -28,8 +38,20 @@ class CategoryService
         }
 
         $category->update($data);
+        $this->flushNavCache();
 
         return $category;
+    }
+
+    public function delete(Category $category): void
+    {
+        $category->delete();
+        $this->flushNavCache();
+    }
+
+    public function flushNavCache(): void
+    {
+        Cache::forget(self::NAV_CACHE_KEY);
     }
 
     /**

@@ -17,9 +17,11 @@ use App\Admin\Controllers\PickupLocationController;
 use App\Admin\Controllers\ProductController;
 use App\Admin\Controllers\PromotionController;
 use App\Admin\Controllers\QuantityDiscountController;
+use App\Admin\Controllers\ReturnController;
 use App\Admin\Controllers\ReviewController;
 use App\Admin\Controllers\SettingsController;
 use App\Admin\Controllers\ShipmentController;
+use App\Admin\Controllers\StoreCreditController;
 use App\Admin\Controllers\TransferReconciliationController;
 use App\Admin\Controllers\WholesaleController;
 use Illuminate\Support\Facades\Route;
@@ -105,6 +107,24 @@ Route::middleware(['auth:admin', 'admin.active'])->group(function (): void {
         Route::get('wholesale', [WholesaleController::class, 'index'])->name('wholesale.index');
         Route::post('wholesale/{user}/approve', [WholesaleController::class, 'approve'])->name('wholesale.approve');
         Route::post('wholesale/{user}/reject', [WholesaleController::class, 'reject'])->name('wholesale.reject');
+    });
+
+    Route::middleware('permission:manage_refunds,admin')->group(function (): void {
+        Route::get('store-credits', [StoreCreditController::class, 'index'])->name('store-credits.index');
+        Route::post('store-credits', [StoreCreditController::class, 'issue'])->name('store-credits.issue');
+        Route::get('store-credits/{user}', [StoreCreditController::class, 'show'])->name('store-credits.show');
+    });
+
+    Route::middleware('permission:manage_returns,admin')->group(function (): void {
+        Route::get('returns', [ReturnController::class, 'index'])->name('returns.index');
+        Route::get('returns/export', [ReturnController::class, 'export'])->name('returns.export');
+        Route::get('returns/{return}', [ReturnController::class, 'show'])->name('returns.show');
+        Route::post('returns/{return}/approve', [ReturnController::class, 'approve'])->name('returns.approve');
+        Route::post('returns/{return}/deny', [ReturnController::class, 'deny'])->name('returns.deny');
+        Route::post('returns/{return}/request-info', [ReturnController::class, 'requestInfo'])->name('returns.request-info');
+        Route::post('returns/{return}/receive', [ReturnController::class, 'receive'])->name('returns.receive');
+        Route::post('returns/{return}/inspect', [ReturnController::class, 'inspect'])->name('returns.inspect');
+        Route::post('returns/{return}/settle', [ReturnController::class, 'settle'])->name('returns.settle');
     });
 
     Route::middleware('permission:manage_payments,admin')->group(function (): void {

@@ -269,18 +269,50 @@
                                     <p class="text-body fw-semibold">Delivery <span id="sum-zone" class="fs-10 text-body-tertiary fw-normal"></span></p>
                                     <p class="text-body-emphasis fw-semibold" id="sum-delivery">{{ money($deliveryFee) }}</p>
                                 </div>
-                                <div class="d-flex justify-content-between border-y border-dashed border-translucent py-3 mb-4">
+                                <div class="d-flex justify-content-between {{ ($creditAvailable ?? \App\Support\Money::zero())->isPositive() ? 'pt-3' : 'border-y border-dashed border-translucent py-3 mb-4' }}">
                                     <h4 class="mb-0">Total</h4>
                                     <h4 class="mb-0" id="sum-total">{{ money($total) }}</h4>
                                 </div>
+
+                                @if (($creditAvailable ?? \App\Support\Money::zero())->isPositive())
+                                    <div class="d-flex justify-content-between align-items-center bg-success-subtle rounded-2 px-3 py-2 my-3">
+                                        <label class="form-check-label fs-9 mb-0" for="applyCreditToggle">
+                                            <span class="fas fa-wallet text-success me-1"></span>Use store credit
+                                            <span class="d-block text-body-tertiary">{{ money($creditAvailable) }} available</span>
+                                        </label>
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input" type="checkbox" role="switch" id="applyCreditToggle"
+                                                   @checked($applyCredit ?? false)
+                                                   onchange="document.getElementById('creditToggleForm').querySelector('[name=apply]').value = this.checked ? 1 : 0; document.getElementById('creditToggleForm').submit();">
+                                        </div>
+                                    </div>
+                                    @if (($creditApplied ?? \App\Support\Money::zero())->isPositive())
+                                        <div class="d-flex justify-content-between">
+                                            <p class="text-body fw-semibold">Store credit</p>
+                                            <p class="text-success fw-semibold">&minus;{{ money($creditApplied) }}</p>
+                                        </div>
+                                    @endif
+                                    <div class="d-flex justify-content-between border-y border-dashed border-translucent py-3 mb-4">
+                                        <h4 class="mb-0">Amount due</h4>
+                                        <h4 class="mb-0">{{ money($amountDue ?? $total) }}</h4>
+                                    </div>
+                                @endif
+
                                 <button class="btn btn-primary w-100" type="submit">
-                                    <span id="sum-pay-label">Pay {{ money($total) }}</span><span class="fas fa-chevron-right ms-1 fs-10"></span>
+                                    <span id="sum-pay-label">Pay {{ money($amountDue ?? $total) }}</span><span class="fas fa-chevron-right ms-1 fs-10"></span>
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>
             </form>
+
+            @auth
+                <form id="creditToggleForm" action="{{ route('checkout.store-credit') }}" method="POST" class="d-none">
+                    @csrf
+                    <input type="hidden" name="apply" value="{{ ($applyCredit ?? false) ? 1 : 0 }}">
+                </form>
+            @endauth
         </div>
     </section>
 @endsection

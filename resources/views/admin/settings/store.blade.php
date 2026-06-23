@@ -9,22 +9,7 @@
         <p class="text-body-tertiary mb-0">Storefront identity, contact details and social links. These appear across the customer-facing site.</p>
     </div>
 
-    @if (session('status'))
-        <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
-            <i class="fas fa-check-circle me-2"></i>{{ session('status') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    @if ($errors->any())
-        <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
-            <ul class="mb-0 ps-3">
-                @foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach
-            </ul>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
+   
     <form action="{{ route('admin.settings.store.update') }}" method="POST" style="max-width: 760px;">
         @csrf
         <div class="card mb-4">

@@ -57,25 +57,15 @@
                         </div>
                     </li>
 
-                {{-- Wishlist --}}
-                <li class="nav-item feather-icon-wait">
-                    <a class="nav-link px-2 position-relative" href="{{ route('wishlist.index') }}" aria-label="Wishlist">
-                        <span class="text-body-tertiary" data-feather="heart" style="height:20px;width:20px;"></span>
-                        <span class="wishlist-badge {{ ($wishlistCount ?? 0) > 0 ? '' : 'd-none' }}" data-wishlist-count>{{ $wishlistCount ?? 0 }}</span>
-                    </a>
-                </li>
+                {{-- Wishlist (live count via Livewire — single source of truth, event-driven) --}}
+                <livewire:wishlist.wishlist-count />
 
-                {{-- Cart --}}
-                <li class="nav-item feather-icon-wait">
-                    <a class="nav-link px-2 position-relative {{ ($cartCount ?? 0) > 0 ? 'icon-indicator icon-indicator-primary' : '' }}"
-                       href="{{ route('cart.index') }}"
-                       aria-label="Shopping cart">
-                        <span class="text-body-tertiary" data-feather="shopping-cart" style="height:20px;width:20px;"></span>
-                        @if(($cartCount ?? 0) > 0)
-                            <span class="icon-indicator-number">{{ $cartCount }}</span>
-                        @endif
-                    </a>
-                </li>
+
+                
+
+                {{-- Cart (live count via Livewire — updates with no reload) --}}
+                <livewire:cart.cart-count />
+                {{-- (li wrapper is rendered by the component root) --}}
 
                 {{-- User dropdown --}}
                 <li class="nav-item dropdown feather-icon-wait">

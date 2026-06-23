@@ -5,6 +5,7 @@ namespace App\Admin\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Catalog\Models\Category;
 use App\Modules\Catalog\Services\CategoryService;
+use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,7 +15,7 @@ class CategoryController extends Controller
 {
     public function __construct(private readonly CategoryService $categories) {}
 
-    public function index(): \Illuminate\Contracts\View\View
+    public function index(): View
     {
         return view('admin.categories.index', [
             'categories' => Category::withCount('products')->orderBy('sort_order')->orderBy('name')->get(),
@@ -58,7 +59,7 @@ class CategoryController extends Controller
             return back()->with('error', 'This category still has products. Reassign them first.');
         }
 
-        $category->delete();
+        $this->categories->delete($category);
 
         return back()->with('status', 'Category deleted.');
     }

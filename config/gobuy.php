@@ -89,4 +89,45 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Returns
+    |--------------------------------------------------------------------------
+    |
+    | Default return policy. Products may override the window via
+    | `return_window_days`, and `is_returnable=false` opts a product out
+    | entirely. The window clock starts at the order's `delivered_at`.
+    |
+    */
+
+    'returns' => [
+        'window_days' => (int) env('GOBUY_RETURN_WINDOW_DAYS', 14),
+        'default_destination' => env('GOBUY_RETURN_DEFAULT_DESTINATION', 'store_credit'), // store_credit | original
+        'store_credit_expiry_months' => (int) env('GOBUY_STORE_CREDIT_EXPIRY_MONTHS', 12),
+        'carrier' => env('GOBUY_RETURN_CARRIER', 'GoBuy Returns'),
+        'dropoff_address' => env('GOBUY_RETURN_ADDRESS', 'GoBuy Returns Centre, Port Harcourt, Rivers State'),
+
+        // Fraud scoring (0–100) signal thresholds.
+        'fraud' => [
+            'high_value_naira' => (int) env('GOBUY_RETURN_HIGH_VALUE', 100000),
+            'new_account_days' => 7,
+            'lookback_days' => 90,
+        ],
+
+        // Rule-based auto-approval. A low-risk, low-value, "soft" return is
+        // approved without a human; everything else routes to manual review.
+        'auto_approve' => [
+            'enabled' => (bool) env('GOBUY_RETURN_AUTO_APPROVE', true),
+            'max_score' => (int) env('GOBUY_RETURN_AUTO_MAX_SCORE', 40),
+            'max_value_naira' => (int) env('GOBUY_RETURN_AUTO_MAX_VALUE', 50000),
+            'reasons' => ['changed_mind', 'better_price'],
+        ],
+
+        // Order statuses from which a return may be requested.
+        'eligible_order_statuses' => ['delivered', 'completed'],
+
+        // Category slugs that are never returnable (perishables, digital, etc.).
+        'excluded_category_slugs' => [],
+    ],
+
 ];

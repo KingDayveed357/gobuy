@@ -23,6 +23,8 @@ class AdminAccessSeeder extends Seeder
         'manage_orders' => ['Super Admin', 'Admin', 'Manager', 'Support'],
         'manage_customers' => ['Super Admin', 'Admin', 'Support'],
         'manage_payments' => ['Super Admin', 'Admin'],
+        'manage_returns' => ['Super Admin', 'Admin', 'Manager', 'Support'],
+        'manage_refunds' => ['Super Admin', 'Admin'],
         'view_analytics' => ['Super Admin', 'Admin', 'Manager'],
         'manage_admins' => ['Super Admin'],
     ];

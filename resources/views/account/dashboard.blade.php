@@ -50,6 +50,22 @@
                 <div class="col-md-4">
                     <div class="card h-100">
                         <div class="card-body">
+                            <h6 class="text-body-tertiary mb-2">Returns</h6>
+                            <a href="{{ route('account.returns.index') }}" class="btn btn-link p-0">Track your returns →</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="text-body-tertiary mb-2">Store credit</h6>
+                            <a href="{{ route('account.wallet') }}" class="btn btn-link p-0">View wallet &amp; history →</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body">
                             <h6 class="text-body-tertiary mb-2">Addresses</h6>
                             <a href="{{ route('account.addresses.index') }}" class="btn btn-link p-0">Manage address book →</a>
                         </div>

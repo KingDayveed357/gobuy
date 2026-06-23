@@ -63,7 +63,7 @@ class WishlistTest extends TestCase
             ->assertOk()
             ->assertSee('Account')      // breadcrumb retained
             ->assertSee('(11)')         // total count in the heading
-            ->assertSee('page=2');      // paginated at 9 per page
+            ->assertSee('wire:click="gotoPage(2)"', false);      // paginated at 9 per page
     }
 
     public function test_merge_persists_guest_items_and_deduplicates(): void

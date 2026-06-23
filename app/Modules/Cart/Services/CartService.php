@@ -130,7 +130,9 @@ class CartService
 
     public function count(): int
     {
-        return (int) ($this->find()?->items->sum('quantity') ?? 0);
+        // SQL SUM(quantity) — avoids hydrating cart items just to count them
+        // (this runs on every page load via the nav badge).
+        return (int) ($this->find()?->items()->sum('quantity') ?? 0);
     }
 
     /**
