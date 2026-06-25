@@ -76,7 +76,11 @@ class RefundService
             'reason' => $reason,
             'status' => $success ? 'succeeded' : 'failed',
             'provider_reference' => data_get($raw, 'data.id'),
-            'payload' => $raw,
+            'payload' => array_merge($raw, [
+                'total_amount_kobo' => $refundAmount->kobo,
+                'credit_amount_kobo' => $creditRefund->kobo,
+                'refund_type' => $isFull ? 'full' : 'partial',
+            ]),
         ]);
 
         if (! $success) {

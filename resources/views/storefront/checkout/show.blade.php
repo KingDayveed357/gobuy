@@ -138,10 +138,6 @@
                                     var pickupSelect = document.getElementById('pickupSelect');
                                     var stateInput = document.getElementById('cd-state');
                                     var addressInputs = ['cd-state', 'cd-city', 'cd-address'].map(function (id) { return document.getElementById(id); });
-                                    var subtotalKobo = parseInt(document.querySelector('[data-subtotal-kobo]').dataset.subtotalKobo) || 0;
-
-                                    function fmt(kobo) { return '₦' + (kobo / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-
                                     function currentMethod() {
                                         var checked = document.querySelector('.delivery-method-radio:checked');
                                         return checked ? checked.value : 'home_delivery';
@@ -153,16 +149,9 @@
                                             ? (pickupSelect.options[pickupSelect.selectedIndex]?.dataset.state || '')
                                             : (stateInput.value || '');
 
-                                        fetch('{{ route('checkout.delivery-quote') }}', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
-                                            body: JSON.stringify({ delivery_method: method, state: state })
-                                        }).then(function (r) { return r.json(); }).then(function (d) {
-                                            document.getElementById('sum-delivery').textContent = d.fee_formatted;
-                                            document.getElementById('sum-total').textContent = d.total_formatted;
-                                            document.getElementById('sum-pay-label').textContent = 'Pay ' + d.total_formatted;
-                                            document.getElementById('sum-zone').textContent = d.zone ? '(' + d.zone + ')' : '';
-                                        }).catch(function () {});
+                                        if (typeof Livewire !== 'undefined') {
+                                            Livewire.dispatch('delivery-updated', [{ method: method, state: state }]);
+                                        }
                                     }
 
                                     function applyMethod() {
@@ -236,83 +225,13 @@
                     </div>
 
                     <div class="col-lg-5 col-xl-4">
-                        <div class="card mt-3 mt-lg-0">
-                            <div class="card-body">
-                                <h3 class="mb-3">Summary</h3>
-                                <div class="border-bottom border-dashed border-translucent pb-2 mb-2">
-                                    @foreach ($lines as $line)
-                                        @php($item = $line['item'])
-                                        @php($product = $item->variant->product)
-                                        <div class="row align-items-center mb-2 g-2">
-                                            <div class="col-8">
-                                                <div class="d-flex align-items-center">
-                                                    <img class="me-2 border border-translucent rounded-1" src="{{ $product->imageUrl() }}" width="36" height="36" style="object-fit: contain;" alt="">
-                                                    <h6 class="fw-semibold lh-base mb-0 line-clamp-1">{{ $product->name }}</h6>
-                                                </div>
-                                            </div>
-                                            <div class="col-2 text-center"><h6 class="fs-10 mb-0">x{{ $item->quantity }}</h6></div>
-                                            <div class="col-2 ps-0"><h6 class="mb-0 fw-semibold text-end">{{ money($line['lineTotal']) }}</h6></div>
-                                        </div>
-                                    @endforeach
-                                </div>
-                                <div class="d-flex justify-content-between">
-                                    <p class="text-body fw-semibold">Subtotal</p>
-                                    <p class="text-body-emphasis fw-semibold">{{ money($subtotal) }}</p>
-                                </div>
-                                @if ($appliedCoupon)
-                                    <div class="d-flex justify-content-between">
-                                        <p class="text-body fw-semibold"><span class="fas fa-tag text-success me-1"></span>Discount <span class="fs-10 text-body-tertiary">({{ $appliedCoupon->code }})</span></p>
-                                        <p class="text-success fw-semibold">&minus;{{ money($discount) }}</p>
-                                    </div>
-                                @endif
-                                <div class="d-flex justify-content-between" data-subtotal-kobo="{{ $subtotal->minus($discount)->kobo }}">
-                                    <p class="text-body fw-semibold">Delivery <span id="sum-zone" class="fs-10 text-body-tertiary fw-normal"></span></p>
-                                    <p class="text-body-emphasis fw-semibold" id="sum-delivery">{{ money($deliveryFee) }}</p>
-                                </div>
-                                <div class="d-flex justify-content-between {{ ($creditAvailable ?? \App\Support\Money::zero())->isPositive() ? 'pt-3' : 'border-y border-dashed border-translucent py-3 mb-4' }}">
-                                    <h4 class="mb-0">Total</h4>
-                                    <h4 class="mb-0" id="sum-total">{{ money($total) }}</h4>
-                                </div>
-
-                                @if (($creditAvailable ?? \App\Support\Money::zero())->isPositive())
-                                    <div class="d-flex justify-content-between align-items-center bg-success-subtle rounded-2 px-3 py-2 my-3">
-                                        <label class="form-check-label fs-9 mb-0" for="applyCreditToggle">
-                                            <span class="fas fa-wallet text-success me-1"></span>Use store credit
-                                            <span class="d-block text-body-tertiary">{{ money($creditAvailable) }} available</span>
-                                        </label>
-                                        <div class="form-check form-switch mb-0">
-                                            <input class="form-check-input" type="checkbox" role="switch" id="applyCreditToggle"
-                                                   @checked($applyCredit ?? false)
-                                                   onchange="document.getElementById('creditToggleForm').querySelector('[name=apply]').value = this.checked ? 1 : 0; document.getElementById('creditToggleForm').submit();">
-                                        </div>
-                                    </div>
-                                    @if (($creditApplied ?? \App\Support\Money::zero())->isPositive())
-                                        <div class="d-flex justify-content-between">
-                                            <p class="text-body fw-semibold">Store credit</p>
-                                            <p class="text-success fw-semibold">&minus;{{ money($creditApplied) }}</p>
-                                        </div>
-                                    @endif
-                                    <div class="d-flex justify-content-between border-y border-dashed border-translucent py-3 mb-4">
-                                        <h4 class="mb-0">Amount due</h4>
-                                        <h4 class="mb-0">{{ money($amountDue ?? $total) }}</h4>
-                                    </div>
-                                @endif
-
-                                <button class="btn btn-primary w-100" type="submit">
-                                    <span id="sum-pay-label">Pay {{ money($amountDue ?? $total) }}</span><span class="fas fa-chevron-right ms-1 fs-10"></span>
-                                </button>
-                            </div>
-                        </div>
+                        <livewire:storefront.checkout.summary 
+                            :default-delivery-method="'home_delivery'" 
+                            :default-state="$defaultAddress?->state ?? ''" 
+                        />
                     </div>
                 </div>
             </form>
-
-            @auth
-                <form id="creditToggleForm" action="{{ route('checkout.store-credit') }}" method="POST" class="d-none">
-                    @csrf
-                    <input type="hidden" name="apply" value="{{ ($applyCredit ?? false) ? 1 : 0 }}">
-                </form>
-            @endauth
         </div>
     </section>
 @endsection

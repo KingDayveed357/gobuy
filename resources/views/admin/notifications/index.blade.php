@@ -13,16 +13,18 @@
     </div>
 
     <div class="card">
-        <div class="card-body p-0">
-            <table class="table table-sm fs-9 mb-0">
+        <div class="card-body ">
+            <table class="table table-sm fs-9 mb-0 p-4">
                 <tbody>
                     @forelse ($notifications as $note)
                         <tr class="{{ $note->read_at ? '' : 'fw-semibold' }}">
-                            <td>
+                            <td class="p-2">
                                 <span class="fas fa-receipt me-2 text-primary"></span>
                                 New paid order
-                                <a href="{{ route('admin.orders.show', $note->data['order_number']) }}">{{ $note->data['order_number'] }}</a>
+                                 @if (isset($note->data['order_number']))
+                                      <a href="{{ route('admin.orders.show', $note->data['order_number']) }}">{{ $note->data['order_number'] }}</a>
                                 from {{ $note->data['customer'] }}
+                                    @endif
                             </td>
                             <td class="text-end">{{ money($note->data['total_kobo'] ?? 0) }}</td>
                             <td class="text-end text-body-tertiary">{{ $note->created_at->diffForHumans() }}</td>

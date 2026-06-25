@@ -38,7 +38,7 @@
             <div class="container px-xl-0 px-xxl-3">
                       {{-- Categories --}}
                 @if ($categories->isNotEmpty())
-                    <div class="d-flex flex-between-center mb-3">
+                    <div class="d-flex flex-between-center mb-2">
                         <h3 class="mb-0">Shop by category</h3>
                         <a class="btn btn-link btn-sm p-0 d-none d-md-block" href="{{ route('products.index') }}">View all<span class="fas fa-chevron-right fs-10 ms-1"></span></a>
                     </div>

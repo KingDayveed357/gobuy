@@ -67,13 +67,4 @@ class CheckoutLogisticsTest extends TestCase
         $this->assertSame($location->address, $order->address_line); // snapshotted
     }
 
-    public function test_delivery_quote_endpoint_returns_a_fee(): void
-    {
-        $this->addToCart(weightG: 1000);
-
-        $this->postJson(route('checkout.delivery-quote'), ['delivery_method' => 'home_delivery', 'state' => 'Rivers'])
-            ->assertOk()
-            ->assertJson(['zone' => 'Port Harcourt & Rivers'])
-            ->assertJsonPath('fee_kobo', Money::fromNaira(1400)->kobo);
-    }
 }

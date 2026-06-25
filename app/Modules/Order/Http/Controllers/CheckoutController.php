@@ -28,23 +28,11 @@ class CheckoutController extends Controller
         private readonly CartService $cart,
         private readonly PlaceOrderAction $placeOrder,
         private readonly PaymentService $payments,
-        private readonly DeliveryFeeService $deliveryFees,
         private readonly PaymentOptionsService $paymentOptions,
-        private readonly CouponService $coupons,
-        private readonly StoreCreditService $storeCredit,
+        private readonly \App\Modules\Order\Services\CheckoutCalculator $calculator,
     ) {}
 
     private const CREDIT_SESSION_KEY = 'checkout.apply_credit';
-
-    /**
-     * Toggle whether the customer's store credit is applied to this order.
-     */
-    public function toggleStoreCredit(Request $request): RedirectResponse
-    {
-        session([self::CREDIT_SESSION_KEY => $request->boolean('apply')]);
-
-        return redirect()->route('checkout.show');
-    }
 
     public function show(): View|RedirectResponse
     {
@@ -58,71 +46,23 @@ class CheckoutController extends Controller
         $addresses = $user ? $user->addresses : collect();
         $defaultAddress = $user?->defaultShippingAddress();
 
-        // Initial quote: home delivery to the default address's state.
-        $weight = (int) ($summary['weight'] ?? 0);
-        $initial = $this->deliveryFees->quote(
-            Shipment::METHOD_HOME,
+        $applyCredit = (bool) session(self::CREDIT_SESSION_KEY);
+
+        $totals = $this->calculator->calculate(
+            $user,
+            \App\Modules\Logistics\Models\Shipment::METHOD_HOME,
             $defaultAddress?->state ?? '',
-            $weight,
-            $summary['subtotal'],
+            $applyCredit,
+            $summary
         );
-
-        $coupon = $this->coupons->resolveForCart($summary, $user);
-        $discount = $coupon['discount'] ?? Money::zero();
-        $discountedSubtotal = $summary['subtotal']->minus($discount);
-        $total = $discountedSubtotal->plus($initial['fee']);
-
-        // Store credit (a tender against the bill, not a discount).
-        $creditAvailable = $user ? $this->storeCredit->balanceFor($user) : Money::zero();
-        $applyCredit = (bool) session(self::CREDIT_SESSION_KEY) && $creditAvailable->isPositive();
-        $creditApplied = $applyCredit && $user ? $this->storeCredit->redeemableFor($user, $total) : Money::zero();
 
         return view('storefront.checkout.show', [
-            ...$summary,
-            'deliveryFee' => $initial['fee'],
-            'appliedCoupon' => $coupon['coupon'] ?? null,
-            'discount' => $discount,
-            'total' => $total,
-            'creditAvailable' => $creditAvailable,
-            'applyCredit' => $applyCredit,
-            'creditApplied' => $creditApplied,
-            'amountDue' => $total->minus($creditApplied),
             'addresses' => $addresses,
             'defaultAddress' => $defaultAddress,
-            'pickupLocations' => PickupLocation::active()->orderBy('name')->get(),
+            'pickupLocations' => \App\Modules\Logistics\Models\PickupLocation::active()->orderBy('name')->get(),
             'podEligible' => $this->paymentOptions->podEligible($summary['subtotal'], $user),
             'bankAccount' => config('gobuy.bank_account'),
-        ]);
-    }
-
-    /**
-     * Live delivery fee for the chosen method + destination (never trusted as
-     * authoritative — the order recomputes server-side at placement).
-     */
-    public function deliveryQuote(Request $request): JsonResponse
-    {
-        $request->validate([
-            'delivery_method' => ['required', 'in:home_delivery,pickup'],
-            'state' => ['nullable', 'string', 'max:120'],
-        ]);
-
-        $summary = $this->cart->summary();
-        $quote = $this->deliveryFees->quote(
-            $request->string('delivery_method')->toString(),
-            $request->string('state')->toString(),
-            (int) ($summary['weight'] ?? 0),
-            $summary['subtotal'],
-        );
-
-        $coupon = $this->coupons->resolveForCart($summary, $request->user());
-        $discount = $coupon['discount'] ?? Money::zero();
-        $total = $summary['subtotal']->minus($discount)->plus($quote['fee']);
-
-        return response()->json([
-            'fee_kobo' => $quote['fee']->kobo,
-            'fee_formatted' => money($quote['fee']),
-            'total_formatted' => money($total),
-            'zone' => $quote['zone']?->name,
+            ...$totals,
         ]);
     }
 

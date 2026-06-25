@@ -149,6 +149,72 @@ class Order extends Model
         return $this->payment_status === PaymentStatus::Paid;
     }
 
+    public function hasSeparateAddresses(): bool
+    {
+        return false;
+    }
+
+    public function netPaid(): Money
+    {
+        $net = $this->total->kobo - ($this->refunded_total?->kobo ?? 0);
+        return Money::fromKobo(max(0, $net));
+    }
+
+    public function timelineEvents(): \Illuminate\Support\Collection
+    {
+        $events = collect();
+
+        $events->push((object)[
+            'type' => 'placed',
+            'title' => 'Order Placed',
+            'description' => 'The order was placed successfully.',
+            'date' => $this->placed_at ?? $this->created_at,
+            'icon' => 'fa-solid fa-cart-shopping',
+            'color' => 'primary',
+        ]);
+
+        foreach ($this->statusHistories as $history) {
+            $events->push((object)[
+                'type' => 'status_change',
+                'title' => $history->status->label(),
+                'description' => $history->note,
+                'date' => $history->created_at,
+                'icon' => 'fa-solid fa-check',
+                'color' => 'success',
+            ]);
+        }
+
+        $payment = $this->payment;
+        if ($payment && $payment->isSuccessful()) {
+            $events->push((object)[
+                'type' => 'payment',
+                'title' => 'Payment Received',
+                'description' => 'Amount: ' . $payment->amount->toNaira(),
+                'date' => $payment->paid_at ?? $payment->created_at,
+                'icon' => 'fa-solid fa-credit-card',
+                'color' => 'info',
+            ]);
+        }
+
+        foreach ($this->refunds as $refund) {
+            $totalAmountKobo = data_get($refund->payload, 'total_amount_kobo', $refund->amount->kobo);
+            $totalAmount = \App\Support\Money::fromKobo($totalAmountKobo);
+            $type = data_get($refund->payload, 'refund_type', 'partial');
+            $typeLabel = ucfirst($type);
+
+            $events->push((object)[
+                'type' => 'refund',
+                'title' => "{$typeLabel} Refund Issued",
+                'description' => 'Amount: ' . $totalAmount->toNaira() . ($refund->reason ? " - {$refund->reason}" : ''),
+                'date' => $refund->created_at,
+                'icon' => 'fa-solid fa-reply',
+                'color' => 'warning',
+            ]);
+        }
+
+        return $events->sortByDesc('date')->values();
+    }
+
     public function getRouteKeyName(): string
     {
         return 'order_number';

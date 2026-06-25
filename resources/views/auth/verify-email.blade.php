@@ -13,10 +13,7 @@
                             <h3 class="mb-1">Verify your email</h3>
                             <p class="text-body-tertiary mb-4">We've sent a 6-digit code to <span class="fw-semibold">{{ auth()->user()->email }}</span>.</p>
 
-                            
-                            @if (session('resend_error'))
-                                <div class="alert alert-subtle-warning">{{ session('resend_error') }}</div>
-                            @endif
+                        
                             @error('code')
                                 <div class="alert alert-subtle-danger">{{ $message }}</div>
                             @enderror
