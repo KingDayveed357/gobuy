@@ -36,17 +36,28 @@ class PaymentService
      */
     public function initializeFor(Order $order, string $callbackUrl): string
     {
+        $key = 'init_payment_'.$order->id;
+
+        if (\Illuminate\Support\Facades\RateLimiter::tooManyAttempts($key, 5)) {
+            throw new \RuntimeException('Too many payment initialization attempts. Please wait a minute before trying again.');
+        }
+
+        \Illuminate\Support\Facades\RateLimiter::hit($key, 60);
+
         $reference = 'GB-PAY-'.Str::upper(Str::random(12));
 
-        $payment = $order->payment()->create([
-            'reference' => $reference,
-            'amount' => $order->amountDue(), // net of any store credit tendered
-            'status' => 'pending',
-        ]);
-
+        // Call the gateway FIRST. If it times out or fails, no orphaned record is created.
         $result = $this->gateway->initialize($order, $reference, $callbackUrl);
 
-        $payment->update(['payload' => ['authorization_url' => $result['authorization_url']]]);
+        // Write to DB only after the HTTP call succeeds.
+        DB::transaction(function () use ($order, $reference, $result) {
+            $order->payment()->create([
+                'reference' => $reference,
+                'amount' => $order->amountDue(), // net of any store credit tendered
+                'status' => 'pending',
+                'payload' => ['authorization_url' => $result['authorization_url']],
+            ]);
+        });
 
         return $result['authorization_url'];
     }
@@ -79,6 +90,22 @@ class PaymentService
                 'reference' => $reference,
                 'order_number' => $payment->order->order_number,
             ]);
+
+            return false;
+        }
+
+        // Amount assertion - prevent partial payments or manipulated amounts
+        $gatewayAmount = data_get($result['raw'], 'data.amount');
+        if ($gatewayAmount !== null && (int) $gatewayAmount !== $payment->amount->kobo) {
+            Log::critical('Payment amount mismatch detected', [
+                'reference' => $reference,
+                'order_number' => $payment->order->order_number,
+                'expected_kobo' => $payment->amount->kobo,
+                'actual_kobo' => $gatewayAmount,
+            ]);
+
+            $payment->update(['status' => 'failed', 'payload' => $result['raw']]);
+            $payment->order->update(['payment_status' => PaymentStatus::Failed]);
 
             return false;
         }
@@ -172,21 +199,29 @@ class PaymentService
         });
 
         if ($firstAcceptance) {
-            $this->notifyOrderAccepted($order);
+            \App\Modules\Order\Events\OrderPaid::dispatch($order);
         }
     }
 
-    private function notifyOrderAccepted(Order $order): void
+    public function markFailed(string $reference, array $payload = []): void
     {
-        // Queued so the webhook/callback returns fast (the only async work in MVP).
-        Mail::to($order->customer_email)->queue(new OrderConfirmationMail($order));
+        $payment = Payment::with('order')->firstWhere('reference', $reference);
 
-        // SMS/WhatsApp confirmation to the customer.
-        $this->notifier->orderAccepted($order);
+        if (! $payment || $payment->status !== 'pending') {
+            return;
+        }
 
-        // Alert admins who handle orders (can() is null-safe if RBAC is absent).
-        $admins = Admin::where('is_active', true)->get()
-            ->filter(fn (Admin $admin) => $admin->can('manage_orders'));
-        Notification::send($admins, new NewPaidOrderNotification($order));
+        $payment->update([
+            'status' => 'failed',
+            'payload' => array_merge($payment->payload ?? [], $payload),
+        ]);
+
+        $payment->order->update(['payment_status' => PaymentStatus::Failed]);
+
+        Log::warning('Payment failed via webhook', [
+            'reference' => $reference,
+            'order_number' => $payment->order->order_number,
+        ]);
     }
+
 }

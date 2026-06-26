@@ -295,79 +295,9 @@
         </div>
     </section>
 
-    @if ($related->isNotEmpty())
-        <section class="py-0 mb-9 mt-5">
-            <div class="container-small">
-                <div class="d-flex flex-between-center mb-4">
-                    <div>
-                        <h3 class="mb-1">Related products</h3>
-                        <p class="text-body-tertiary mb-0 fs-9">More products from the same category</p>
-                    </div>
-                </div>
-                <!-- Fix for carousel overlapping issues: removed position-relative from the wrapper to decouple stacking contexts -->
-                <div class="swiper-theme-container products-slider">
-                    <div class="swiper theme-slider" data-swiper='{{ $relatedSwiper }}'>
-                        <div class="swiper-wrapper">
-                            @foreach ($related as $item)
-                                <div class="swiper-slide">
-                                    <div class="position-relative text-decoration-none product-card h-100">
-                                        <div class="d-flex flex-column justify-content-between h-100">
-                                            <div>
-                                                <div class="border border-1 border-translucent rounded-3 position-relative mb-3">
-                                                    <!-- The z-index and isolated pointer-events are crucial here for the wishlist button -->
-                                                    <button type="button" class="btn btn-wish btn-wish-primary z-2 d-toggle-container" data-wishlist-toggle data-product-id="{{ $item->id }}" data-product-slug="{{ $item->slug }}" data-product-name="{{ $item->name }}" data-bs-toggle="tooltip" data-bs-placement="top" title="Add to wishlist" style="position: absolute; top: 10px; right: 10px; z-index: 10; pointer-events: auto;">
-                                                        <span class="fas fa-heart d-block-hover" data-fa-transform="down-1"></span><span class="far fa-heart d-none-hover" data-fa-transform="down-1"></span>
-                                                    </button>
-                                                    <img class="img-fluid" src="{{ $item->imageUrl() }}" alt="{{ $item->name }}">
-                                                </div>
-                                                <a class="stretched-link" href="{{ route('products.show', $item) }}">
-                                                    <h6 class="mb-2 lh-sm line-clamp-3 product-name">{{ $item->name }}</h6>
-                                                </a>
-                                            </div>
-                                            <div>
-                                                <div class="d-flex flex-wrap align-items-baseline gap-2 mb-1">
-                                                    @php($rPrice = app(\App\Modules\Pricing\Services\PricingEngine::class)->priceForProduct($item, auth()->user(), 1))
-                                                    @if ($rPrice->hasDiscount())
-                                                        <p class="text-body-tertiary text-decoration-line-through fs-9 mb-0">{{ money($rPrice->retailPrice) }}</p>
-                                                    @endif
-                                                    <h4 class="text-body-emphasis mb-0">{{ money($rPrice->unitPrice) }}</h4>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                    <!-- Moved swiper-nav AFTER the swiper container so it naturally stacks above the slides -->
-                    <div class="swiper-nav" style="pointer-events: none;">
-                        <div class="swiper-button-next" style="pointer-events: auto;"><span class="fas fa-chevron-right nav-icon"></span></div>
-                        <div class="swiper-button-prev" style="pointer-events: auto;"><span class="fas fa-chevron-left nav-icon"></span></div>
-                    </div>
-                </div>
-            </div>
-        </section>
-    @endif
+    <x-product-slider title="Related products" subtitle="More products from the same category" :products="$related" />
 
-    @if ($recentlyViewed->isNotEmpty())
-        <section class="py-0 mb-9">
-            <div class="container-small">
-                <div class="d-flex flex-between-center mb-4">
-                    <div>
-                        <h3 class="mb-1">Recently viewed</h3>
-                        <p class="text-body-tertiary mb-0 fs-9">Pick up where you left off</p>
-                    </div>
-                </div>
-                <div class="row gx-3 gy-6">
-                    @foreach ($recentlyViewed as $item)
-                        <div class="col-6 col-md-4 col-lg-3 col-xxl-2">
-                            <x-product-card :product="$item" />
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-        </section>
-    @endif
+    <x-product-slider title="Recently viewed" subtitle="Pick up where you left off" :products="$recentlyViewed" class="py-0 mb-9" />
 @endsection
 
 @push('scripts')

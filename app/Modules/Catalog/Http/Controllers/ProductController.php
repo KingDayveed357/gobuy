@@ -97,8 +97,8 @@ class ProductController extends Controller
         $related = Product::active()
             ->whereBelongsTo($product->category)
             ->whereKeyNot($product->id)
-            ->with(['variants', 'quantityDiscounts', 'media'])
-            ->take(8)
+            ->with(['variants', 'quantityDiscounts', 'media', 'category'])
+            ->take(12)
             ->get();
 
         $recentlyViewed = $this->trackRecentlyViewed($request, $product);
@@ -160,10 +160,10 @@ class ProductController extends Controller
             ->with(['variants', 'quantityDiscounts', 'media', 'category'])
             ->get()
             ->sortBy(fn (Product $p) => $others->search($p->id))
-            ->take(6)
+            ->take(12)
             ->values();
 
-        $updated = $ids->prepend($product->id)->unique()->take(8)->implode(',');
+        $updated = $ids->prepend($product->id)->unique()->take(15)->implode(',');
         cookie()->queue(cookie('recently_viewed', $updated, 60 * 24 * 30));
 
         return $recent;

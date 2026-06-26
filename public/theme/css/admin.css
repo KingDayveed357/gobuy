@@ -258,24 +258,16 @@ html.navbar-vertical-collapsed .navbar-vertical .navbar-collapse {
 /* Enable scrolling for the collapsed sidebar's content */
 html.navbar-vertical-collapsed .navbar-vertical .navbar-vertical-content {
   flex: 1 1 auto !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
   min-height: 0 !important;
   height: auto !important;
-  /* Firefox */
-  scrollbar-width: thin;
-  scrollbar-color: rgba(150, 150, 150, 0.4) transparent;
 }
 
-/* Webkit Scrollbar */
-html.navbar-vertical-collapsed .navbar-vertical .navbar-vertical-content::-webkit-scrollbar {
-  width: 4px;
-  background-color: transparent;
+/* Rotate toggle icon when collapsed */
+.navbar-vertical-toggle-icon {
+  transition: transform 0.2s ease;
 }
-html.navbar-vertical-collapsed .navbar-vertical .navbar-vertical-content::-webkit-scrollbar-thumb {
-  border-radius: 4px;
-  background-color: rgba(150, 150, 150, 0.4);
+html.navbar-vertical-collapsed .navbar-vertical-toggle-icon {
+  transform: rotate(180deg);
 }
-html[data-bs-theme="dark"].navbar-vertical-collapsed .navbar-vertical .navbar-vertical-content::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.2);
-}
+
+

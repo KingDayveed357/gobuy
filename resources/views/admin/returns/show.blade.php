@@ -4,6 +4,12 @@
 @section('page-title', 'Return '.$return->reference)
 
 @section('content')
+    <nav class="mb-2" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{{ route('admin.returns.index') }}">Returns</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ $return->reference }}</li>
+        </ol>
+    </nav>
     <x-admin.page-header :title="'Return '.$return->reference" :subtitle="'Order '.$return->order?->order_number">
         <x-slot:actions>
             <span class="badge badge-phoenix badge-phoenix-{{ $return->status->isSettled() ? 'success' : ($return->status->isOpen() ? 'warning' : 'secondary') }} fs-9">{{ $return->status->label() }}</span>
@@ -15,13 +21,20 @@
             <div class="card mb-4"><div class="card-body">
                 <h5 class="mb-3">Items</h5>
                 <table class="table table-sm fs-9 mb-0">
-                    <thead><tr><th>Item</th><th class="text-center">Qty</th><th>Condition</th><th class="text-end">Paid/unit</th></tr></thead>
+                    <thead><tr><th>Item</th><th class="text-center">Qty</th><th>Condition</th><th>Resolution</th><th class="text-end">Paid/unit</th></tr></thead>
                     <tbody>
                         @foreach ($return->items as $item)
                             <tr>
                                 <td class="text-body-emphasis">{{ $item->orderItem->name ?? 'Item' }}</td>
                                 <td class="text-center">{{ $item->quantity }}</td>
                                 <td>{{ ucfirst($item->condition_reported ?? '—') }}</td>
+                                <td>
+                                    @if ($item->resolution)
+                                        <span class="badge badge-phoenix badge-phoenix-secondary">{{ $item->resolution->label() }}</span>
+                                    @else
+                                        <span class="text-body-tertiary">—</span>
+                                    @endif
+                                </td>
                                 <td class="text-end">{{ money($item->unit_price_snapshot) }}</td>
                             </tr>
                         @endforeach
@@ -38,12 +51,26 @@
                         <div class="d-flex flex-wrap gap-2">
                             @foreach ($photos as $photo)
                                 @php($photoUrl = route('returns.photo', [$return, $photo]))
-                                <a href="{{ $photoUrl }}" target="_blank" rel="noopener">
+                                <a href="{{ $photoUrl }}" class="glightbox" data-gallery="return-photos">
                                     <img src="{{ $photoUrl }}" alt="Return photo" style="width:84px;height:84px;object-fit:cover;" class="rounded border">
                                 </a>
                             @endforeach
                         </div>
                     </div>
+                    
+                    <!-- GLightbox -->
+                    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/glightbox/dist/css/glightbox.min.css" />
+                    <script src="https://cdn.jsdelivr.net/npm/glightbox/dist/js/glightbox.min.js"></script>
+                    <script>
+                        document.addEventListener('DOMContentLoaded', () => {
+                            const lightbox = GLightbox({
+                                selector: '.glightbox',
+                                touchNavigation: true,
+                                loop: true,
+                                zoomable: true
+                            });
+                        });
+                    </script>
                 @endif
             </div></div>
 
@@ -86,10 +113,39 @@
                                 <button class="btn btn-phoenix-secondary btn-sm mt-1"><span class="fas fa-clipboard-check me-2"></span>Save inspection</button>
                             </form>
                             @can('manage_refunds')
-                                <form action="{{ route('admin.returns.settle', $return) }}" method="POST" onsubmit="return confirm('Settle this return? This restocks accepted items and refunds the customer.');">
-                                    @csrf
-                                    <button class="btn btn-primary btn-sm"><span class="fas fa-money-bill-wave me-2"></span>Settle return</button>
-                                </form>
+                                <div class="d-inline-block">
+                                    <button data-bs-toggle="modal" data-bs-target="#settleModal" type="button" class="btn btn-primary btn-sm">
+                                        <span class="fas fa-money-bill-wave me-2"></span>Settle return
+                                    </button>
+                                    
+                                    <!-- Settle Modal -->
+                                    <div class="modal fade" id="settleModal" tabindex="-1" aria-labelledby="settleModalLabel" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content text-start">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="settleModalLabel">Settle Return Request</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <p class="fs-9 text-body-secondary mb-3">You are about to finalize this return. This action cannot be undone.</p>
+                                                    <ul class="fs-9 text-body-secondary mb-0">
+                                                        <li><strong>Restock:</strong> Eligible items will be returned to inventory.</li>
+                                                        <li><strong>Refund:</strong> The final calculated amount will be refunded to <strong>{{ $return->refund_destination->label() }}</strong>.</li>
+                                                        <li><strong>Customer Notification:</strong> The customer will be emailed a final summary.</li>
+                                                    </ul>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                                                    <form action="{{ route('admin.returns.settle', $return) }}" method="POST" class="d-inline">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-success btn-sm"><span class="fas fa-check me-2"></span>Confirm & Settle</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                             @else
                                 <p class="fs-9 text-body-tertiary mb-0">You don't have permission to settle refunds.</p>
                             @endcan

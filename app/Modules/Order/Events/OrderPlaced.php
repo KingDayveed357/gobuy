@@ -6,16 +6,17 @@ use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Foundation\Events\Dispatchable;
-use Illuminate\Queue\SerializesModels;
+use App\Modules\Order\Models\Order;
+use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 
-class OrderPlaced
+class OrderPlaced implements ShouldDispatchAfterCommit
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     /**
      * Create a new event instance.
      */
-    public function __construct()
+    public function __construct(public readonly Order $order)
     {
         //
     }

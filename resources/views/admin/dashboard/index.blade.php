@@ -6,7 +6,9 @@
 @section('content')
     <x-admin.page-header title="Dashboard" subtitle="Overview of store performance">
         <x-slot:actions>
-            <a href="{{ route('admin.analytics') }}" class="btn btn-sm btn-phoenix-secondary"><span class="fas fa-chart-line me-2"></span>Analytics</a>
+            @if (auth('admin')->user()?->can('view_analytics'))
+                <a href="{{ route('admin.analytics') }}" class="btn btn-sm btn-phoenix-secondary"><span class="fas fa-chart-line me-2"></span>Analytics</a>
+            @endif
         </x-slot:actions>
     </x-admin.page-header>
 

@@ -45,7 +45,7 @@ class Shipment extends Model
 
     public function pickupLocation(): BelongsTo
     {
-        return $this->belongsTo(PickupLocation::class);
+        return $this->belongsTo(Location::class, 'pickup_location_id');
     }
 
     public function isPickup(): bool

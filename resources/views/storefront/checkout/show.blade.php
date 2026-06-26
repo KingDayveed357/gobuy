@@ -27,6 +27,7 @@
 
             <form action="{{ route('checkout.store') }}" method="POST">
                 @csrf
+                <input type="hidden" name="checkout_token" value="{{ $checkoutToken }}">
                 <input type="hidden" name="delivery_method" id="deliveryMethod" value="home_delivery">
                 <div class="row justify-content-between">
                     <div class="col-lg-7">

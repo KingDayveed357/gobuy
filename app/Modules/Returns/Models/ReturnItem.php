@@ -21,6 +21,7 @@ class ReturnItem extends Model
         'reason_code',
         'condition_reported',
         'disposition',
+        'resolution',
         'restocked',
         'inspection_note',
     ];
@@ -32,6 +33,7 @@ class ReturnItem extends Model
             'approved_quantity' => 'integer',
             'unit_price_snapshot' => Money::class,
             'disposition' => ReturnItemDisposition::class,
+            'resolution' => \App\Modules\Returns\Enums\ReturnItemResolution::class,
             'restocked' => 'boolean',
         ];
     }

@@ -38,57 +38,85 @@ class RefundService
      */
     public function refund(Order $order, Admin $admin, ?Money $amount = null, ?string $reason = null): Refund
     {
-        if ($order->payment_status !== PaymentStatus::Paid) {
-            throw new RuntimeException('Only paid orders can be refunded.');
+        if ($order->payment_status !== PaymentStatus::Paid && $order->payment_status !== PaymentStatus::PartiallyRefunded) {
+            throw new RuntimeException('Only paid or partially refunded orders can be refunded.');
         }
 
         $refundAmount = $amount ?? $order->total;
 
-        if ($refundAmount->kobo > $order->refundableRemaining()->kobo) {
-            throw new RuntimeException('A refund cannot exceed the remaining refundable amount.');
-        }
+        // Phase 1: Record intent atomically with a row lock
+        $refund = DB::transaction(function () use ($order, $refundAmount, $admin, $reason, &$isFull, &$cashRefund, &$creditRefund, &$payment) {
+            $fresh = Order::query()->lockForUpdate()->findOrFail($order->id);
 
-        $isFull = ! $refundAmount->lessThan($order->total);
-        $payment = $order->payment;
+            if ($refundAmount->kobo > $fresh->refundableRemaining()->kobo) {
+                throw new RuntimeException('A refund cannot exceed the remaining refundable amount.');
+            }
 
-        // Split across tenders: refund the cash collected first, then return any
-        // store credit that was applied.
-        $cashTender = $order->amountDue();                  // total − store credit
-        $cashRefund = $refundAmount->min($cashTender);
-        $creditRefund = $refundAmount->minus($cashRefund);
+            $isFull = ! $refundAmount->lessThan($fresh->total);
+            $payment = $fresh->payment;
 
-        // Online (Paystack) orders refund through the gateway; manual orders
-        // (bank transfer / POD) are recorded as an out-of-band refund. A
-        // credit-only refund touches no gateway.
+            // Split across tenders: refund the cash collected first, then return any
+            // store credit that was applied.
+            $cashTender = $fresh->amountDue();                  // total − store credit
+            $cashRefund = $refundAmount->min($cashTender);
+            $creditRefund = $refundAmount->minus($cashRefund);
+
+            return $fresh->refunds()->create([
+                'payment_id' => $payment?->id,
+                'admin_id' => $admin->id,
+                'amount' => $cashRefund,
+                'reason' => $reason,
+                'status' => 'pending',
+                'payload' => [
+                    'total_amount_kobo' => $refundAmount->kobo,
+                    'credit_amount_kobo' => $creditRefund->kobo,
+                    'refund_type' => $isFull ? 'full' : 'partial',
+                ],
+            ]);
+        });
+
+        // Phase 2: Call gateway OUTSIDE any lock
         if ($cashRefund->isPositive() && $payment) {
             $result = $this->gateway->refund($payment->reference, $cashRefund->kobo);
             $success = (bool) $result['success'];
             $raw = $result['raw'];
-        } else {
-            $success = true;
-            $raw = $cashRefund->isPositive() ? ['manual' => true] : ['store_credit_only' => true];
-        }
 
-        $refund = $order->refunds()->create([
-            'payment_id' => $payment?->id,
-            'admin_id' => $admin->id,
-            'amount' => $cashRefund,
-            'reason' => $reason,
-            'status' => $success ? 'succeeded' : 'failed',
-            'provider_reference' => data_get($raw, 'data.id'),
-            'payload' => array_merge($raw, [
-                'total_amount_kobo' => $refundAmount->kobo,
-                'credit_amount_kobo' => $creditRefund->kobo,
-                'refund_type' => $isFull ? 'full' : 'partial',
-            ]),
-        ]);
+            $refund->update([
+                'status' => 'processing',
+                'provider_reference' => data_get($raw, 'data.id'),
+                'payload' => array_merge($refund->payload ?? [], $raw),
+            ]);
 
-        if (! $success) {
-            Log::warning('Refund failed', ['order_number' => $order->order_number, 'admin_id' => $admin->id]);
+            Log::info('Refund processing via gateway', [
+                'order_number' => $order->order_number,
+                'amount_kobo' => $refundAmount->kobo,
+            ]);
 
             return $refund;
         }
 
+        // Manual or Store Credit Only path
+        $raw = $cashRefund->isPositive() ? ['manual' => true] : ['store_credit_only' => true];
+
+        $refund->update([
+            'status' => 'succeeded',
+            'payload' => array_merge($refund->payload ?? [], $raw),
+        ]);
+
+        $this->completeRefund($order, $isFull, $refundAmount, $creditRefund, $admin, $refund);
+
+        Log::info('Refund succeeded (manual/credit)', [
+            'order_number' => $order->order_number,
+            'amount_kobo' => $refundAmount->kobo,
+            'full' => $isFull,
+            'admin_id' => $admin->id,
+        ]);
+
+        return $refund;
+    }
+
+    public function completeRefund(Order $order, bool $isFull, Money $refundAmount, Money $creditRefund, Admin $admin, Refund $refund): void
+    {
         DB::transaction(function () use ($order, $isFull, $refundAmount, $creditRefund, $admin, $refund): void {
             // Shared over-refund ledger — also read by the Returns module.
             // Atomic, cast-free (Money cast forbids ->increment()).
@@ -103,6 +131,7 @@ class RefundService
             }
 
             if (! $isFull) {
+                $order->update(['payment_status' => PaymentStatus::PartiallyRefunded]);
                 return; // partial refund: order stays paid
             }
 
@@ -117,15 +146,6 @@ class RefundService
                 }
             }
         });
-
-        Log::info('Refund succeeded', [
-            'order_number' => $order->order_number,
-            'amount_kobo' => $refundAmount->kobo,
-            'full' => $isFull,
-            'admin_id' => $admin->id,
-        ]);
-
-        return $refund;
     }
 
     /**
@@ -143,32 +163,99 @@ class RefundService
             throw new RuntimeException('Refund amount must be positive.');
         }
 
-        $payment = $order->payment;
+        // Phase 1: Record intent atomically with a row lock
+        $refund = DB::transaction(function () use ($order, $amount, $admin, $reason, &$payment) {
+            $fresh = Order::query()->lockForUpdate()->findOrFail($order->id);
+
+            if ($amount->kobo > $fresh->refundableRemaining()->kobo) {
+                throw new RuntimeException('A refund cannot exceed the remaining refundable amount.');
+            }
+
+            $payment = $fresh->payment;
+
+            return $fresh->refunds()->create([
+                'payment_id' => $payment?->id,
+                'admin_id' => $admin->id,
+                'amount' => $amount,
+                'reason' => $reason,
+                'status' => 'pending',
+                'payload' => [],
+            ]);
+        });
+
+        // Phase 2: Call gateway OUTSIDE any lock
         if ($payment) {
             $result = $this->gateway->refund($payment->reference, $amount->kobo);
             $success = (bool) $result['success'];
             $raw = $result['raw'];
-        } else {
-            $success = true;       // manual/offline reversal recorded out of band
-            $raw = ['manual' => true];
+
+            $refund->update([
+                'status' => 'processing',
+                'provider_reference' => data_get($raw, 'data.id'),
+                'payload' => $raw,
+            ]);
+
+            return $refund;
         }
 
-        $refund = $order->refunds()->create([
-            'payment_id' => $payment?->id,
-            'admin_id' => $admin->id,
-            'amount' => $amount,
-            'reason' => $reason,
-            'status' => $success ? 'succeeded' : 'failed',
-            'provider_reference' => data_get($raw, 'data.id'),
+        // Manual offline reversal
+        $raw = ['manual' => true];
+
+        $refund->update([
+            'status' => 'succeeded',
             'payload' => $raw,
         ]);
 
-        if ($success) {
-            Order::whereKey($order->id)->update(['refunded_total' => DB::raw('refunded_total + '.$amount->kobo)]);
-        } else {
-            Log::warning('Return refund failed', ['order_number' => $order->order_number, 'admin_id' => $admin->id]);
-        }
+        Order::whereKey($order->id)->update(['refunded_total' => DB::raw('refunded_total + '.$amount->kobo)]);
+        $order->update(['payment_status' => PaymentStatus::PartiallyRefunded]);
 
         return $refund;
+    }
+
+    public function markConfirmed(string $providerReference, array $payload = []): void
+    {
+        $refund = Refund::with(['order', 'admin'])->firstWhere('provider_reference', $providerReference);
+
+        if (! $refund || $refund->status === 'succeeded') {
+            return; // Already processed
+        }
+
+        $refund->update([
+            'status' => 'succeeded',
+            'payload' => array_merge($refund->payload ?? [], $payload),
+        ]);
+
+        // Phase 3 completion
+        $isFull = data_get($refund->payload, 'refund_type') === 'full';
+        $refundAmount = new Money((int) data_get($refund->payload, 'total_amount_kobo', 0));
+        $creditRefund = new Money((int) data_get($refund->payload, 'credit_amount_kobo', 0));
+
+        if ($refund->admin && $refund->order) {
+            $this->completeRefund($refund->order, $isFull, $refundAmount, $creditRefund, $refund->admin, $refund);
+        }
+
+        Log::info('Refund confirmed via webhook', [
+            'provider_reference' => $providerReference,
+            'refund_id' => $refund->id,
+        ]);
+    }
+
+    public function markFailed(string $providerReference, array $payload = []): void
+    {
+        $refund = Refund::firstWhere('provider_reference', $providerReference);
+
+        if (! $refund || $refund->status === 'failed') {
+            return;
+        }
+
+        $refund->update([
+            'status' => 'failed',
+            'payload' => array_merge($refund->payload ?? [], $payload),
+        ]);
+
+        Log::warning('Refund failed via webhook', [
+            'provider_reference' => $providerReference,
+            'refund_id' => $refund->id,
+        ]);
     }
 }

@@ -19,6 +19,7 @@ class Refund extends Model
         'status',
         'provider_reference',
         'payload',
+        'confirmed_at',
     ];
 
     protected function casts(): array
@@ -26,6 +27,7 @@ class Refund extends Model
         return [
             'amount' => Money::class,
             'payload' => 'array',
+            'confirmed_at' => 'datetime',
         ];
     }
 

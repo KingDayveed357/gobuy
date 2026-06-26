@@ -67,6 +67,23 @@ class PaymentController extends Controller
         return back()->with('status', "Cash collection recorded for {$order->order_number}.");
     }
 
+    public function verifyPayment(Request $request, Payment $payment): RedirectResponse
+    {
+        if ($payment->status !== 'pending') {
+            return back()->with('error', 'Only pending payments can be verified.');
+        }
+
+        try {
+            $success = $this->payments->verifyAndComplete($payment->reference);
+            if ($success) {
+                return back()->with('status', 'Payment verified successfully.');
+            }
+            return back()->with('error', 'Payment verification failed or payment is not successful on Paystack.');
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Error verifying payment: ' . $e->getMessage());
+        }
+    }
+
     public function reconciliation(Request $request): View
     {
         $date = $request->filled('date')

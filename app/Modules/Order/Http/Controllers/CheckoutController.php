@@ -56,12 +56,15 @@ class CheckoutController extends Controller
             $summary
         );
 
+        $checkoutToken = (string) \Illuminate\Support\Str::uuid();
+
         return view('storefront.checkout.show', [
             'addresses' => $addresses,
             'defaultAddress' => $defaultAddress,
-            'pickupLocations' => \App\Modules\Logistics\Models\PickupLocation::active()->orderBy('name')->get(),
+            'pickupLocations' => \App\Modules\Logistics\Models\Location::pickup()->active()->orderBy('name')->get(),
             'podEligible' => $this->paymentOptions->podEligible($summary['subtotal'], $user),
             'bankAccount' => config('gobuy.bank_account'),
+            'checkoutToken' => $checkoutToken,
             ...$totals,
         ]);
     }
@@ -69,11 +72,20 @@ class CheckoutController extends Controller
     public function store(CheckoutRequest $request): RedirectResponse
     {
         $data = $request->validated();
+        $token = $data['checkout_token'] ?? null;
+
+        if ($token) {
+            $existingOrder = \App\Modules\Order\Models\Order::where('checkout_token', $token)->first();
+            if ($existingOrder) {
+                return redirect()->route('orders.success', $existingOrder);
+            }
+        }
+
         $method = $data['payment_method'] ?? PaymentMethod::Paystack->value;
 
         // For pickup, snapshot the pickup point's address onto the order.
-        if (($data['delivery_method'] ?? null) === Shipment::METHOD_PICKUP) {
-            $location = PickupLocation::findOrFail($data['pickup_location_id']);
+        if (($data['delivery_method'] ?? null) === 'pickup') {
+            $location = \App\Modules\Logistics\Models\Location::pickup()->findOrFail($data['pickup_location_id']);
             $data['address_line'] = $location->address;
             $data['city'] = $location->city;
             $data['state'] = $location->state;
@@ -116,5 +128,16 @@ class CheckoutController extends Controller
             return redirect()->route('checkout.show')
                 ->with('error', 'We could not place your order. Please try again.');
         }
+    }
+
+    public function toggleStoreCredit(Request $request): RedirectResponse
+    {
+        if ($request->boolean('apply')) {
+            session([self::CREDIT_SESSION_KEY => true]);
+            return back()->with('status', 'Store credit applied.');
+        }
+
+        session()->forget(self::CREDIT_SESSION_KEY);
+        return back()->with('status', 'Store credit removed.');
     }
 }

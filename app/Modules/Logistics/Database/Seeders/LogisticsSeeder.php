@@ -49,7 +49,7 @@ class LogisticsSeeder extends Seeder
         ];
 
         foreach ($pickups as $pickup) {
-            PickupLocation::updateOrCreate(['name' => $pickup['name']], $pickup);
+            \App\Modules\Logistics\Models\Location::updateOrCreate(['name' => $pickup['name']], $pickup);
         }
     }
 }

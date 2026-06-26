@@ -16,4 +16,5 @@
     </form>
 
     @include('admin.categories._create-modal', ['options' => $categoryOptions])
+    @include('admin.products._create-brand-modal')
 @endsection

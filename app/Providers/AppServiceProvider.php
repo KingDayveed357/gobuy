@@ -41,7 +41,14 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(Login::class, MergeGuestCart::class);
         Event::listen(OrderPlaced::class, ReserveInventoryForOrder::class);
         Event::listen(OrderPaid::class, DeductInventoryForOrder::class);
+        Event::listen(OrderPaid::class, \App\Modules\Order\Listeners\SendOrderAcceptedNotifications::class);
         Event::listen(OrderCancelled::class, ReleaseInventoryForOrder::class);
+
+        \App\Modules\Order\Models\Order::updated(function (\App\Modules\Order\Models\Order $order) {
+            if ($order->wasChanged('status') && $order->status === \App\Modules\Order\Enums\OrderStatus::Cancelled) {
+                \App\Modules\Order\Events\OrderCancelled::dispatch($order);
+            }
+        });
 
         View::composer(['partials.storefront-nav', 'partials.footer'], function ($view): void {
             $view->with('cartCount', app(CartService::class)->count());

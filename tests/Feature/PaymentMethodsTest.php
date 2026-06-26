@@ -139,7 +139,7 @@ class PaymentMethodsTest extends TestCase
         $this->actingAsAdmin('Admin');
         $this->post(route('admin.orders.refund', $order), ['amount' => 2000])->assertRedirect();
 
-        $this->assertDatabaseHas('refunds', ['order_id' => $order->id, 'amount' => Money::fromNaira(2000)->kobo, 'status' => 'succeeded']);
+        $this->assertDatabaseHas('refunds', ['order_id' => $order->id, 'amount' => Money::fromNaira(2000)->kobo, 'status' => 'processing']);
         $this->assertSame(PaymentStatus::Paid, $order->fresh()->payment_status); // still paid, not refunded
         $this->assertSame(5, $variant->fresh()->stock); // partial refund does not restock
     }

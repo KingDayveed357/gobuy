@@ -46,11 +46,11 @@ class VerifyEmailController extends Controller
         if (! $this->otp->canResend($request->user())) {
             $seconds = $this->otp->secondsUntilResend($request->user());
 
-            return back()->with('resend_error', "Please wait {$seconds} second(s) before requesting a new code.");
+            return redirect()->route('verification.notice')->with('resend_error', "Please wait {$seconds} second(s) before requesting a new code.");
         }
 
         $this->otp->issue($request->user());
 
-        return back()->with('status', 'A new verification code is on its way.');
+        return redirect()->route('verification.notice')->with('status', 'A new verification code is on its way.');
     }
 }

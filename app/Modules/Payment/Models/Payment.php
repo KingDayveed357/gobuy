@@ -17,6 +17,13 @@ class Payment extends Model
         'status',
         'paid_at',
         'payload',
+        'authorization_code',
+        'channel',
+        'card_type',
+        'last4',
+        'bank',
+        'ip_address',
+        'fees',
     ];
 
     protected $attributes = [

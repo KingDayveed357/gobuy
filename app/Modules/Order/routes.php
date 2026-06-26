@@ -11,6 +11,7 @@ Route::get('/proforma', [ProformaController::class, 'show'])->middleware('auth')
 Route::controller(CheckoutController::class)->group(function (): void {
     Route::get('/checkout', 'show')->name('checkout.show');
     Route::post('/checkout', 'store')->name('checkout.store');
+    Route::post('/checkout/store-credit', 'toggleStoreCredit')->name('checkout.store-credit');
 });
 
 Route::controller(OrderController::class)->group(function (): void {

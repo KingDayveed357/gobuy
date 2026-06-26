@@ -22,9 +22,10 @@ class CheckoutRequest extends FormRequest
             'customer_phone' => ['required', 'string', 'max:30'],
 
             'delivery_method' => ['required', 'in:home_delivery,pickup'],
-            'pickup_location_id' => ['required_if:delivery_method,pickup', 'nullable', 'exists:pickup_locations,id'],
+            'pickup_location_id' => ['required_if:delivery_method,pickup', 'nullable', 'exists:locations,id'],
 
             'payment_method' => ['nullable', 'in:paystack,bank_transfer,pod'],
+            'checkout_token' => ['nullable', 'string', 'max:255'],
 
             // A delivery address is only required when shipping to the customer.
             'address_line' => ['required_if:delivery_method,home_delivery', 'nullable', 'string', 'max:255'],

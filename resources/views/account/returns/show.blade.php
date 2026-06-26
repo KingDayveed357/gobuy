@@ -49,7 +49,103 @@
                             <form action="{{ route('account.returns.reply', $return) }}" method="POST" enctype="multipart/form-data">
                                 @csrf
                                 <textarea name="message" class="form-control form-control-sm mb-2" rows="3" placeholder="Your reply…" maxlength="1000" required></textarea>
-                                <input type="file" name="photos[]" class="form-control form-control-sm mb-2" accept="image/*" multiple>
+                                <div x-data="imageUploader()" class="mb-2">
+                                    <div 
+                                        class="border border-dashed rounded-3 p-3 text-center position-relative"
+                                        :class="{ 'border-primary bg-primary-subtle': isDropping, 'border-300': !isDropping, 'border-danger': error }"
+                                        @dragover.prevent="isDropping = true"
+                                        @dragleave.prevent="isDropping = false"
+                                        @drop.prevent="handleDrop($event)"
+                                    >
+                                        <input 
+                                            type="file" 
+                                            id="photos" 
+                                            name="photos[]" 
+                                            accept="image/*" 
+                                            multiple
+                                            class="position-absolute w-100 h-100 top-0 start-0 opacity-0"
+                                            style="cursor: pointer;"
+                                            @change="handleFiles($event)"
+                                            x-ref="fileInput"
+                                        >
+                                        <span class="fas fa-image fs-5 text-body-tertiary mb-1 d-block"></span>
+                                        <p class="fs-9 text-body-tertiary mb-0">Drag & drop or click to add photos (up to 5 images, 1MB each)</p>
+                                        <p class="fs-10 text-body-tertiary mt-2 mb-0"><span class="fas fa-info-circle me-1 text-warning"></span>Please do not upload blurry images, screenshots, or files larger than 1MB each.</p>
+                                    </div>
+                                    <div x-show="error" x-text="error" class="text-danger fs-9 mt-1 d-none" :class="{ 'd-block': error }"></div>
+                                    <div class="d-flex flex-wrap gap-2 mt-2" x-show="images.length > 0" style="display: none;">
+                                        <template x-for="(image, index) in images" :key="index">
+                                            <div class="position-relative border rounded-2 overflow-hidden shadow-sm" style="width: 60px; height: 60px;">
+                                                <img :src="image.url" class="w-100 h-100 object-fit-cover" alt="Preview">
+                                                <button 
+                                                    type="button" 
+                                                    class="btn btn-phoenix-danger btn-sm p-1 position-absolute top-0 end-0 m-1 bg-white shadow-sm"
+                                                    style="opacity: 0.9;"
+                                                    @click.prevent="removeImage(index)"
+                                                >
+                                                    <span class="fas fa-trash-alt fs-10 text-danger"></span>
+                                                </button>
+                                            </div>
+                                        </template>
+                                    </div>
+                                    <script>
+                                        if (typeof imageUploader === 'undefined') {
+                                            function imageUploader() {
+                                                return {
+                                                    isDropping: false,
+                                                    error: '',
+                                                    images: [],
+                                                    handleDrop(e) {
+                                                        this.isDropping = false;
+                                                        this.processFiles(e.dataTransfer.files);
+                                                    },
+                                                    handleFiles(e) {
+                                                        this.processFiles(e.target.files);
+                                                    },
+                                                    processFiles(files) {
+                                                        this.error = '';
+                                                        let newFiles = Array.from(files);
+                                                        
+                                                        if (this.images.length + newFiles.length > 5) {
+                                                            this.error = 'You can only upload a maximum of 5 images.';
+                                                            newFiles = newFiles.slice(0, 5 - this.images.length);
+                                                        }
+                                                        
+                                                        newFiles.forEach(file => {
+                                                            if (!file.type.startsWith('image/')) {
+                                                                this.error = 'Only image files are allowed.';
+                                                                return;
+                                                            }
+                                                            if (file.size > 1 * 1024 * 1024) {
+                                                                this.error = 'Each image must be less than 1MB.';
+                                                                return;
+                                                            }
+                                                            
+                                                            const reader = new FileReader();
+                                                            reader.onload = (e) => {
+                                                                this.images.push({
+                                                                    file: file,
+                                                                    url: e.target.result
+                                                                });
+                                                                this.syncInput();
+                                                            };
+                                                            reader.readAsDataURL(file);
+                                                        });
+                                                    },
+                                                    removeImage(index) {
+                                                        this.images.splice(index, 1);
+                                                        this.syncInput();
+                                                    },
+                                                    syncInput() {
+                                                        const dt = new DataTransfer();
+                                                        this.images.forEach(img => dt.items.add(img.file));
+                                                        this.$refs.fileInput.files = dt.files;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    </script>
+                                </div>
                                 <button class="btn btn-primary btn-sm"><span class="fas fa-paper-plane me-2"></span>Send reply</button>
                             </form>
                         </div></div>
@@ -75,11 +171,32 @@
                         </div></div>
                     @endif
 
-                    @if ($return->status->isOpen())
-                        <form action="{{ route('account.returns.cancel', $return) }}" method="POST" onsubmit="return confirm('Cancel this return request?');">
-                            @csrf
-                            <button type="submit" class="btn btn-phoenix-danger btn-sm">Cancel return</button>
-                        </form>
+                    @if ($return->status->canTransitionTo(\App\Modules\Returns\Enums\ReturnStatus::Cancelled))
+                        <div x-data="{ showCancelModal: false }">
+                            <button @click="showCancelModal = true" type="button" class="btn btn-phoenix-danger btn-sm">Cancel return</button>
+                            
+                            <!-- Cancel Modal -->
+                            <div class="modal fade" :class="{ 'show d-block': showCancelModal }" tabindex="-1" style="background: rgba(0,0,0,0.5);" x-show="showCancelModal" style="display: none;">
+                                <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Cancel Return Request</h5>
+                                            <button type="button" class="btn-close" @click="showCancelModal = false" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p class="fs-9 text-body-secondary mb-0">Are you sure you want to cancel this return? This action is irreversible, and you may not be able to open a new return if the return window has expired.</p>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary btn-sm" @click="showCancelModal = false">Nevermind</button>
+                                            <form action="{{ route('account.returns.cancel', $return) }}" method="POST" class="d-inline">
+                                                @csrf
+                                                <button type="submit" class="btn btn-danger btn-sm">Confirm Cancellation</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     @endif
                 </div>
 

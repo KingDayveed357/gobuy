@@ -261,8 +261,11 @@
                 <x-admin.category-select id="productCategorySelect" :options="$categoryOptions" name="category_id" :selected="old('category_id', $product->category_id ?? null)" include-none />
             </div>
             <div class="mb-3">
-                <label class="form-label">Brand <span class="text-body-tertiary">— optional</span></label>
-                <select class="form-select" name="brand_id">
+                <div class="d-flex flex-between-center gap-2 mb-1">
+                    <label class="form-label mb-0">Brand <span class="text-body-tertiary">— optional</span></label>
+                    <button class="btn btn-link p-0 fs-9 fw-bold text-decoration-none" type="button" data-bs-toggle="modal" data-bs-target="#addBrandModal">+ Add new</button>
+                </div>
+                <select class="form-select" name="brand_id" id="productBrandSelect">
                     <option value="">No brand</option>
                     @foreach ($brands ?? [] as $brand)
                         <option value="{{ $brand->id }}" @selected(old('brand_id', $product->brand_id ?? null) == $brand->id)>{{ $brand->name }}</option>

@@ -102,7 +102,7 @@ class ReturnController extends Controller
         return view('account.returns.label', [
             'return' => $return->load('order'),
             'shipment' => $shipment,
-            'dropoffAddress' => config('gobuy.returns.dropoff_address'),
+            'dropoffAddress' => \App\Modules\Logistics\Models\Location::defaultReturn()->value('address') ?? config('gobuy.returns.dropoff_address'),
         ]);
     }
 

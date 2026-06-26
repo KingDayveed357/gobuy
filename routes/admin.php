@@ -3,6 +3,7 @@
 use App\Admin\Controllers\AnalyticsController;
 use App\Admin\Controllers\Auth\LoginController;
 use App\Admin\Controllers\BannerController;
+use App\Admin\Controllers\BrandController;
 use App\Admin\Controllers\BulkPricingController;
 use App\Admin\Controllers\CategoryController;
 use App\Admin\Controllers\CouponController;
@@ -73,6 +74,8 @@ Route::middleware(['auth:admin', 'admin.active'])->group(function (): void {
         Route::put('categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
         Route::delete('categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
 
+        Route::post('brands', [BrandController::class, 'store'])->name('brands.store');
+
         // Review moderation queue.
         Route::get('reviews', [ReviewController::class, 'index'])->name('reviews.index');
         Route::post('reviews/{review}/approve', [ReviewController::class, 'approve'])->name('reviews.approve');
@@ -95,10 +98,10 @@ Route::middleware(['auth:admin', 'admin.active'])->group(function (): void {
         Route::get('shipments', [ShipmentController::class, 'index'])->name('shipments.index');
         Route::post('shipments/{shipment}/advance', [ShipmentController::class, 'advance'])->name('shipments.advance');
 
-        Route::get('logistics', [PickupLocationController::class, 'index'])->name('logistics.index');
-        Route::post('logistics/pickups', [PickupLocationController::class, 'store'])->name('logistics.pickups.store');
-        Route::put('logistics/pickups/{pickup}', [PickupLocationController::class, 'update'])->name('logistics.pickups.update');
-        Route::delete('logistics/pickups/{pickup}', [PickupLocationController::class, 'destroy'])->name('logistics.pickups.destroy');
+        Route::get('logistics', [\App\Admin\Controllers\LogisticsController::class, 'index'])->name('logistics.index');
+        Route::resource('locations', \App\Admin\Controllers\LocationController::class)->except(['show', 'create', 'edit']);
+        
+        Route::resource('delivery-zones', \App\Admin\Controllers\DeliveryZoneController::class)->except('show');
     });
 
     Route::middleware('permission:manage_customers,admin')->group(function (): void {
@@ -125,10 +128,13 @@ Route::middleware(['auth:admin', 'admin.active'])->group(function (): void {
         Route::post('returns/{return}/receive', [ReturnController::class, 'receive'])->name('returns.receive');
         Route::post('returns/{return}/inspect', [ReturnController::class, 'inspect'])->name('returns.inspect');
         Route::post('returns/{return}/settle', [ReturnController::class, 'settle'])->name('returns.settle');
+        
+
     });
 
     Route::middleware('permission:manage_payments,admin')->group(function (): void {
         Route::get('payments', [PaymentController::class, 'index'])->name('payments.index');
+        Route::post('payments/{payment}/verify', [PaymentController::class, 'verifyPayment'])->name('payments.verify');
         Route::post('orders/{order}/refund', [PaymentController::class, 'refund'])->name('orders.refund');
         Route::post('orders/{order}/pod-collected', [PaymentController::class, 'markPodCollected'])->name('orders.pod-collected');
 

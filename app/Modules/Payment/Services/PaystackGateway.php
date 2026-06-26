@@ -58,7 +58,10 @@ class PaystackGateway implements PaymentGateway
             $payload['amount'] = $amountKobo; // already kobo
         }
 
-        $response = $this->client()
+        $idempotencyKey = "refund:{$reference}:".($amountKobo ?? 'full');
+
+        $response = $this->client(withRetry: false)
+            ->withHeader('Idempotency-Key', $idempotencyKey)
             ->post('/refund', $payload)
             ->throw()
             ->json();
@@ -66,12 +69,17 @@ class PaystackGateway implements PaymentGateway
         return ['success' => (bool) ($response['status'] ?? false), 'raw' => $response];
     }
 
-    private function client()
+    private function client(bool $withRetry = true)
     {
-        return Http::baseUrl($this->baseUrl)
+        $client = Http::baseUrl($this->baseUrl)
             ->withToken($this->secretKey)
             ->timeout(20)
-            ->connectTimeout(10)
-            ->retry(2, 200);
+            ->connectTimeout(10);
+
+        if ($withRetry) {
+            $client->retry(2, 200);
+        }
+
+        return $client;
     }
 }

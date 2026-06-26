@@ -73,7 +73,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="7"><x-admin.empty-state title="No variants found" message="Try a different search or filter." /></td></tr>
+                        <tr><td colspan="7"><x-admin.empty-state title="No variants found" text="Try a different search or filter." /></td></tr>
                     @endforelse
                 </tbody>
             </table>

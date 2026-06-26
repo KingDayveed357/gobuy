@@ -13,3 +13,8 @@ Schedule::command('inventory:release-reservations')->everyFiveMinutes();
 
 // Expire unspent store credit past its window.
 Schedule::command('store-credit:expire')->daily();
+// Expire unpaid orders (e.g., abandoned Paystack checkouts)
+Schedule::command('orders:expire')->everyFiveMinutes();
+
+// Reconcile stuck pending payments with the gateway
+Schedule::command('payments:reconcile')->everyTenMinutes();

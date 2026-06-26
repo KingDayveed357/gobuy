@@ -59,13 +59,15 @@ class ReturnSettlementService
             $approved = [];
             foreach ($return->items as $item) {
                 $disposition = $item->disposition ?? ReturnItemDisposition::Restock;
-                if (! $disposition->isApproved()) {
-                    continue;
-                }
                 $qty = $item->effectiveQuantity();
-                if ($qty < 1) {
+
+                if (! $disposition->isApproved() || $qty < 1) {
+                    $item->update([
+                        'resolution' => \App\Modules\Returns\Enums\ReturnItemResolution::RejectedReturnToCustomer,
+                    ]);
                     continue;
                 }
+                
                 $grossKobo += $item->unit_price_snapshot->kobo * $qty;
                 $approved[] = [$item, $disposition, $qty];
             }
@@ -90,6 +92,7 @@ class ReturnSettlementService
 
                 $item->update([
                     'disposition' => $disposition,
+                    'resolution' => \App\Modules\Returns\Enums\ReturnItemResolution::Refunded,
                     'approved_quantity' => $qty,
                     'restocked' => $disposition->shouldRestock(),
                 ]);

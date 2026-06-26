@@ -52,7 +52,7 @@ class CheckoutLogisticsTest extends TestCase
 
     public function test_pickup_is_free_and_snapshots_the_location_address(): void
     {
-        $location = PickupLocation::first();
+        $location = \App\Modules\Logistics\Models\Location::first();
         $this->addToCart();
 
         $this->post(route('checkout.store'), [

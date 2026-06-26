@@ -21,6 +21,7 @@ final class CheckoutData
         public readonly string $deliveryMethod = Shipment::METHOD_HOME,
         public readonly ?int $pickupLocationId = null,
         public readonly string $paymentMethod = PaymentMethod::Paystack->value,
+        public readonly ?string $checkoutToken = null,
     ) {}
 
     /**
@@ -38,6 +39,7 @@ final class CheckoutData
             deliveryMethod: $data['delivery_method'] ?? Shipment::METHOD_HOME,
             pickupLocationId: isset($data['pickup_location_id']) ? (int) $data['pickup_location_id'] : null,
             paymentMethod: $data['payment_method'] ?? PaymentMethod::Paystack->value,
+            checkoutToken: $data['checkout_token'] ?? null,
         );
     }
 

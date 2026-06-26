@@ -12,8 +12,19 @@ class BannerController extends Controller
 {
     public function index(): View
     {
+        $banners = Banner::orderBy('placement')->orderBy('sort_order')->get();
+        $now = now();
+
+        $summary = [
+            'live'      => $banners->filter(fn (Banner $b) => $b->isLive())->count(),
+            'scheduled' => $banners->filter(fn (Banner $b) => $b->is_active && $b->starts_at && $b->starts_at->gt($now))->count(),
+            'draft'     => $banners->filter(fn (Banner $b) => ! $b->is_active && (! $b->ends_at || $b->ends_at->gt($now)))->count(),
+            'expired'   => $banners->filter(fn (Banner $b) => $b->ends_at && $b->ends_at->lt($now))->count(),
+        ];
+
         return view('admin.banners.index', [
-            'banners' => Banner::orderBy('placement')->orderBy('sort_order')->get(),
+            'banners' => $banners,
+            'summary' => $summary,
         ]);
     }
 

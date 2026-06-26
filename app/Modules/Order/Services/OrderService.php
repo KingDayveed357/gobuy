@@ -67,6 +67,8 @@ class OrderService
                 'tax_amount' => $taxAmount,
                 'total' => $total,
                 'placed_at' => now(),
+                'expires_at' => now()->addMinutes(60),
+                'checkout_token' => $data->checkoutToken,
             ]);
 
             foreach ($summary['lines'] as $line) {

@@ -14,12 +14,14 @@
             </a>
         </div>
 
-        <form class="search-box navbar-top-search-box d-none d-lg-block" action="{{ route('admin.products.index') }}" method="GET" style="width: 25rem;">
-            <div class="position-relative">
-                <input class="form-control search-input rounded-pill form-control-sm" type="search" name="q" value="{{ request('q') }}" placeholder="Search products...">
-                <span class="fas fa-search search-box-icon"></span>
-            </div>
-        </form>
+        @if ($admin->can('manage_products'))
+            <form class="search-box navbar-top-search-box d-none d-lg-block" action="{{ route('admin.products.index') }}" method="GET" style="width: 25rem;">
+                <div class="position-relative">
+                    <input class="form-control search-input rounded-pill form-control-sm" type="search" name="q" value="{{ request('q') }}" placeholder="Search products...">
+                    <span class="fas fa-search search-box-icon"></span>
+                </div>
+            </form>
+        @endif
 
         <ul class="navbar-nav navbar-nav-icons flex-row">
             <li class="nav-item">

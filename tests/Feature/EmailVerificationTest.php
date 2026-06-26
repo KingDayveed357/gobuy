@@ -71,6 +71,7 @@ class EmailVerificationTest extends TestCase
         app(OtpService::class)->issue($user);
         $first = $user->otpCodes()->latest('id')->first();
 
+        $this->travel(31)->seconds();
         $this->actingAs($user)->post(route('verification.resend'))->assertRedirect();
 
         $this->assertNotNull($first->fresh()->consumed_at); // old one invalidated

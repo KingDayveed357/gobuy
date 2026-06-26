@@ -39,6 +39,10 @@ class PaymentController extends Controller
                 ->with('status', 'Payment successful. Thank you for your order!');
         }
 
+        $this->cart->clear();
+        // NOTE: Stock reservations have a TTL and will expire automatically.
+        // ReleaseInventoryForOrder listener handles cancellation releases.
+
         return redirect()->route('orders.success', $payment->order)
             ->with('error', 'Payment was not completed. You can retry from your order.');
     }
@@ -51,24 +55,42 @@ class PaymentController extends Controller
     {
         $secret = (string) config('services.paystack.secret_key');
         $signature = $request->header('x-paystack-signature', '');
+        
+        // Ensure we are using the raw body for HMAC check
         $expected = hash_hmac('sha512', $request->getContent(), $secret);
 
         if (! hash_equals($expected, $signature)) {
             Log::warning('Paystack webhook signature mismatch');
-
             return response('Invalid signature', 401);
         }
 
-        $event = $request->json();
+        $payloadData = $request->json()->all();
+        $eventType = data_get($payloadData, 'event', 'unknown');
+        
+        // Extract idempotency key safely
+        $paystackId = data_get($payloadData, 'data.id');
+        $idempotencyKey = $paystackId ? "{$eventType}_{$paystackId}" : hash('sha256', $signature . $eventType);
 
-        if ($event->get('event') === 'charge.success') {
-            $reference = data_get($event->all(), 'data.reference');
+        // Phase 1: Fast transactional persistence (Outbox Pattern)
+        \Illuminate\Support\Facades\DB::transaction(function () use ($eventType, $idempotencyKey, $payloadData) {
+            $payload = \App\Modules\Payment\Models\WebhookPayload::firstOrCreate(
+                ['idempotency_key' => $idempotencyKey],
+                [
+                    'event_type' => $eventType,
+                    'payload' => $payloadData,
+                    'status' => 'pending',
+                ]
+            );
 
-            if ($reference) {
-                $this->payments->verifyAndComplete($reference);
+            // Phase 2: Dispatch async job safely upon commit
+            if ($payload->wasRecentlyCreated) {
+                \App\Modules\Payment\Jobs\ProcessWebhookJob::dispatch($payload)->afterCommit();
+            } else {
+                Log::info('Duplicate webhook skipped', ['idempotency_key' => $idempotencyKey]);
             }
-        }
+        });
 
+        // Always return 200 OK immediately
         return response('OK', 200);
     }
 }
