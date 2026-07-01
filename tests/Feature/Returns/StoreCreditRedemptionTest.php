@@ -3,6 +3,7 @@
 namespace Tests\Feature\Returns;
 
 use App\Models\User;
+use App\Modules\Cart\Models\CartItem;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Order\Models\Order;
 use App\Modules\Payment\Services\PaymentService;
@@ -77,6 +78,8 @@ class StoreCreditRedemptionTest extends TestCase
         $this->assertTrue($order->store_credit_applied->isPositive());
         // Credit was spent exactly once, on acceptance.
         $this->assertSame($order->total->kobo, 10000000 - app(StoreCreditService::class)->balanceFor($user)->kobo);
+        // Every payment method converges: the cart is cleared on a completed checkout.
+        $this->assertSame(0, CartItem::count());
         Http::assertNothingSent();
     }
 

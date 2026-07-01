@@ -15,5 +15,8 @@
     <div class="d-flex flex-wrap gap-3">
         <p class="text-body-tertiary mb-0">Placed on {{ $order->placed_at?->format('M j, Y g:i A') ?? $order->created_at->format('M j, Y g:i A') }}</p>
         <span class="badge badge-phoenix badge-phoenix-info fs-9">{{ $order->status->label() }}</span>
+        @if ($order->hasReturns())
+            <span class="badge badge-phoenix badge-phoenix-secondary fs-9" title="Items returned">{{ $order->returnStateLabel() }}</span>
+        @endif
     </div>
 </div>

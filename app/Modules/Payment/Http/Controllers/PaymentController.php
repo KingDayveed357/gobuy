@@ -2,6 +2,8 @@
 
 namespace App\Modules\Payment\Http\Controllers;
 
+use App\Admin\Models\Admin;
+use App\Admin\Notifications\AdminAlertNotification;
 use App\Http\Controllers\Controller;
 use App\Modules\Cart\Services\CartService;
 use App\Modules\Order\Services\CheckoutCalculator;
@@ -13,8 +15,10 @@ use App\Modules\Pricing\Services\CouponService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 
 class PaymentController extends Controller
 {
@@ -68,6 +72,20 @@ class PaymentController extends Controller
 
         if (! hash_equals($expected, $signature)) {
             Log::warning('Paystack webhook signature mismatch');
+
+            // Alert admins, but at most once per 5 minutes so a flood of forged
+            // requests can't spam the notification channel.
+            if (Cache::add('webhook-sig-alert', true, 300)) {
+                Notification::send(
+                    Admin::withAbility('manage_payments'),
+                    new AdminAlertNotification(
+                        'Webhook signature failure',
+                        'A Paystack webhook was rejected due to an invalid signature. If this repeats, verify the webhook secret and watch for tampering.',
+                        'critical',
+                        route('admin.payments.index'),
+                    ),
+                );
+            }
 
             return response('Invalid signature', 401);
         }

@@ -50,7 +50,12 @@
                 <td>{{ $order->customer_name }}<br><span class="fs-10 text-body-tertiary">{{ $order->customer_email }}</span></td>
                 <td class="text-center">{{ $order->items_count }}</td>
                 <td><x-admin.status-badge :value="$order->payment_status" :label="$order->payment_status->label()" /></td>
-                <td><x-admin.status-badge :value="$order->status" :label="$order->status->label()" /></td>
+                <td>
+                    <x-admin.status-badge :value="$order->status" :label="$order->status->label()" />
+                    @if ($order->hasReturns())
+                        <span class="badge badge-phoenix badge-phoenix-secondary ms-1" title="Items returned">{{ $order->returnStateLabel() }}</span>
+                    @endif
+                </td>
                 <td class="text-end fw-semibold">{{ money($order->total) }}</td>
                 <td class="text-end"><a href="{{ route('admin.orders.show', $order) }}" class="btn btn-sm btn-phoenix-secondary">View</a></td>
             </tr>

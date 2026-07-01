@@ -6,6 +6,7 @@ use App\Modules\Returns\Events\ReturnRequested;
 use App\Modules\Returns\Events\ReturnSettled;
 use App\Modules\Returns\Events\ReturnStatusChanged;
 use App\Modules\Returns\Listeners\LogReturnSettled;
+use App\Modules\Returns\Listeners\NotifyAdminsOfNewReturn;
 use App\Modules\Returns\Listeners\ScoreReturnRisk;
 use App\Modules\Returns\Listeners\SendReturnStatusNotification;
 use Illuminate\Support\Facades\Event;
@@ -21,6 +22,7 @@ class ReturnsServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Event::listen(ReturnRequested::class, ScoreReturnRisk::class);
+        Event::listen(ReturnRequested::class, NotifyAdminsOfNewReturn::class);
         Event::listen(ReturnStatusChanged::class, SendReturnStatusNotification::class);
         Event::listen(ReturnSettled::class, LogReturnSettled::class);
     }

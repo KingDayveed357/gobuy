@@ -53,20 +53,58 @@ class ShipmentService
         if ($next === ShipmentStatus::Dispatched) {
             $shipment->waybill ??= $this->carrier->generateWaybill($shipment);
             $shipment->dispatched_at = now();
-            $this->syncOrderStatus($shipment->order, OrderStatus::Shipped, 'Shipment dispatched');
         }
 
         if ($next === ShipmentStatus::Delivered) {
             $shipment->delivered_at = now();
-            $this->syncOrderStatus($shipment->order, OrderStatus::Delivered, 'Shipment delivered');
         }
 
+        // Persist the shipment BEFORE syncing the order. OrderStatusChanged fires
+        // (after-commit) and its listener reloads the shipment — by then it is
+        // already at the new stage, so the sync is a no-op (no re-entrant loop,
+        // no double notification).
         $shipment->save();
+
+        if ($next === ShipmentStatus::Dispatched) {
+            $this->syncOrderStatus($shipment->order, OrderStatus::Shipped, 'Shipment dispatched');
+        }
+
+        if ($next === ShipmentStatus::Delivered) {
+            $this->syncOrderStatus($shipment->order, OrderStatus::Delivered, 'Shipment delivered');
+        }
 
         // Notify the customer of the new delivery stage (SMS/WhatsApp).
         $this->notifier->shipmentStage($shipment);
 
         return $shipment;
+    }
+
+    /**
+     * Align a shipment to the stage implied by a direct order-status change (e.g.
+     * an admin moved the order to Shipped/Delivered without touching the dispatch
+     * console). Forward-only — never regresses — and never syncs back to the order
+     * (which is already at the target), so it cannot re-enter the order↔shipment
+     * loop. Notifies the customer only when it actually moves the stage.
+     */
+    public function advanceToStage(Shipment $shipment, ShipmentStatus $target): void
+    {
+        if ($shipment->status->position() >= $target->position()) {
+            return; // already at or beyond this stage
+        }
+
+        $shipment->status = $target;
+
+        if ($target->position() >= ShipmentStatus::Dispatched->position() && $shipment->dispatched_at === null) {
+            $shipment->waybill ??= $this->carrier->generateWaybill($shipment);
+            $shipment->dispatched_at = now();
+        }
+
+        if ($target === ShipmentStatus::Delivered && $shipment->delivered_at === null) {
+            $shipment->delivered_at = now();
+        }
+
+        $shipment->save();
+        $this->notifier->shipmentStage($shipment);
     }
 
     private function syncOrderStatus(Order $order, OrderStatus $target, string $note): void

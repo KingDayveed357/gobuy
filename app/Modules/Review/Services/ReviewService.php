@@ -2,11 +2,14 @@
 
 namespace App\Modules\Review\Services;
 
+use App\Admin\Models\Admin;
+use App\Admin\Notifications\AdminAlertNotification;
 use App\Models\User;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Order\Enums\OrderStatus;
 use App\Modules\Order\Models\Order;
 use App\Modules\Review\Models\Review;
+use Illuminate\Support\Facades\Notification;
 
 /**
  * Reviews are tied to verified purchases: a customer may review a product only
@@ -51,6 +54,17 @@ class ReviewService
             'body' => $data['body'] ?? null,
             'status' => Review::STATUS_PENDING,
         ]);
+
+        Notification::send(
+            Admin::withAbility('manage_products'),
+            new AdminAlertNotification(
+                'Review awaiting moderation',
+                "A new {$review->rating}★ review for {$product->name} is pending approval.",
+                'important',
+                route('admin.reviews.index'),
+                'fa-star',
+            ),
+        );
 
         return $review;
     }

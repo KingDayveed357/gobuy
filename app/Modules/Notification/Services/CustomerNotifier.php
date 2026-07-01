@@ -4,6 +4,8 @@ namespace App\Modules\Notification\Services;
 
 use App\Modules\Logistics\Models\Shipment;
 use App\Modules\Notification\Notifications\OrderAcceptedMessage;
+use App\Modules\Notification\Notifications\OrderCancelledMessage;
+use App\Modules\Notification\Notifications\OrderCompletedMessage;
 use App\Modules\Notification\Notifications\ReturnStatusMessage;
 use App\Modules\Notification\Notifications\ShipmentStageMessage;
 use App\Modules\Order\Models\Order;
@@ -25,6 +27,26 @@ class CustomerNotifier
 
         Notification::route('messaging', $order->customer_phone)
             ->notify(new OrderAcceptedMessage($order));
+    }
+
+    public function orderCancelled(Order $order): void
+    {
+        if (! $order->customer_phone) {
+            return;
+        }
+
+        Notification::route('messaging', $order->customer_phone)
+            ->notify(new OrderCancelledMessage($order));
+    }
+
+    public function orderCompleted(Order $order): void
+    {
+        if (! $order->customer_phone) {
+            return;
+        }
+
+        Notification::route('messaging', $order->customer_phone)
+            ->notify(new OrderCompletedMessage($order));
     }
 
     public function shipmentStage(Shipment $shipment): void

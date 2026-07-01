@@ -3,6 +3,7 @@
 namespace App\Modules\Catalog\Services;
 
 use App\Admin\Models\Admin;
+use App\Admin\Notifications\AdminAlertNotification;
 use App\Admin\Notifications\LowStockNotification;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Catalog\Models\ProductVariant;
@@ -314,8 +315,9 @@ class CatalogService
     public function decrementStock(ProductVariant $variant, int $quantity): void
     {
         $crossedLowStock = false;
+        $reachedZero = false;
 
-        DB::transaction(function () use ($variant, $quantity, &$crossedLowStock): void {
+        DB::transaction(function () use ($variant, $quantity, &$crossedLowStock, &$reachedZero): void {
             $fresh = ProductVariant::query()->lockForUpdate()->findOrFail($variant->id);
 
             if ($fresh->stock < $quantity) {
@@ -331,13 +333,34 @@ class CatalogService
             $wasAboveThreshold = $fresh->stock > $fresh->low_stock_threshold;
             $fresh->decrement('stock', $quantity);
 
-            // Alert only when the sale pushes the variant to/under its threshold.
-            $crossedLowStock = $wasAboveThreshold && $fresh->fresh()->isLowStock();
+            $reachedZero = $fresh->fresh()->stock <= 0;
+            // Low-stock alert only when the sale pushes the variant to/under its
+            // threshold. Sell-out supersedes it (louder, distinct alert below).
+            $crossedLowStock = ! $reachedZero && $wasAboveThreshold && $fresh->fresh()->isLowStock();
         });
 
-        if ($crossedLowStock) {
+        if ($reachedZero) {
+            $this->alertOutOfStock($variant->fresh());
+        } elseif ($crossedLowStock) {
             $this->alertLowStock($variant->fresh());
         }
+    }
+
+    private function alertOutOfStock(ProductVariant $variant): void
+    {
+        $variant->loadMissing('product');
+        $name = $variant->product?->name ?? $variant->sku;
+
+        Notification::send(
+            Admin::withAbility('manage_products'),
+            new AdminAlertNotification(
+                'Out of stock',
+                "{$name} (SKU {$variant->sku}) has just sold out. Restock to keep it on sale.",
+                'important',
+                $variant->product ? route('admin.products.edit', $variant->product) : null,
+                'fa-box-open',
+            ),
+        );
     }
 
     private function alertLowStock(ProductVariant $variant): void

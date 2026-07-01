@@ -4,8 +4,10 @@ namespace Tests\Feature\Admin;
 
 use App\Modules\Logistics\Enums\ShipmentStatus;
 use App\Modules\Logistics\Models\Shipment;
+use App\Modules\Logistics\Services\ShipmentService;
 use App\Modules\Order\Enums\OrderStatus;
 use App\Modules\Order\Models\Order;
+use App\Modules\Order\Services\OrderStatusService;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\Concerns\InteractsWithAdmin;
 use Tests\TestCase;
@@ -56,5 +58,33 @@ class ShipmentDispatchTest extends TestCase
         $this->assertSame(ShipmentStatus::Delivered, $shipment->status);
         $this->assertNotNull($shipment->delivered_at);
         $this->assertSame(OrderStatus::Delivered, $shipment->order->fresh()->status);
+    }
+
+    public function test_moving_the_order_status_directly_advances_the_shipment(): void
+    {
+        $shipment = $this->shipmentForProcessingOrder(); // order Processing, shipment Pending
+        $status = app(OrderStatusService::class);
+
+        // Order → Shipped (e.g. via the order-status dropdown) now pulls the shipment forward.
+        $status->transitionTo($shipment->order, OrderStatus::Shipped);
+        $shipment->refresh();
+        $this->assertSame(ShipmentStatus::Dispatched, $shipment->status);
+        $this->assertNotNull($shipment->dispatched_at);
+
+        $status->transitionTo($shipment->order->fresh(), OrderStatus::Delivered);
+        $this->assertSame(ShipmentStatus::Delivered, $shipment->fresh()->status);
+    }
+
+    public function test_advancing_the_shipment_is_not_double_processed_by_the_event(): void
+    {
+        $shipment = $this->shipmentForProcessingOrder();
+        $shipments = app(ShipmentService::class);
+
+        $shipments->advance($shipment);            // Pending → Packed
+        $shipments->advance($shipment->fresh());   // Packed → Dispatched (+ order Shipped → event → listener no-ops)
+
+        $fresh = $shipment->fresh();
+        $this->assertSame(ShipmentStatus::Dispatched, $fresh->status); // not over-advanced by the listener
+        $this->assertSame(OrderStatus::Shipped, $fresh->order->fresh()->status);
     }
 }

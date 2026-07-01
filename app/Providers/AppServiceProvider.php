@@ -11,10 +11,14 @@ use App\Modules\Catalog\Services\CategoryService;
 use App\Modules\Inventory\Listeners\DeductInventoryForOrder;
 use App\Modules\Inventory\Listeners\ReleaseInventoryForOrder;
 use App\Modules\Inventory\Listeners\ReserveInventoryForOrder;
+use App\Modules\Logistics\Listeners\SyncShipmentToOrderStatus;
 use App\Modules\Order\Enums\OrderStatus;
 use App\Modules\Order\Events\OrderCancelled;
 use App\Modules\Order\Events\OrderPaid;
 use App\Modules\Order\Events\OrderPlaced;
+use App\Modules\Order\Events\OrderStatusChanged;
+use App\Modules\Order\Listeners\NotifyCustomerOfCancellation;
+use App\Modules\Order\Listeners\NotifyCustomerOfCompletion;
 use App\Modules\Order\Listeners\SendOrderAcceptedNotifications;
 use App\Modules\Order\Models\Order;
 use Illuminate\Auth\Events\Login;
@@ -52,6 +56,9 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(OrderPaid::class, DeductInventoryForOrder::class);
         Event::listen(OrderPaid::class, SendOrderAcceptedNotifications::class);
         Event::listen(OrderCancelled::class, ReleaseInventoryForOrder::class);
+        Event::listen(OrderCancelled::class, NotifyCustomerOfCancellation::class);
+        Event::listen(OrderStatusChanged::class, SyncShipmentToOrderStatus::class);
+        Event::listen(OrderStatusChanged::class, NotifyCustomerOfCompletion::class);
 
         Order::updated(function (Order $order) {
             if ($order->wasChanged('status') && $order->status === OrderStatus::Cancelled) {

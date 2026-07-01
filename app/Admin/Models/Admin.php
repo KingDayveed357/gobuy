@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
 use Spatie\Permission\Traits\HasRoles;
 
 class Admin extends Authenticatable
@@ -60,6 +61,19 @@ class Admin extends Authenticatable
     public function isSuperAdmin(): bool
     {
         return $this->hasRole(config('rbac.super_admin_role'));
+    }
+
+    /**
+     * Active admins who hold a given ability — the standard recipient set for
+     * admin notifications. Super Admins are included via Gate::before.
+     *
+     * @return Collection<int, self>
+     */
+    public static function withAbility(string $ability): Collection
+    {
+        return static::query()->where('is_active', true)->get()
+            ->filter(fn (self $admin) => $admin->can($ability))
+            ->values();
     }
 
     /**

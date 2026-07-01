@@ -22,6 +22,7 @@ class OrderController extends Controller
     {
         $orders = $this->filtered($request)
             ->withCount('items')
+            ->with('items:id,order_id,quantity,returned_quantity') // for returnState() badge, no N+1
             ->paginate(20)
             ->withQueryString();
 

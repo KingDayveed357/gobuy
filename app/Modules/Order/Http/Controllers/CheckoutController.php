@@ -155,14 +155,16 @@ class CheckoutController extends Controller
     }
 
     /**
-     * Clear the per-checkout session flags once an order has been committed to a
-     * terminal-for-checkout state (paid, accepted, or awaiting bank transfer).
-     * Deliberately does NOT clear the cart — existing flows clear the cart in the
-     * payment callback — and is never called on the Paystack redirect path, where
-     * the shopper may still cancel and return.
+     * Tear down the checkout once an order has been committed to a terminal state
+     * (paid with store credit, accepted for POD, or placed awaiting bank transfer).
+     * Clears the cart AND the per-checkout session flags so every payment method
+     * converges on the same post-checkout state as the Paystack callback. Never
+     * called on the Paystack redirect path, where the shopper may still cancel and
+     * return (the callback clears the cart only once payment is confirmed).
      */
     private function clearCheckoutState(): void
     {
+        $this->cart->clear();
         session()->forget([CouponService::SESSION_KEY, CheckoutCalculator::CREDIT_SESSION_KEY]);
     }
 }

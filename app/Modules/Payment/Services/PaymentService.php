@@ -3,6 +3,7 @@
 namespace App\Modules\Payment\Services;
 
 use App\Admin\Models\Admin;
+use App\Admin\Notifications\AdminAlertNotification;
 use App\Modules\Catalog\Models\ProductVariant;
 use App\Modules\Catalog\Services\CatalogService;
 use App\Modules\Notification\Services\CustomerNotifier;
@@ -17,6 +18,7 @@ use App\Modules\Pricing\Services\CouponService;
 use App\Modules\Returns\Services\StoreCreditService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 
@@ -115,6 +117,16 @@ class PaymentService
 
             $payment->update(['status' => 'failed', 'payload' => $result['raw']]);
             $payment->order->update(['payment_status' => PaymentStatus::Failed]);
+
+            Notification::send(
+                Admin::withAbility('manage_payments'),
+                new AdminAlertNotification(
+                    'Payment amount/currency mismatch',
+                    "Reference {$reference} on order {$payment->order->order_number} did not match the expected amount or currency and was rejected. Investigate for possible tampering.",
+                    'critical',
+                    route('admin.payments.index'),
+                ),
+            );
 
             return false;
         }

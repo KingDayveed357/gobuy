@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Collection;
 
 class Order extends Model
 {
@@ -152,6 +153,42 @@ class Order extends Model
         return $this->payment_status === PaymentStatus::Paid;
     }
 
+    /**
+     * Return-fulfilment sub-state derived from item return quantities. Kept
+     * separate from the order status (Shopify-style) rather than overloading the
+     * status enum — a partially-returned order is still "Completed", just with a
+     * return badge. Returns one of: none | partially_returned | returned.
+     */
+    public function returnState(): string
+    {
+        $items = $this->relationLoaded('items') ? $this->items : $this->items()->get();
+        $ordered = (int) $items->sum('quantity');
+        $returned = (int) $items->sum('returned_quantity');
+
+        return match (true) {
+            $returned <= 0 => 'none',
+            $returned >= $ordered => 'returned',
+            default => 'partially_returned',
+        };
+    }
+
+    public function hasReturns(): bool
+    {
+        return $this->returnState() !== 'none';
+    }
+
+    /**
+     * Human label for the return sub-state, or null when nothing was returned.
+     */
+    public function returnStateLabel(): ?string
+    {
+        return match ($this->returnState()) {
+            'returned' => 'Returned',
+            'partially_returned' => 'Partially returned',
+            default => null,
+        };
+    }
+
     public function hasSeparateAddresses(): bool
     {
         return false;
@@ -160,14 +197,15 @@ class Order extends Model
     public function netPaid(): Money
     {
         $net = $this->total->kobo - ($this->refunded_total?->kobo ?? 0);
+
         return Money::fromKobo(max(0, $net));
     }
 
-    public function timelineEvents(): \Illuminate\Support\Collection
+    public function timelineEvents(): Collection
     {
         $events = collect();
 
-        $events->push((object)[
+        $events->push((object) [
             'type' => 'placed',
             'title' => 'Order Placed',
             'description' => 'The order was placed successfully.',
@@ -177,7 +215,7 @@ class Order extends Model
         ]);
 
         foreach ($this->statusHistories as $history) {
-            $events->push((object)[
+            $events->push((object) [
                 'type' => 'status_change',
                 'title' => $history->status->label(),
                 'description' => $history->note,
@@ -190,16 +228,16 @@ class Order extends Model
         $payment = $this->payment;
         if ($payment) {
             if ($payment->isSuccessful()) {
-                $events->push((object)[
+                $events->push((object) [
                     'type' => 'payment',
                     'title' => 'Payment Received',
-                    'description' => 'Amount: ' . $payment->amount->toNaira(),
+                    'description' => 'Amount: '.$payment->amount->toNaira(),
                     'date' => $payment->paid_at ?? $payment->created_at,
                     'icon' => 'fa-solid fa-credit-card',
                     'color' => 'info',
                 ]);
             } elseif ($payment->status === 'pending') {
-                $events->push((object)[
+                $events->push((object) [
                     'type' => 'payment',
                     'title' => 'Payment Pending',
                     'description' => 'Awaiting payment confirmation.',
@@ -208,7 +246,7 @@ class Order extends Model
                     'color' => 'secondary',
                 ]);
             } elseif ($payment->status === 'failed') {
-                $events->push((object)[
+                $events->push((object) [
                     'type' => 'payment',
                     'title' => 'Payment Failed',
                     'description' => 'The payment attempt failed.',
@@ -221,16 +259,16 @@ class Order extends Model
 
         foreach ($this->refunds as $refund) {
             $totalAmountKobo = data_get($refund->payload, 'total_amount_kobo', $refund->amount->kobo);
-            $totalAmount = \App\Support\Money::fromKobo($totalAmountKobo);
+            $totalAmount = Money::fromKobo($totalAmountKobo);
             $type = data_get($refund->payload, 'refund_type', 'partial');
             $typeLabel = ucfirst($type);
 
             $statusSuffix = $refund->status === 'processing' ? ' (Processing)' : '';
-            
-            $events->push((object)[
+
+            $events->push((object) [
                 'type' => 'refund',
                 'title' => "{$typeLabel} Refund{$statusSuffix}",
-                'description' => 'Amount: ' . $totalAmount->toNaira() . ($refund->reason ? " - {$refund->reason}" : ''),
+                'description' => 'Amount: '.$totalAmount->toNaira().($refund->reason ? " - {$refund->reason}" : ''),
                 'date' => $refund->created_at,
                 'icon' => 'fa-solid fa-reply',
                 'color' => 'warning',

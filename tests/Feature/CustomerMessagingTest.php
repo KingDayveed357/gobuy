@@ -6,8 +6,12 @@ use App\Modules\Catalog\Models\Product;
 use App\Modules\Logistics\Models\Shipment;
 use App\Modules\Logistics\Services\ShipmentService;
 use App\Modules\Notification\Notifications\OrderAcceptedMessage;
+use App\Modules\Notification\Notifications\OrderCancelledMessage;
+use App\Modules\Notification\Notifications\OrderCompletedMessage;
 use App\Modules\Notification\Notifications\ShipmentStageMessage;
+use App\Modules\Order\Enums\OrderStatus;
 use App\Modules\Order\Models\Order;
+use App\Modules\Order\Services\OrderStatusService;
 use App\Modules\Payment\Services\PaymentService;
 use App\Support\Money;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -67,5 +71,34 @@ class CustomerMessagingTest extends TestCase
         app(PaymentService::class)->completeOrder($order->fresh());
 
         Notification::assertSentOnDemandTimes(OrderAcceptedMessage::class, 0);
+    }
+
+    public function test_cancelling_an_order_messages_the_customer(): void
+    {
+        Notification::fake();
+
+        $order = Order::factory()->create([
+            'status' => OrderStatus::Pending,
+            'customer_phone' => '08030000000',
+        ]);
+
+        app(OrderStatusService::class)->transitionTo($order, OrderStatus::Cancelled);
+
+        Notification::assertSentOnDemand(OrderCancelledMessage::class);
+    }
+
+    public function test_completing_an_order_thanks_the_customer(): void
+    {
+        Notification::fake();
+
+        $order = Order::factory()->create([
+            'status' => OrderStatus::Delivered,
+            'payment_status' => 'paid',
+            'customer_phone' => '08030000000',
+        ]);
+
+        app(OrderStatusService::class)->transitionTo($order, OrderStatus::Completed);
+
+        Notification::assertSentOnDemand(OrderCompletedMessage::class);
     }
 }

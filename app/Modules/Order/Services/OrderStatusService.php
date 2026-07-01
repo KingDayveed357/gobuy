@@ -3,6 +3,7 @@
 namespace App\Modules\Order\Services;
 
 use App\Modules\Order\Enums\OrderStatus;
+use App\Modules\Order\Events\OrderStatusChanged;
 use App\Modules\Order\Models\Order;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -44,6 +45,10 @@ class OrderStatusService
             'from' => $current->value,
             'to' => $target->value,
         ]);
+
+        // Single domain event every transition flows through — fulfilment sync,
+        // notifications and future concerns subscribe instead of being inlined.
+        OrderStatusChanged::dispatch($order, $current, $target);
     }
 
     public function recordInitial(Order $order): void

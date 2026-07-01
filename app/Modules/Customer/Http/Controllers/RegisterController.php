@@ -2,6 +2,8 @@
 
 namespace App\Modules\Customer\Http\Controllers;
 
+use App\Admin\Models\Admin;
+use App\Admin\Notifications\AdminAlertNotification;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\Customer\Http\Requests\RegisterRequest;
@@ -9,6 +11,7 @@ use App\Modules\Customer\Services\OtpService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Notification;
 
 class RegisterController extends Controller
 {
@@ -27,6 +30,17 @@ class RegisterController extends Controller
             'customer_type' => User::TYPE_RETAIL,
             'wholesale_status' => User::WHOLESALE_NONE,
         ]);
+
+        Notification::send(
+            Admin::withAbility('manage_customers'),
+            new AdminAlertNotification(
+                'New customer registered',
+                "{$user->name} ({$user->email}) just created an account.",
+                'important',
+                route('admin.customers.index'),
+                'fa-user-plus',
+            ),
+        );
 
         // Login fires the Login event, which merges the guest cart.
         Auth::login($user);

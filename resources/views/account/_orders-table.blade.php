@@ -29,6 +29,9 @@
                                 <span class="badge badge-phoenix {{ $order->isPaid() ? 'badge-phoenix-success' : 'badge-phoenix-warning' }}">
                                     {{ $order->status->label() }}
                                 </span>
+                                @if ($order->hasReturns())
+                                    <span class="badge badge-phoenix badge-phoenix-secondary" title="Items returned">{{ $order->returnStateLabel() }}</span>
+                                @endif
                             </td>
                             <td class="text-end fw-semibold">{{ money($order->total) }}</td>
                             <td class="text-end">
