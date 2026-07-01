@@ -43,6 +43,91 @@
     <script type="application/ld+json">{!! json_encode($productJsonLd, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}</script>
 @endpush
 
+@push('styles')
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@5.4.3/dist/photoswipe.css">
+    <style>
+        .pswp__bg {
+            background: rgba(10, 10, 10, 0.95) !important;
+            backdrop-filter: blur(8px);
+        }
+        .pswp-info-panel {
+            position: fixed; /* Changed from absolute to fixed to prevent scrolling issues */
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            max-height: 60vh;
+            background: rgba(255, 255, 255, 0.98);
+            color: #000;
+            padding: 1.5rem;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-y: auto;
+            border-top-left-radius: 24px;
+            border-top-right-radius: 24px;
+            z-index: 1000000;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+        }
+        
+        /* Dark mode overrides */
+        html[data-bs-theme="dark"] .pswp-info-panel {
+            background: rgba(20, 24, 36, 0.98) !important;
+            color: #fff !important;
+        }
+        @media (prefers-color-scheme: dark) {
+            html:not([data-bs-theme="light"]) .pswp-info-panel {
+                background: rgba(20, 24, 36, 0.98) !important;
+                color: #fff !important;
+            }
+        }
+        
+        .pswp-info-panel.open {
+            transform: translateY(0);
+        }
+        .pswp-info-panel-content {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+        }
+        .pswp-info-close {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: var(--phoenix-body-bg, #fff);
+            border: 1px solid var(--phoenix-border-color, #e3e6ed);
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: inherit;
+            transition: all 0.2s;
+        }
+        html[data-bs-theme="dark"] .pswp-info-close {
+            background: var(--phoenix-body-bg, #141824);
+            border-color: var(--phoenix-border-color, #31374a);
+        }
+        .pswp-info-close:hover {
+            background: var(--phoenix-tertiary-bg);
+        }
+        #pd-main-image {
+            cursor: zoom-in;
+            transition: transform 0.2s;
+        }
+        #pd-main-image:hover {
+            transform: scale(1.02);
+        }
+        /* Custom UI Info button in toolbar */
+        .pswp__button--info-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+@endpush
+
 @section('content')
     <section class="py-0 pt-5">
         <div class="container-small">
@@ -69,24 +154,6 @@
                                         </button>
                                     @endforeach
                                 </div>
-                                @push('scripts')
-                                    <script>
-                                        (function () {
-                                            var main = document.getElementById('pd-main-image');
-                                            document.querySelectorAll('.pd-thumb').forEach(function (btn) {
-                                                btn.addEventListener('click', function () {
-                                                    main.src = btn.getAttribute('data-full');
-                                                    document.querySelectorAll('.pd-thumb').forEach(function (b) {
-                                                        b.classList.remove('border-primary');
-                                                        b.classList.add('border-translucent');
-                                                    });
-                                                    btn.classList.remove('border-translucent');
-                                                    btn.classList.add('border-primary');
-                                                });
-                                            });
-                                        })();
-                                    </script>
-                                @endpush
                             @endif
                         </div>
                         <div class="col-12 col-md-10 col-lg-12 col-xl-10">
@@ -336,8 +403,142 @@
 @endsection
 
 @push('scripts')
-    <script>
+    <script type="module">
+        import PhotoSwipeLightbox from 'https://cdn.jsdelivr.net/npm/photoswipe@5.4.3/dist/photoswipe-lightbox.esm.min.js';
+        import PhotoSwipe from 'https://cdn.jsdelivr.net/npm/photoswipe@5.4.3/dist/photoswipe.esm.min.js';
+
         (function () {
+            // -- PhotoSwipe Gallery Logic --
+            var main = document.getElementById('pd-main-image');
+            var currentIndex = 0;
+            
+            var pswpItems = [];
+            @if ($gallery->count() > 0)
+                @foreach ($gallery as $media)
+                    pswpItems.push({
+                        src: '{{ $media->getUrl() }}',
+                        width: 1600, // Pre-warmed default
+                        height: 1600, 
+                        alt: '{{ addslashes($product->name) }}'
+                    });
+                @endforeach
+            @else
+                pswpItems.push({
+                    src: '{{ $product->imageUrl() }}',
+                    width: 1600,
+                    height: 1600,
+                    alt: '{{ addslashes($product->name) }}'
+                });
+            @endif
+
+            // Asynchronously fetch natural dimensions to ensure perfect aspect ratio
+            pswpItems.forEach(function(item) {
+                var img = new Image();
+                img.onload = function() {
+                    item.width = img.naturalWidth || 1600;
+                    item.height = img.naturalHeight || 1600;
+                };
+                img.src = item.src;
+            });
+
+            document.querySelectorAll('.pd-thumb').forEach(function (btn, index) {
+                btn.addEventListener('click', function () {
+                    main.src = btn.getAttribute('data-full');
+                    currentIndex = index;
+                    document.querySelectorAll('.pd-thumb').forEach(function (b) {
+                        b.classList.remove('border-primary');
+                        b.classList.add('border-translucent');
+                    });
+                    btn.classList.remove('border-translucent');
+                    btn.classList.add('border-primary');
+                });
+            });
+
+            var lightbox = new PhotoSwipeLightbox({
+                dataSource: pswpItems,
+                pswpModule: PhotoSwipe,
+                bgOpacity: 0.95,
+                wheelToZoom: true,
+                paddingFn: (viewportSize) => {
+                    return { top: 30, bottom: 30, left: 20, right: 20 };
+                }
+            });
+
+            lightbox.on('uiRegister', function() {
+                lightbox.pswp.ui.registerElement({
+                    name: 'info-btn',
+                    order: 9,
+                    isButton: true,
+                    tagName: 'button',
+                    html: '<svg aria-hidden="true" class="pswp__icn" viewBox="0 0 32 32" width="32" height="32"><path d="M16 4a12 12 0 1 0 12 12A12 12 0 0 0 16 4zm0 22a10 10 0 1 1 10-10 10 10 0 0 1-10 10z"/><path d="M16 11a1.5 1.5 0 1 0 1.5 1.5A1.5 1.5 0 0 0 16 11zM15 15h2v7h-2z"/></svg>',
+                    onClick: (event, el) => {
+                        var panel = document.getElementById('pswp-info-panel');
+                        if (panel) {
+                            panel.classList.toggle('open');
+                        }
+                    }
+                });
+            });
+
+            lightbox.on('beforeOpen', () => {
+                if (!document.getElementById('pswp-info-panel')) {
+                    var panel = document.createElement('div');
+                    panel.id = 'pswp-info-panel';
+                    panel.className = 'pswp-info-panel';
+                    
+                    var desc = @json(strip_tags($product->description));
+                    var productName = @json($product->name);
+                    var sku = document.getElementById('pd-sku') ? document.getElementById('pd-sku').textContent : '{{ $sel['sku'] ?: $selected?->sku }}';
+                    
+                    var html = `
+                        <div class="pswp-info-panel-content">
+                            <button class="pswp-info-close" aria-label="Close panel" onclick="document.getElementById('pswp-info-panel').classList.remove('open')">&times;</button>
+                            <h3 class="mb-2 fw-bold" style="color: inherit;">${productName}</h3>
+                            <p class="fs-8 mb-3 fw-semibold" style="opacity: 0.8; color: inherit;">SKU: <span id="pswp-panel-sku">${sku}</span></p>
+                            <div class="mb-4" style="font-size: 1rem; line-height: 1.6; opacity: 0.9; color: inherit; white-space: pre-wrap;">${desc}</div>
+                    `;
+
+                    @if ($product->specifications->isNotEmpty())
+                        html += `
+                            <hr class="my-4" style="border-color: currentColor; opacity: 0.15;" />
+                            <h4 class="mb-3 fw-bold" style="color: inherit;">Specifications</h4>
+                            <div class="table-responsive mb-2">
+                                <table class="table table-sm border-0 mb-0" style="color: inherit; --bs-table-bg: transparent; --bs-table-color: inherit; border-color: rgba(128,128,128,0.2) !important;">
+                                    <tbody>
+                                        @foreach ($product->specifications as $spec)
+                                            <tr>
+                                                <td class="fw-semibold align-middle px-3 py-2" style="width: 40%; background: rgba(128,128,128,0.05); border-color: rgba(128,128,128,0.2); color: inherit;">{{ addslashes($spec->label) }}</td>
+                                                <td class="px-3 py-2" style="border-color: rgba(128,128,128,0.2); color: inherit; opacity: 0.9;">{{ addslashes($spec->value) }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+                    @endif
+                    
+                    html += `</div>`;
+                    panel.innerHTML = html;
+                    document.body.appendChild(panel);
+                }
+            });
+
+            lightbox.on('close', () => {
+                var panel = document.getElementById('pswp-info-panel');
+                if (panel) panel.classList.remove('open');
+            });
+
+            lightbox.on('destroy', () => {
+                var panel = document.getElementById('pswp-info-panel');
+                if (panel) panel.remove();
+            });
+
+            lightbox.init();
+
+            main.addEventListener('click', function() {
+                lightbox.loadAndOpen(currentIndex);
+            });
+
             // -- Quantity & Variant Logic --
             var data = @json($variantData);
             var select = document.getElementById('pd-variant-select');
@@ -400,6 +601,9 @@
                     if (!v) return;
                     document.getElementById('pd-variant-id').value = this.value;
                     document.getElementById('pd-sku').textContent = v.sku;
+                    
+                    var panelSku = document.getElementById('pswp-panel-sku');
+                    if (panelSku) { panelSku.textContent = v.sku; }
                     
                     var priceEl = document.getElementById('pd-price');
                     priceEl.textContent = money(v.unit);
