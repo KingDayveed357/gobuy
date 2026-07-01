@@ -271,3 +271,8 @@ html.navbar-vertical-collapsed .navbar-vertical-toggle-icon {
 }
 
 
+
+/* RBAC: permission-row hover (role form) + drawer polish */
+.admin-perm-row { transition: background-color .12s ease; }
+.admin-perm-row:hover { background-color: var(--phoenix-secondary-bg-subtle, rgba(125,125,125,.06)); }
+.admin-avatar { width: 2.25rem; height: 2.25rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: .8rem; flex-shrink: 0; }

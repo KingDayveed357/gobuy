@@ -2,6 +2,8 @@
 
 namespace App\Admin;
 
+use App\Admin\Listeners\RecordAdminAuthActivity;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
@@ -18,5 +20,8 @@ class AdminServiceProvider extends ServiceProvider
             ->prefix('admin')
             ->name('admin.')
             ->group(base_path('routes/admin.php'));
+
+        // Login history → audit log (admin guard only).
+        Event::subscribe(RecordAdminAuthActivity::class);
     }
 }

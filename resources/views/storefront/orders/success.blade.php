@@ -21,6 +21,31 @@
                 @endif
             </div>
 
+            @php
+                $awaitingOnlinePayment = $order->status === \App\Modules\Order\Enums\OrderStatus::Pending
+                    && ! $order->isPaid()
+                    && $order->payment_method === \App\Modules\Order\Enums\PaymentMethod::Paystack;
+            @endphp
+            @if ($awaitingOnlinePayment)
+                <div class="row justify-content-center mb-4">
+                    <div class="col-lg-8">
+                        <div class="alert alert-subtle-warning d-flex flex-wrap justify-content-between align-items-center gap-3 mb-0">
+                            <span><span class="fas fa-clock me-2"></span>This order hasn't been paid yet — finish your payment to confirm it.</span>
+                            <div class="d-flex gap-2">
+                                <form action="{{ route('orders.retry', $order) }}" method="POST" class="d-inline">
+                                    @csrf
+                                    <button class="btn btn-sm btn-primary"><span class="fas fa-credit-card me-1"></span>Complete payment</button>
+                                </form>
+                                <form action="{{ route('orders.cancel', $order) }}" method="POST" class="d-inline" onsubmit="return confirm('Cancel this order? This cannot be undone.');">
+                                    @csrf
+                                    <button class="btn btn-sm btn-phoenix-secondary">Cancel order</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <div class="row justify-content-center">
                 <div class="col-lg-8">
                     <div class="card">

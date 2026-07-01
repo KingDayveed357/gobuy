@@ -128,6 +128,22 @@
                     <i class="fas fa-lock me-1"></i> Update Password
                 </button>
             </div>
+
+            @php($me = auth('admin')->user())
+            <div class="border-top border-translucent mt-4 pt-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div>
+                    <h6 class="mb-1">Two-factor authentication
+                        <span class="badge badge-phoenix badge-phoenix-{{ $me->two_factor_enabled ? 'success' : 'secondary' }} ms-1">{{ $me->two_factor_enabled ? 'On' : 'Off' }}</span>
+                    </h6>
+                    <p class="fs-9 text-body-tertiary mb-0">Get an emailed code each time you sign in — an extra layer of protection.</p>
+                </div>
+                <form action="{{ route('admin.settings.two-factor') }}" method="POST" class="d-inline">
+                    @csrf
+                    <button class="btn btn-sm {{ $me->two_factor_enabled ? 'btn-phoenix-danger' : 'btn-phoenix-success' }}">
+                        {{ $me->two_factor_enabled ? 'Turn off' : 'Turn on' }}
+                    </button>
+                </form>
+            </div>
         </div>
     </x-wizard.step-content>
 

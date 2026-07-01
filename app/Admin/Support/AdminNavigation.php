@@ -17,6 +17,11 @@ class AdminNavigation
         foreach (config('admin-navigation', []) as $entry) {
             $type = $entry['type'] ?? 'link';
 
+            // Owner-only entries (staff & role management) — never shown to delegated staff.
+            if (($entry['super_admin'] ?? false) && ! $admin->isSuperAdmin()) {
+                continue;
+            }
+
             if ($type === 'section') {
                 if ($this->adminCan($admin, $entry['permission'] ?? null)) {
                     $items[] = $entry;

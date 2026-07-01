@@ -16,8 +16,8 @@
     <div class="row g-3 mb-4">
         <div class="col-6 col-lg-3"><x-admin.stat-card label="Orders placed" value="{{ money($ordersTotal) }}" icon="fa-receipt" tone="primary" /></div>
         <div class="col-6 col-lg-3"><x-admin.stat-card label="Collected" value="{{ money($collected) }}" icon="fa-circle-check" tone="success" /></div>
-        <div class="col-6 col-lg-3"><x-admin.stat-card label="Outstanding" value="{{ money($outstanding) }}" icon="fa-hourglass-half" tone="warning" /></div>
-        <div class="col-6 col-lg-3"><x-admin.stat-card label="Paystack settled" value="{{ money($paystackSettled) }}" icon="fa-credit-card" tone="info" /></div>
+        <div class="col-6 col-lg-3"><x-admin.stat-card label="Outstanding" value="{{ money($outstanding) }}" icon="fa-hourglass-half" tone="warning" hint="Still expected" /></div>
+        <div class="col-6 col-lg-3"><x-admin.stat-card label="Cancelled / failed" value="{{ money($fellThrough) }}" icon="fa-circle-xmark" tone="danger" hint="{{ $fellThroughCount }} order(s) · not collectable" /></div>
     </div>
 
     <div class="row g-4">

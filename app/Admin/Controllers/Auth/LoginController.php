@@ -2,8 +2,9 @@
 
 namespace App\Admin\Controllers\Auth;
 
-use App\Http\Controllers\Controller;
 use App\Admin\Http\Requests\AdminLoginRequest;
+use App\Admin\Services\Admin2faService;
+use App\Http\Controllers\Controller;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,12 +17,22 @@ class LoginController extends Controller
         return view('admin.auth.login');
     }
 
-    public function store(AdminLoginRequest $request): RedirectResponse
+    public function store(AdminLoginRequest $request, Admin2faService $twoFactor): RedirectResponse
     {
         $request->authenticate();
-        $request->session()->regenerate();
+        $admin = Auth::guard('admin')->user();
 
-        Auth::guard('admin')->user()->forceFill(['last_login_at' => now()])->save();
+        // Opt-in 2FA: park the verified credentials, sign out, and email a code.
+        if ($admin->two_factor_enabled) {
+            Auth::guard('admin')->logout();
+            $request->session()->put('admin-2fa:id', $admin->getKey());
+            $twoFactor->sendCode($admin);
+
+            return redirect()->route('admin.2fa.challenge');
+        }
+
+        $request->session()->regenerate();
+        $admin->forceFill(['last_login_at' => now()])->save();
 
         return redirect()->intended(route('admin.dashboard'));
     }

@@ -103,7 +103,8 @@ class PaymentFlowTest extends TestCase
         $order->items()->create(['product_variant_id' => null, 'name' => 'Sample', 'sku' => 'S1', 'unit_price' => 1000, 'quantity' => 1, 'line_total' => 1000]);
         $order->statusHistories()->create(['status' => OrderStatus::Paid, 'note' => 'Payment confirmed']);
 
-        $this->get(route('orders.success', $order))
+        $this->withSession(['viewable_orders' => [$order->id]])
+            ->get(route('orders.success', $order))
             ->assertOk()
             ->assertSee($order->order_number)
             ->assertSee('Thank you for your order');

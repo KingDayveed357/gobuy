@@ -6,7 +6,24 @@
     'bodyClass' => '',
 ])
 
-<div {{ $attributes->merge(['class' => 'card admin-card h-100']) }}>
+@php
+    $classes = 'card admin-card';
+    $hasHeightClass = false;
+    if ($attributes->has('class')) {
+        $userClasses = explode(' ', $attributes->get('class'));
+        foreach ($userClasses as $c) {
+            if (str_starts_with($c, 'h-')) {
+                $hasHeightClass = true;
+                break;
+            }
+        }
+    }
+    if (!$hasHeightClass) {
+        $classes .= ' h-100';
+    }
+@endphp
+
+<div {{ $attributes->merge(['class' => $classes]) }}>
     @if ($title || $subtitle || $eyebrow || isset($cardActions))
         <div class="card-header admin-card-header d-flex flex-wrap gap-3 justify-content-between align-items-start">
             <div class="min-w-0">

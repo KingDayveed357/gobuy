@@ -56,8 +56,7 @@
                 </label>
                 <div class="form-check form-switch mb-0">
                     <input class="form-check-input cursor-pointer" type="checkbox" role="switch" id="applyCreditToggle"
-                           wire:click="toggleStoreCredit"
-                           @checked($this->applyCredit)>
+                           wire:model.live="applyCredit">
                 </div>
             </div>
             

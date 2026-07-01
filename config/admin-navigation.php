@@ -88,4 +88,18 @@ return [
             ['label' => 'Wholesale', 'route' => 'admin.wholesale.index', 'active' => ['admin.wholesale.*']],
         ],
     ],
+
+    // Owner-only: staff & role management.
+    [
+        'type' => 'group',
+        'id' => 'nv-team',
+        'label' => 'Team',
+        'icon' => 'shield',
+        'super_admin' => true,
+        'items' => [
+            ['label' => 'Staff', 'route' => 'admin.staff.index', 'active' => ['admin.staff.*'], 'icon' => 'user-check'],
+            ['label' => 'Roles', 'route' => 'admin.roles.index', 'active' => ['admin.roles.*'], 'icon' => 'shield'],
+            ['label' => 'Activity log', 'route' => 'admin.activity.index', 'active' => ['admin.activity.*'], 'icon' => 'activity'],
+        ],
+    ],
 ];

@@ -4,22 +4,21 @@ namespace App\Modules\Order\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Cart\Services\CartService;
-use App\Modules\Logistics\Models\PickupLocation;
+use App\Modules\Logistics\Models\Location;
 use App\Modules\Logistics\Models\Shipment;
-use App\Modules\Logistics\Services\DeliveryFeeService;
 use App\Modules\Order\Actions\PlaceOrderAction;
 use App\Modules\Order\DTOs\CheckoutData;
 use App\Modules\Order\Enums\PaymentMethod;
 use App\Modules\Order\Http\Requests\CheckoutRequest;
+use App\Modules\Order\Models\Order;
+use App\Modules\Order\Services\CheckoutCalculator;
 use App\Modules\Order\Services\PaymentOptionsService;
 use App\Modules\Payment\Services\PaymentService;
 use App\Modules\Pricing\Services\CouponService;
-use App\Modules\Returns\Services\StoreCreditService;
-use App\Support\Money;
 use Illuminate\Contracts\View\View;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Throwable;
 
 class CheckoutController extends Controller
@@ -29,10 +28,8 @@ class CheckoutController extends Controller
         private readonly PlaceOrderAction $placeOrder,
         private readonly PaymentService $payments,
         private readonly PaymentOptionsService $paymentOptions,
-        private readonly \App\Modules\Order\Services\CheckoutCalculator $calculator,
+        private readonly CheckoutCalculator $calculator,
     ) {}
-
-    private const CREDIT_SESSION_KEY = 'checkout.apply_credit';
 
     public function show(): View|RedirectResponse
     {
@@ -46,22 +43,22 @@ class CheckoutController extends Controller
         $addresses = $user ? $user->addresses : collect();
         $defaultAddress = $user?->defaultShippingAddress();
 
-        $applyCredit = (bool) session(self::CREDIT_SESSION_KEY);
+        $applyCredit = (bool) session(CheckoutCalculator::CREDIT_SESSION_KEY);
 
         $totals = $this->calculator->calculate(
             $user,
-            \App\Modules\Logistics\Models\Shipment::METHOD_HOME,
+            Shipment::METHOD_HOME,
             $defaultAddress?->state ?? '',
             $applyCredit,
             $summary
         );
 
-        $checkoutToken = (string) \Illuminate\Support\Str::uuid();
+        $checkoutToken = (string) Str::uuid();
 
         return view('storefront.checkout.show', [
             'addresses' => $addresses,
             'defaultAddress' => $defaultAddress,
-            'pickupLocations' => \App\Modules\Logistics\Models\Location::pickup()->active()->orderBy('name')->get(),
+            'pickupLocations' => Location::pickup()->active()->orderBy('name')->get(),
             'podEligible' => $this->paymentOptions->podEligible($summary['subtotal'], $user),
             'bankAccount' => config('gobuy.bank_account'),
             'checkoutToken' => $checkoutToken,
@@ -75,7 +72,7 @@ class CheckoutController extends Controller
         $token = $data['checkout_token'] ?? null;
 
         if ($token) {
-            $existingOrder = \App\Modules\Order\Models\Order::where('checkout_token', $token)->first();
+            $existingOrder = Order::where('checkout_token', $token)->first();
             if ($existingOrder) {
                 return redirect()->route('orders.success', $existingOrder);
             }
@@ -85,7 +82,7 @@ class CheckoutController extends Controller
 
         // For pickup, snapshot the pickup point's address onto the order.
         if (($data['delivery_method'] ?? null) === 'pickup') {
-            $location = \App\Modules\Logistics\Models\Location::pickup()->findOrFail($data['pickup_location_id']);
+            $location = Location::pickup()->findOrFail($data['pickup_location_id']);
             $data['address_line'] = $location->address;
             $data['city'] = $location->city;
             $data['state'] = $location->state;
@@ -101,11 +98,14 @@ class CheckoutController extends Controller
         try {
             $order = $this->placeOrder->execute(CheckoutData::fromArray($data));
 
-            session()->forget(self::CREDIT_SESSION_KEY);
+            // Remember this order in the session so the (public) order pages are
+            // viewable by whoever placed it — without being enumerable by others.
+            session()->push('viewable_orders', $order->id);
 
             // Store credit covers the whole bill → no gateway/POD needed.
             if ($order->amountDue()->isZero() && $order->store_credit_applied->isPositive()) {
                 $this->payments->confirmManualPayment($order); // completes + spends the credit
+                $this->clearCheckoutState();
                 $note = $order->store_credit_applied->equals($order->total)
                     ? 'Order confirmed! Paid in full with store credit.'
                     : 'Order confirmed! Paid with store credit.';
@@ -114,12 +114,23 @@ class CheckoutController extends Controller
             }
 
             return match ($method) {
-                PaymentMethod::BankTransfer->value => redirect()->route('orders.transfer.show', $order)
-                    ->with('status', 'Order placed. Please complete your bank transfer.'),
+                // Order is placed (awaiting manual reconciliation) — checkout state can be cleared.
+                PaymentMethod::BankTransfer->value => tap(
+                    redirect()->route('orders.transfer.show', $order)
+                        ->with('status', 'Order placed. Please complete your bank transfer.'),
+                    fn () => $this->clearCheckoutState(),
+                ),
                 PaymentMethod::PayOnDelivery->value => tap(
                     redirect()->route('orders.success', $order)->with('status', 'Order confirmed! Pay on delivery.'),
-                    fn () => $this->payments->placePodOrder($order),
+                    function () use ($order): void {
+                        $this->payments->placePodOrder($order);
+                        $this->clearCheckoutState();
+                    },
                 ),
+                // Paystack: do NOT tear down checkout state here. The order is not yet
+                // paid; if the shopper cancels on the gateway and returns, their coupon
+                // and store-credit selection must still be intact. The payment callback
+                // clears state only once the charge is actually confirmed.
                 default => redirect()->away($this->payments->initializeFor($order, route('payment.callback'))),
             };
         } catch (Throwable $e) {
@@ -133,11 +144,25 @@ class CheckoutController extends Controller
     public function toggleStoreCredit(Request $request): RedirectResponse
     {
         if ($request->boolean('apply')) {
-            session([self::CREDIT_SESSION_KEY => true]);
+            session([CheckoutCalculator::CREDIT_SESSION_KEY => true]);
+
             return back()->with('status', 'Store credit applied.');
         }
 
-        session()->forget(self::CREDIT_SESSION_KEY);
+        session()->forget(CheckoutCalculator::CREDIT_SESSION_KEY);
+
         return back()->with('status', 'Store credit removed.');
+    }
+
+    /**
+     * Clear the per-checkout session flags once an order has been committed to a
+     * terminal-for-checkout state (paid, accepted, or awaiting bank transfer).
+     * Deliberately does NOT clear the cart — existing flows clear the cart in the
+     * payment callback — and is never called on the Paystack redirect path, where
+     * the shopper may still cancel and return.
+     */
+    private function clearCheckoutState(): void
+    {
+        session()->forget([CouponService::SESSION_KEY, CheckoutCalculator::CREDIT_SESSION_KEY]);
     }
 }

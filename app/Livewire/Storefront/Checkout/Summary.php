@@ -11,16 +11,16 @@ use Livewire\Component;
 class Summary extends Component
 {
     public bool $applyCredit = false;
-    public string $deliveryMethod = 'home_delivery';
-    public string $deliveryState = '';
 
-    private const CREDIT_SESSION_KEY = 'checkout.apply_credit';
+    public string $deliveryMethod = 'home_delivery';
+
+    public string $deliveryState = '';
 
     public function mount(string $defaultDeliveryMethod = 'home_delivery', string $defaultState = '')
     {
         $this->deliveryMethod = $defaultDeliveryMethod;
         $this->deliveryState = $defaultState;
-        $this->applyCredit = (bool) session(self::CREDIT_SESSION_KEY);
+        $this->applyCredit = (bool) session(CheckoutCalculator::CREDIT_SESSION_KEY);
     }
 
     #[On('delivery-updated')]
@@ -28,19 +28,22 @@ class Summary extends Component
     {
         $this->deliveryMethod = $data['method'] ?? 'home_delivery';
         $this->deliveryState = $data['state'] ?? '';
-        
+
         // Unset the memoized totals so they recalculate
         unset($this->totals);
     }
 
-    public function toggleStoreCredit()
+    /**
+     * Fired by `wire:model.live="applyCredit"` whenever the switch changes.
+     * Binding the property directly to the checkbox (rather than a wire:click
+     * that manually flips a boolean alongside the browser's own native toggle)
+     * keeps the displayed state and the calculated state in lockstep — the
+     * source of the previously-inverted behaviour.
+     */
+    public function updatedApplyCredit(): void
     {
-        $this->applyCredit = !$this->applyCredit;
-        
-        // Sync with session
-        session([self::CREDIT_SESSION_KEY => $this->applyCredit]);
-        
-        // Unset memoized totals
+        session([CheckoutCalculator::CREDIT_SESSION_KEY => $this->applyCredit]);
+
         unset($this->totals);
     }
 
@@ -48,6 +51,7 @@ class Summary extends Component
     public function totals()
     {
         $calculator = app(CheckoutCalculator::class);
+
         return $calculator->calculate(
             Auth::user(),
             $this->deliveryMethod,

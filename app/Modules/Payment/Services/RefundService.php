@@ -68,6 +68,7 @@ class RefundService
                 'reason' => $reason,
                 'status' => 'pending',
                 'payload' => [
+                    'completion' => 'order',
                     'total_amount_kobo' => $refundAmount->kobo,
                     'credit_amount_kobo' => $creditRefund->kobo,
                     'refund_type' => $isFull ? 'full' : 'partial',
@@ -78,16 +79,37 @@ class RefundService
         // Phase 2: Call gateway OUTSIDE any lock
         if ($cashRefund->isPositive() && $payment) {
             $result = $this->gateway->refund($payment->reference, $cashRefund->kobo);
-            $success = (bool) $result['success'];
             $raw = $result['raw'];
+            $providerReference = data_get($raw, 'data.id');
 
+            // A declined gateway refund is terminal — leave the order untouched.
+            if (! (bool) $result['success']) {
+                $refund->update([
+                    'status' => 'failed',
+                    'provider_reference' => $providerReference,
+                    'payload' => array_merge($refund->payload ?? [], $raw),
+                ]);
+
+                Log::warning('Gateway refund declined', [
+                    'order_number' => $order->order_number,
+                    'amount_kobo' => $cashRefund->kobo,
+                ]);
+
+                return $refund;
+            }
+
+            // Accepted by the gateway → finalise now. The refund.processed webhook
+            // is an idempotent reconciliation: a no-op once succeeded, but it will
+            // finalise this refund if a gateway timeout ever leaves it unconfirmed.
             $refund->update([
-                'status' => 'processing',
-                'provider_reference' => data_get($raw, 'data.id'),
+                'status' => 'succeeded',
+                'provider_reference' => $providerReference,
                 'payload' => array_merge($refund->payload ?? [], $raw),
             ]);
 
-            Log::info('Refund processing via gateway', [
+            $this->completeRefund($order, $isFull, $refundAmount, $creditRefund, $admin, $refund);
+
+            Log::info('Refund succeeded via gateway', [
                 'order_number' => $order->order_number,
                 'amount_kobo' => $refundAmount->kobo,
             ]);
@@ -132,6 +154,7 @@ class RefundService
 
             if (! $isFull) {
                 $order->update(['payment_status' => PaymentStatus::PartiallyRefunded]);
+
                 return; // partial refund: order stays paid
             }
 
@@ -179,45 +202,70 @@ class RefundService
                 'amount' => $amount,
                 'reason' => $reason,
                 'status' => 'pending',
-                'payload' => [],
+                'payload' => ['completion' => 'return'],
             ]);
         });
 
         // Phase 2: Call gateway OUTSIDE any lock
         if ($payment) {
             $result = $this->gateway->refund($payment->reference, $amount->kobo);
-            $success = (bool) $result['success'];
             $raw = $result['raw'];
+            $providerReference = data_get($raw, 'data.id');
+
+            // A declined gateway refund is terminal; the caller (settlement) aborts.
+            if (! (bool) $result['success']) {
+                $refund->update([
+                    'status' => 'failed',
+                    'provider_reference' => $providerReference,
+                    'payload' => array_merge($refund->payload ?? [], $raw),
+                ]);
+
+                return $refund;
+            }
 
             $refund->update([
-                'status' => 'processing',
-                'provider_reference' => data_get($raw, 'data.id'),
-                'payload' => $raw,
+                'status' => 'succeeded',
+                'provider_reference' => $providerReference,
+                'payload' => array_merge($refund->payload ?? [], $raw),
             ]);
+            $this->applyReturnRefundLedger($order, $amount);
 
             return $refund;
         }
 
-        // Manual offline reversal
-        $raw = ['manual' => true];
-
+        // Manual offline reversal (no online payment) — immediately succeeded.
         $refund->update([
             'status' => 'succeeded',
-            'payload' => $raw,
+            'payload' => array_merge($refund->payload ?? [], ['manual' => true]),
         ]);
-
-        Order::whereKey($order->id)->update(['refunded_total' => DB::raw('refunded_total + '.$amount->kobo)]);
-        $order->update(['payment_status' => PaymentStatus::PartiallyRefunded]);
+        $this->applyReturnRefundLedger($order, $amount);
 
         return $refund;
     }
 
+    /**
+     * Bump the order's shared over-refund ledger for a Returns-module refund and
+     * reflect partial/full refund on the payment status. The Returns settlement
+     * owns restock + return closure; this method only touches the money ledger.
+     */
+    private function applyReturnRefundLedger(Order $order, Money $amount): void
+    {
+        Order::whereKey($order->id)->update(['refunded_total' => DB::raw('refunded_total + '.$amount->kobo)]);
+        $order->update(['payment_status' => PaymentStatus::PartiallyRefunded]);
+    }
+
+    /**
+     * Idempotent `refund.processed` webhook handler. In the happy path the refund
+     * is already 'succeeded' (finalised synchronously when the gateway accepted)
+     * and this is a no-op. Its real job is reconciliation: finalise a refund that
+     * a gateway timeout left 'pending'/'processing' so money is never stranded.
+     */
     public function markConfirmed(string $providerReference, array $payload = []): void
     {
         $refund = Refund::with(['order', 'admin'])->firstWhere('provider_reference', $providerReference);
 
-        if (! $refund || $refund->status === 'succeeded') {
-            return; // Already processed
+        if (! $refund || in_array($refund->status, ['succeeded', 'failed'], true)) {
+            return; // unknown or already terminal
         }
 
         $refund->update([
@@ -225,12 +273,17 @@ class RefundService
             'payload' => array_merge($refund->payload ?? [], $payload),
         ]);
 
-        // Phase 3 completion
-        $isFull = data_get($refund->payload, 'refund_type') === 'full';
-        $refundAmount = new Money((int) data_get($refund->payload, 'total_amount_kobo', 0));
-        $creditRefund = new Money((int) data_get($refund->payload, 'credit_amount_kobo', 0));
+        if (! $refund->order) {
+            return;
+        }
 
-        if ($refund->admin && $refund->order) {
+        if (data_get($refund->payload, 'completion') === 'return') {
+            // Returns settlement already restocked/closed — apply the money ledger only.
+            $this->applyReturnRefundLedger($refund->order, $refund->amount);
+        } elseif ($refund->admin) {
+            $isFull = data_get($refund->payload, 'refund_type') === 'full';
+            $refundAmount = Money::fromKobo((int) data_get($refund->payload, 'total_amount_kobo', 0));
+            $creditRefund = Money::fromKobo((int) data_get($refund->payload, 'credit_amount_kobo', 0));
             $this->completeRefund($refund->order, $isFull, $refundAmount, $creditRefund, $refund->admin, $refund);
         }
 
@@ -240,11 +293,23 @@ class RefundService
         ]);
     }
 
+    /**
+     * `refund.failed` webhook handler. Only acts on a still-pending refund — a
+     * refund already finalised as 'succeeded' is never silently un-settled (that
+     * would need an explicit reversal); such a case is logged for intervention.
+     */
     public function markFailed(string $providerReference, array $payload = []): void
     {
         $refund = Refund::firstWhere('provider_reference', $providerReference);
 
-        if (! $refund || $refund->status === 'failed') {
+        if (! $refund || in_array($refund->status, ['failed', 'succeeded'], true)) {
+            if ($refund && $refund->status === 'succeeded') {
+                Log::critical('refund.failed received for an already-succeeded refund', [
+                    'provider_reference' => $providerReference,
+                    'refund_id' => $refund->id,
+                ]);
+            }
+
             return;
         }
 

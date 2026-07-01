@@ -19,6 +19,10 @@ Route::controller(OrderController::class)->group(function (): void {
     Route::post('/track', 'track')->name('orders.track');
     Route::get('/orders/{order}/success', 'success')->name('orders.success');
 
+    // Finish an abandoned/failed payment, or cancel an unpaid order — owner-gated.
+    Route::post('/orders/{order}/retry-payment', 'retryPayment')->name('orders.retry');
+    Route::post('/orders/{order}/cancel', 'cancel')->name('orders.cancel');
+
     // Manual bank transfer: instructions + proof of payment upload.
     Route::get('/orders/{order}/transfer', 'transferShow')->name('orders.transfer.show');
     Route::post('/orders/{order}/transfer', 'transferStore')->name('orders.transfer.store');

@@ -4,6 +4,8 @@ namespace App\Admin\Models;
 
 use App\Admin\Database\Factories\AdminFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
@@ -11,7 +13,7 @@ use Spatie\Permission\Traits\HasRoles;
 class Admin extends Authenticatable
 {
     /** @use HasFactory<AdminFactory> */
-    use HasFactory, HasRoles, Notifiable;
+    use HasFactory, HasRoles, Notifiable, SoftDeletes;
 
     /**
      * Spatie resolves roles/permissions against this guard.
@@ -25,6 +27,9 @@ class Admin extends Authenticatable
         'is_active',
         'last_login_at',
         'two_factor_enabled',
+        'invited_at',
+        'invited_by_id',
+        'suspended_at',
     ];
 
     /**
@@ -43,7 +48,39 @@ class Admin extends Authenticatable
             'is_active' => 'boolean',
             'two_factor_enabled' => 'boolean',
             'last_login_at' => 'datetime',
+            'invited_at' => 'datetime',
+            'suspended_at' => 'datetime',
         ];
+    }
+
+    /**
+     * The platform owner. Backed by the single Super Admin role so authorization
+     * has one source of truth (see the Gate::before bypass in AppServiceProvider).
+     */
+    public function isSuperAdmin(): bool
+    {
+        return $this->hasRole(config('rbac.super_admin_role'));
+    }
+
+    /**
+     * Derived lifecycle status for the staff UI: archived → suspended → invited → active.
+     */
+    public function status(): string
+    {
+        return match (true) {
+            $this->trashed() => 'archived',
+            ! $this->is_active => 'suspended',
+            $this->invited_at !== null && $this->last_login_at === null => 'invited',
+            default => 'active',
+        };
+    }
+
+    /**
+     * The admin who invited this one (null for seeded owners).
+     */
+    public function invitedBy(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'invited_by_id');
     }
 
     public function initials(): string

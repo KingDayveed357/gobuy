@@ -4,11 +4,16 @@ namespace App\Modules\Payment\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Cart\Services\CartService;
+use App\Modules\Order\Services\CheckoutCalculator;
+use App\Modules\Payment\Jobs\ProcessWebhookJob;
 use App\Modules\Payment\Models\Payment;
+use App\Modules\Payment\Models\WebhookPayload;
 use App\Modules\Payment\Services\PaymentService;
+use App\Modules\Pricing\Services\CouponService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
@@ -33,16 +38,18 @@ class PaymentController extends Controller
         $paid = $this->payments->verifyAndComplete($reference);
 
         if ($paid) {
+            // Payment confirmed → tear down checkout state exactly once, here on
+            // the browser return (the webhook has no access to this session).
             $this->cart->clear();
+            session()->forget([CouponService::SESSION_KEY, CheckoutCalculator::CREDIT_SESSION_KEY]);
 
             return redirect()->route('orders.success', $payment->order)
                 ->with('status', 'Payment successful. Thank you for your order!');
         }
 
-        $this->cart->clear();
-        // NOTE: Stock reservations have a TTL and will expire automatically.
-        // ReleaseInventoryForOrder listener handles cancellation releases.
-
+        // Payment not completed — deliberately keep the cart AND the applied
+        // coupon/store-credit session so the shopper can retry without losing
+        // their checkout state. Stock reservations expire on their own TTL.
         return redirect()->route('orders.success', $payment->order)
             ->with('error', 'Payment was not completed. You can retry from your order.');
     }
@@ -55,25 +62,29 @@ class PaymentController extends Controller
     {
         $secret = (string) config('services.paystack.secret_key');
         $signature = $request->header('x-paystack-signature', '');
-        
+
         // Ensure we are using the raw body for HMAC check
         $expected = hash_hmac('sha512', $request->getContent(), $secret);
 
         if (! hash_equals($expected, $signature)) {
             Log::warning('Paystack webhook signature mismatch');
+
             return response('Invalid signature', 401);
         }
 
         $payloadData = $request->json()->all();
         $eventType = data_get($payloadData, 'event', 'unknown');
-        
+
         // Extract idempotency key safely
         $paystackId = data_get($payloadData, 'data.id');
-        $idempotencyKey = $paystackId ? "{$eventType}_{$paystackId}" : hash('sha256', $signature . $eventType);
+        $idempotencyKey = $paystackId ? "{$eventType}_{$paystackId}" : hash('sha256', $signature.$eventType);
 
         // Phase 1: Fast transactional persistence (Outbox Pattern)
-        \Illuminate\Support\Facades\DB::transaction(function () use ($eventType, $idempotencyKey, $payloadData) {
-            $payload = \App\Modules\Payment\Models\WebhookPayload::firstOrCreate(
+        DB::transaction(function () use ($eventType, $idempotencyKey, $payloadData) {
+            // createOrFirst is race-safe (relies on the unique idempotency_key
+            // index) where firstOrCreate's select-then-insert can double-insert
+            // under concurrent identical webhooks.
+            $payload = WebhookPayload::createOrFirst(
                 ['idempotency_key' => $idempotencyKey],
                 [
                     'event_type' => $eventType,
@@ -84,7 +95,7 @@ class PaymentController extends Controller
 
             // Phase 2: Dispatch async job safely upon commit
             if ($payload->wasRecentlyCreated) {
-                \App\Modules\Payment\Jobs\ProcessWebhookJob::dispatch($payload)->afterCommit();
+                ProcessWebhookJob::dispatch($payload)->afterCommit();
             } else {
                 Log::info('Duplicate webhook skipped', ['idempotency_key' => $idempotencyKey]);
             }

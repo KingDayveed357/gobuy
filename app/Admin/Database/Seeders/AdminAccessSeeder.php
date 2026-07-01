@@ -9,53 +9,40 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
+/**
+ * Syncs the RBAC catalog from config/rbac.php (the single source of truth) into
+ * the database and ensures the platform-owner accounts exist. Idempotent.
+ */
 class AdminAccessSeeder extends Seeder
 {
     private const GUARD = 'admin';
-
-    /**
-     * Permission => the roles that should hold it.
-     *
-     * @var array<string, list<string>>
-     */
-    private const MATRIX = [
-        'manage_products' => ['Super Admin', 'Admin', 'Manager'],
-        'manage_orders' => ['Super Admin', 'Admin', 'Manager', 'Support'],
-        'manage_customers' => ['Super Admin', 'Admin', 'Support'],
-        'manage_payments' => ['Super Admin', 'Admin'],
-        'manage_returns' => ['Super Admin', 'Admin', 'Manager', 'Support'],
-        'manage_refunds' => ['Super Admin', 'Admin'],
-        'view_analytics' => ['Super Admin', 'Admin', 'Manager'],
-        'manage_admins' => ['Super Admin'],
-    ];
 
     public function run(): void
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        $roles = collect(['Super Admin', 'Admin', 'Manager', 'Support'])
-            ->mapWithKeys(fn (string $name) => [
-                $name => Role::firstOrCreate(['name' => $name, 'guard_name' => self::GUARD]),
-            ]);
-
-        foreach (self::MATRIX as $permission => $grantedRoles) {
-            $permission = Permission::firstOrCreate(['name' => $permission, 'guard_name' => self::GUARD]);
-
-            foreach ($grantedRoles as $roleName) {
-                $roles[$roleName]->givePermissionTo($permission);
-            }
+        // 1. Permissions — the fixed vocabulary developers declare in config.
+        $permissions = collect(config('rbac.modules'))->flatMap(fn (array $perms) => array_keys($perms));
+        foreach ($permissions as $permission) {
+            Permission::firstOrCreate(['name' => $permission, 'guard_name' => self::GUARD]);
         }
 
-        $superAdmin = Admin::firstOrCreate(
-            ['email' => 'admin@gobuy.test'],
-            ['name' => 'Super Admin', 'password' => Hash::make('password'), 'is_active' => true],
-        );
-        $superAdmin->syncRoles(['Super Admin']);
+        // 2. Roles — seeded templates the owner can later edit, marked is_system.
+        foreach (config('rbac.roles') as $roleName => $grantedPermissions) {
+            $role = Role::firstOrCreate(['name' => $roleName, 'guard_name' => self::GUARD]);
+            $role->forceFill(['is_system' => true])->save();
+            $role->syncPermissions($grantedPermissions);
+        }
 
-        $david = Admin::firstOrCreate(
-            ['email' => 'davidaniago@gmail.com'],
-            ['name' => 'David Aniago', 'password' => Hash::make('gobuy@test'), 'is_active' => true],
-        );
-        $david->syncRoles(['Super Admin']);
+        // 3. Platform owner accounts (unrestricted via Gate::before).
+        foreach ([
+            ['email' => 'admin@gobuy.test', 'name' => 'Super Admin', 'password' => 'password'],
+            ['email' => 'davidaniago@gmail.com', 'name' => 'David Aniago', 'password' => 'gobuy@test'],
+        ] as $owner) {
+            Admin::firstOrCreate(
+                ['email' => $owner['email']],
+                ['name' => $owner['name'], 'password' => Hash::make($owner['password']), 'is_active' => true],
+            )->syncRoles([config('rbac.super_admin_role')]);
+        }
     }
 }

@@ -91,4 +91,14 @@ class SettingsController extends Controller
 
         return back()->with('status', 'Password updated successfully.');
     }
+
+    public function toggleTwoFactor(Request $request): RedirectResponse
+    {
+        $admin = Auth::guard('admin')->user();
+        $admin->forceFill(['two_factor_enabled' => ! $admin->two_factor_enabled])->save();
+
+        return back()->with('status', $admin->two_factor_enabled
+            ? "Two-factor authentication is on — you'll get an email code each time you sign in."
+            : 'Two-factor authentication is off.');
+    }
 }

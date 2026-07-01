@@ -93,18 +93,35 @@ class CouponCheckoutTest extends TestCase
         $this->post(route('checkout.store'), $this->customer())
             ->assertRedirect('https://checkout.paystack.com/abc123');
 
-        // 10% of ₦10,000 = ₦1,000 discount → 100,000 kobo.
+        // 10% of ₦10,000 = ₦1,000 discount → 100,000 kobo. At placement the
+        // discount is SNAPSHOTTED onto the order, but the coupon is NOT yet
+        // redeemed and the applied code is preserved — so a shopper who cancels on
+        // the gateway and returns still has their coupon (and its usage limit is
+        // never burned by an unpaid order).
         $this->assertDatabaseHas('orders', [
             'subtotal' => 1000000,
             'discount_amount' => 100000,
             'coupon_id' => $coupon->id,
             'coupon_code' => 'SAVE10',
         ]);
-        $this->assertDatabaseHas('coupon_usages', ['coupon_id' => $coupon->id, 'order_id' => Order::first()->id]);
+        $this->assertDatabaseMissing('coupon_usages', ['coupon_id' => $coupon->id]);
+        $this->assertNotNull(session(CouponService::SESSION_KEY));
 
-        // Total = subtotal - discount + delivery; coupon cleared from session.
+        // Total = subtotal - discount + delivery.
         $order = Order::first();
         $this->assertSame(900000, $order->total->minus($order->delivery_fee)->kobo);
+
+        // Once the payment is confirmed the coupon is redeemed (exactly once) and
+        // the checkout session is torn down.
+        Http::fake(['*/transaction/verify/*' => Http::response([
+            'status' => true,
+            'data' => ['status' => 'success', 'amount' => $order->payment->amount->kobo, 'currency' => 'NGN'],
+        ])]);
+
+        $this->get(route('payment.callback', ['reference' => $order->payment->reference]))
+            ->assertRedirect(route('orders.success', $order));
+
+        $this->assertDatabaseHas('coupon_usages', ['coupon_id' => $coupon->id, 'order_id' => $order->id]);
         $this->assertNull(session(CouponService::SESSION_KEY));
     }
 

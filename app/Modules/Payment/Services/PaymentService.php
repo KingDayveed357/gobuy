@@ -3,22 +3,21 @@
 namespace App\Modules\Payment\Services;
 
 use App\Admin\Models\Admin;
-use App\Admin\Notifications\NewPaidOrderNotification;
 use App\Modules\Catalog\Models\ProductVariant;
 use App\Modules\Catalog\Services\CatalogService;
 use App\Modules\Notification\Services\CustomerNotifier;
 use App\Modules\Order\Enums\OrderStatus;
 use App\Modules\Order\Enums\PaymentStatus;
-use App\Modules\Order\Mail\OrderConfirmationMail;
+use App\Modules\Order\Events\OrderPaid;
 use App\Modules\Order\Models\Order;
 use App\Modules\Order\Services\OrderStatusService;
 use App\Modules\Payment\Contracts\PaymentGateway;
 use App\Modules\Payment\Models\Payment;
+use App\Modules\Pricing\Services\CouponService;
 use App\Modules\Returns\Services\StoreCreditService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 
 class PaymentService
@@ -29,6 +28,7 @@ class PaymentService
         private readonly CatalogService $catalog,
         private readonly CustomerNotifier $notifier,
         private readonly StoreCreditService $storeCredit,
+        private readonly CouponService $coupons,
     ) {}
 
     /**
@@ -38,11 +38,11 @@ class PaymentService
     {
         $key = 'init_payment_'.$order->id;
 
-        if (\Illuminate\Support\Facades\RateLimiter::tooManyAttempts($key, 5)) {
+        if (RateLimiter::tooManyAttempts($key, 5)) {
             throw new \RuntimeException('Too many payment initialization attempts. Please wait a minute before trying again.');
         }
 
-        \Illuminate\Support\Facades\RateLimiter::hit($key, 60);
+        RateLimiter::hit($key, 60);
 
         $reference = 'GB-PAY-'.Str::upper(Str::random(12));
 
@@ -94,14 +94,23 @@ class PaymentService
             return false;
         }
 
-        // Amount assertion - prevent partial payments or manipulated amounts
+        // Amount + currency assertion — prevent partial/manipulated amounts and
+        // cross-currency settlement against an NGN-priced order.
         $gatewayAmount = data_get($result['raw'], 'data.amount');
-        if ($gatewayAmount !== null && (int) $gatewayAmount !== $payment->amount->kobo) {
-            Log::critical('Payment amount mismatch detected', [
+        $gatewayCurrency = data_get($result['raw'], 'data.currency');
+        $expectedCurrency = (string) config('services.paystack.currency', 'NGN');
+
+        $amountMismatch = $gatewayAmount !== null && (int) $gatewayAmount !== $payment->amount->kobo;
+        $currencyMismatch = $gatewayCurrency !== null && $gatewayCurrency !== $expectedCurrency;
+
+        if ($amountMismatch || $currencyMismatch) {
+            Log::critical('Payment amount/currency mismatch detected', [
                 'reference' => $reference,
                 'order_number' => $payment->order->order_number,
                 'expected_kobo' => $payment->amount->kobo,
                 'actual_kobo' => $gatewayAmount,
+                'expected_currency' => $expectedCurrency,
+                'actual_currency' => $gatewayCurrency,
             ]);
 
             $payment->update(['status' => 'failed', 'payload' => $result['raw']]);
@@ -151,21 +160,66 @@ class PaymentService
     }
 
     /**
+     * Admin override: manually mark a pending payment as paid and complete its
+     * order. Use only when funds are confirmed received out of band (e.g. a
+     * webhook never arrived). completeOrder is idempotent and row-locked, so a
+     * racing webhook for the same reference cannot double-apply side effects.
+     */
+    public function markPaidManually(Payment $payment, ?Admin $admin = null): void
+    {
+        // Refuse if the order is already paid by another reference — confirming a
+        // second reference would create two "success" rows (a double collection).
+        if ($payment->status !== 'pending' || ! $payment->order || $payment->order->isPaid()) {
+            return;
+        }
+
+        $payment->update([
+            'status' => 'success',
+            'paid_at' => now(),
+            'payload' => array_merge($payment->payload ?? [], [
+                'manual_confirmation' => true,
+                'confirmed_by_admin_id' => $admin?->id,
+            ]),
+        ]);
+
+        $this->completeOrder($payment->order, paymentReceived: true);
+
+        Log::info('Payment manually confirmed by admin', [
+            'reference' => $payment->reference,
+            'order_number' => $payment->order->order_number,
+            'admin_id' => $admin?->id,
+        ]);
+    }
+
+    /**
      * The single place an order transitions from "placed" to "accepted":
-     * commits stock, advances the order, and notifies. Idempotent — the
-     * stock/transition only runs while the order is still pending.
+     * commits stock, redeems the coupon, spends store credit, and advances the
+     * order. Idempotent and concurrency-safe — the order row is locked and the
+     * "first acceptance" decision is made under that lock, so a browser callback
+     * and a webhook racing on the same payment can never both run the side
+     * effects (double stock decrement / double events).
      */
     public function completeOrder(Order $order, bool $paymentReceived = true): void
     {
-        $firstAcceptance = $order->status === OrderStatus::Pending;
+        $firstAcceptance = DB::transaction(function () use ($order, $paymentReceived): bool {
+            // Lock the order row; decide acceptance from the locked state, not
+            // from the (possibly stale) in-memory model passed by the caller.
+            $locked = Order::whereKey($order->getKey())->lockForUpdate()->firstOrFail();
+            $firstAcceptance = $locked->status === OrderStatus::Pending;
 
-        DB::transaction(function () use ($order, $paymentReceived, $firstAcceptance): void {
             if ($firstAcceptance) {
                 $this->status->transitionTo(
                     $order,
                     OrderStatus::Paid,
                     $paymentReceived ? 'Payment confirmed' : 'Order accepted (Pay on Delivery)',
                 );
+
+                // Redeem the coupon snapshotted at placement now that the order is
+                // genuinely accepted — abandoned/cancelled payments never consume a
+                // coupon's usage limit. Idempotent per order_id.
+                if ($order->coupon) {
+                    $this->coupons->redeem($order->coupon, $order->user, $order, $order->discount_amount);
+                }
 
                 foreach ($order->items as $item) {
                     $variant = $item->product_variant_id ? ProductVariant::find($item->product_variant_id) : null;
@@ -196,10 +250,12 @@ class PaymentService
             if ($paymentReceived) {
                 $order->update(['payment_status' => PaymentStatus::Paid]);
             }
+
+            return $firstAcceptance;
         });
 
         if ($firstAcceptance) {
-            \App\Modules\Order\Events\OrderPaid::dispatch($order);
+            OrderPaid::dispatch($order);
         }
     }
 
@@ -216,12 +272,41 @@ class PaymentService
             'payload' => array_merge($payment->payload ?? [], $payload),
         ]);
 
-        $payment->order->update(['payment_status' => PaymentStatus::Failed]);
+        // Only reflect failure on the order if it is NOT already paid by another
+        // reference. A redundant/abandoned attempt must never downgrade a paid
+        // order (which would leave status=Paid + payment_status=Failed).
+        if (! $payment->order->isPaid()) {
+            $payment->order->update(['payment_status' => PaymentStatus::Failed]);
+        }
 
-        Log::warning('Payment failed via webhook', [
+        Log::warning('Payment marked failed', [
             'reference' => $reference,
             'order_number' => $payment->order->order_number,
+            'order_already_paid' => $payment->order->isPaid(),
         ]);
     }
 
+    /**
+     * Admin override: declare a pending payment dead and cancel its order in one
+     * step, so the order and payment never sit in a contradictory half-state
+     * (payment failed but order still "pending"). No stock was committed for a
+     * pending payment, so there is nothing to release.
+     */
+    public function failAndCancelOrder(Payment $payment, ?Admin $admin = null): void
+    {
+        if ($payment->status !== 'pending') {
+            return;
+        }
+
+        $this->markFailed($payment->reference, [
+            'manual_failure' => true,
+            'failed_by_admin_id' => $admin?->id,
+        ]);
+
+        $order = $payment->order;
+
+        if ($order && $order->status === OrderStatus::Pending) {
+            $this->status->transitionTo($order, OrderStatus::Cancelled, 'Payment marked failed by admin');
+        }
+    }
 }

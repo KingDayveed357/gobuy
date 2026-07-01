@@ -7,11 +7,13 @@ use App\Modules\Logistics\Services\DeliveryFeeService;
 use App\Modules\Logistics\Services\ShipmentService;
 use App\Modules\Order\DTOs\CheckoutData;
 use App\Modules\Order\Models\Order;
+use App\Modules\Order\Services\CheckoutCalculator;
 use App\Modules\Order\Services\OrderService;
 use App\Modules\Order\Services\OrderStatusService;
 use App\Modules\Pricing\Services\CouponService;
 use App\Modules\Returns\Services\StoreCreditService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
@@ -35,7 +37,7 @@ class PlaceOrderAction
 
     public function execute(CheckoutData $data): Order
     {
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($data) {
+        return DB::transaction(function () use ($data) {
             $summary = $this->cart->summary();
 
             if (empty($summary['lines'])) {
@@ -57,13 +59,14 @@ class PlaceOrderAction
                 $coupon['coupon'] ?? null, $coupon['discount'] ?? null,
             );
 
-            if ($coupon) {
-                $this->coupons->redeem($coupon['coupon'], $user, $order, $coupon['discount']);
-                session()->forget(CouponService::SESSION_KEY);
-            }
+            // NOTE: the coupon is only *snapshotted* onto the order here (coupon_id
+            // + discount_amount). It is NOT redeemed and the session is NOT cleared
+            // until payment is actually confirmed (PaymentService::completeOrder).
+            // Redeeming at placement would consume usage limits — and wipe the
+            // shopper's applied coupon/credit — for orders that are never paid.
 
             // Tender store credit against the order (spent later, at acceptance).
-            if ($user && session('checkout.apply_credit')) {
+            if ($user && session(CheckoutCalculator::CREDIT_SESSION_KEY)) {
                 $applied = $this->storeCredit->redeemableFor($user, $order->total);
                 if ($applied->isPositive()) {
                     $order->update(['store_credit_applied' => $applied]);

@@ -34,6 +34,12 @@
                             <td class="text-end">
                                 <div class="d-inline-flex gap-2">
                                     <a href="{{ route('orders.success', $order) }}" class="btn btn-sm btn-phoenix-secondary">View</a>
+                                    @if ($order->status->value === 'pending' && ! $order->isPaid() && $order->payment_method === \App\Modules\Order\Enums\PaymentMethod::Paystack)
+                                        <form action="{{ route('orders.retry', $order) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            <button class="btn btn-sm btn-primary" title="Finish paying for this order"><span class="fas fa-credit-card me-1"></span>Pay now</button>
+                                        </form>
+                                    @endif
                                     @if (in_array($order->status->value, ['delivered', 'completed'], true))
                                         <a href="{{ route('account.returns.create', $order) }}" class="btn btn-sm btn-phoenix-secondary" title="Request a return"><span class="fas fa-rotate-left me-1"></span>Return</a>
                                     @endif

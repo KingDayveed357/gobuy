@@ -131,15 +131,19 @@ class CouponService
     }
 
     /**
-     * Record that a coupon was redeemed on an order.
+     * Record that a coupon was redeemed on an order. Idempotent per order: keyed
+     * on order_id so a re-confirmed payment (callback + webhook racing, or a
+     * retry) can never consume the same coupon usage twice.
      */
     public function redeem(Coupon $coupon, ?User $user, Order $order, Money $discount): void
     {
-        $coupon->usages()->create([
-            'user_id' => $user?->id,
-            'order_id' => $order->id,
-            'discount_applied' => $discount->toNaira(),
-        ]);
+        $coupon->usages()->firstOrCreate(
+            ['order_id' => $order->id],
+            [
+                'user_id' => $user?->id,
+                'discount_applied' => $discount->toNaira(),
+            ],
+        );
     }
 
     /**

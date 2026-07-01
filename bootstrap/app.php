@@ -1,6 +1,8 @@
 <?php
 
 use App\Admin\Http\Middleware\EnsureAdminIsActive;
+use App\Admin\Http\Middleware\EnsureSuperAdmin;
+use App\Admin\Http\Middleware\RecordAdminActivity;
 use App\Modules\Customer\Http\Middleware\EnsureEmailVerified;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -28,6 +30,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'admin.active' => EnsureAdminIsActive::class,
+            'admin.activity' => RecordAdminActivity::class,
+            'super_admin' => EnsureSuperAdmin::class,
             'verified.otp' => EnsureEmailVerified::class,
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Admin\Models\Admin;
 use App\Modules\Cart\Listeners\MergeGuestCart;
 use App\Modules\Cart\Services\CartService;
 use App\Modules\Catalog\Models\Category;
@@ -10,14 +11,18 @@ use App\Modules\Catalog\Services\CategoryService;
 use App\Modules\Inventory\Listeners\DeductInventoryForOrder;
 use App\Modules\Inventory\Listeners\ReleaseInventoryForOrder;
 use App\Modules\Inventory\Listeners\ReserveInventoryForOrder;
+use App\Modules\Order\Enums\OrderStatus;
 use App\Modules\Order\Events\OrderCancelled;
 use App\Modules\Order\Events\OrderPaid;
 use App\Modules\Order\Events\OrderPlaced;
+use App\Modules\Order\Listeners\SendOrderAcceptedNotifications;
+use App\Modules\Order\Models\Order;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -38,15 +43,19 @@ class AppServiceProvider extends ServiceProvider
     {
         Paginator::useBootstrapFive();
 
+        // The platform owner (Super Admin) is unrestricted by design. Returning
+        // null (not false) for everyone else lets normal Spatie/policy checks run.
+        Gate::before(fn ($user, string $ability) => $user instanceof Admin && $user->isSuperAdmin() ? true : null);
+
         Event::listen(Login::class, MergeGuestCart::class);
         Event::listen(OrderPlaced::class, ReserveInventoryForOrder::class);
         Event::listen(OrderPaid::class, DeductInventoryForOrder::class);
-        Event::listen(OrderPaid::class, \App\Modules\Order\Listeners\SendOrderAcceptedNotifications::class);
+        Event::listen(OrderPaid::class, SendOrderAcceptedNotifications::class);
         Event::listen(OrderCancelled::class, ReleaseInventoryForOrder::class);
 
-        \App\Modules\Order\Models\Order::updated(function (\App\Modules\Order\Models\Order $order) {
-            if ($order->wasChanged('status') && $order->status === \App\Modules\Order\Enums\OrderStatus::Cancelled) {
-                \App\Modules\Order\Events\OrderCancelled::dispatch($order);
+        Order::updated(function (Order $order) {
+            if ($order->wasChanged('status') && $order->status === OrderStatus::Cancelled) {
+                OrderCancelled::dispatch($order);
             }
         });
 
