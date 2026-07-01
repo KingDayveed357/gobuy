@@ -86,6 +86,7 @@ return [
         'items' => [
             ['label' => 'All customers', 'route' => 'admin.customers.index', 'active' => ['admin.customers.*']],
             ['label' => 'Wholesale', 'route' => 'admin.wholesale.index', 'active' => ['admin.wholesale.*']],
+            ['label' => 'Bulk requests', 'route' => 'admin.bulk-requests.index', 'active' => ['admin.bulk-requests.*']],
         ],
     ],
 

@@ -8,6 +8,7 @@ use App\Admin\Controllers\Auth\TwoFactorChallengeController;
 use App\Admin\Controllers\BannerController;
 use App\Admin\Controllers\BrandController;
 use App\Admin\Controllers\BulkPricingController;
+use App\Admin\Controllers\BulkRequestController;
 use App\Admin\Controllers\CategoryController;
 use App\Admin\Controllers\CouponController;
 use App\Admin\Controllers\CustomerController;
@@ -32,6 +33,7 @@ use App\Admin\Controllers\StaffController;
 use App\Admin\Controllers\StoreCreditController;
 use App\Admin\Controllers\TransferReconciliationController;
 use App\Admin\Controllers\WholesaleController;
+use App\Modules\Notification\Push\Http\Controllers\PushSubscriptionController;
 use Illuminate\Support\Facades\Route;
 
 // Guest (unauthenticated admin) routes.
@@ -158,6 +160,10 @@ Route::middleware(['auth:admin', 'admin.active', 'admin.activity'])->group(funct
         Route::get('wholesale', [WholesaleController::class, 'index'])->name('wholesale.index');
         Route::post('wholesale/{user}/approve', [WholesaleController::class, 'approve'])->name('wholesale.approve');
         Route::post('wholesale/{user}/reject', [WholesaleController::class, 'reject'])->name('wholesale.reject');
+
+        // Bulk-quantity leads captured from the storefront product page.
+        Route::get('bulk-requests', [BulkRequestController::class, 'index'])->name('bulk-requests.index');
+        Route::post('bulk-requests/{bulkQuantityRequest}/status', [BulkRequestController::class, 'updateStatus'])->name('bulk-requests.status');
     });
 
     // Money OUT — refunds + customer wallet funding. Kept separate from payment
@@ -205,4 +211,8 @@ Route::middleware(['auth:admin', 'admin.active', 'admin.activity'])->group(funct
     // Notifications are available to every authenticated admin.
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('notifications/read', [NotificationController::class, 'markAllRead'])->name('notifications.read');
+
+    // Web Push (PWA) subscription management for the logged-in admin.
+    Route::post('push-subscriptions', [PushSubscriptionController::class, 'store'])->name('push-subscriptions.store');
+    Route::delete('push-subscriptions', [PushSubscriptionController::class, 'destroy'])->name('push-subscriptions.destroy');
 });

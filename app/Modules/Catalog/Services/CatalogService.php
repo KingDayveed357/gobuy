@@ -381,6 +381,10 @@ class CatalogService
         DB::transaction(function () use ($variant, $quantity): void {
             ProductVariant::query()->lockForUpdate()->findOrFail($variant->id)->increment('stock', $quantity);
         });
+
+        // increment() bypasses the model observer, so flush waiters explicitly.
+        // Idempotent — a no-op if the observer already handled it.
+        app(BackInStockService::class)->flush($variant->refresh());
     }
 
     private function uniqueSlug(string $name, ?int $ignoreId = null): string

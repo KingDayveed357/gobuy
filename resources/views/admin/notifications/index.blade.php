@@ -13,27 +13,12 @@
     </div>
 
     <div class="card">
-        <div class="card-body ">
-            <table class="table table-sm fs-9 mb-0 p-4">
-                <tbody>
-                    @forelse ($notifications as $note)
-                        <tr class="{{ $note->read_at ? '' : 'fw-semibold' }}">
-                            <td class="p-2">
-                                <span class="fas fa-receipt me-2 text-primary"></span>
-                                New paid order
-                                 @if (isset($note->data['order_number']))
-                                      <a href="{{ route('admin.orders.show', $note->data['order_number']) }}">{{ $note->data['order_number'] }}</a>
-                                from {{ $note->data['customer'] }}
-                                    @endif
-                            </td>
-                            <td class="text-end">{{ money($note->data['total_kobo'] ?? 0) }}</td>
-                            <td class="text-end text-body-tertiary">{{ $note->created_at->diffForHumans() }}</td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="3" class="text-center text-body-tertiary py-4">No notifications.</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
+        <div class="card-body p-0">
+            @forelse ($notifications as $note)
+                @include('admin.notifications._item')
+            @empty
+                <p class="text-center text-body-tertiary py-5 mb-0">No notifications.</p>
+            @endforelse
         </div>
     </div>
 

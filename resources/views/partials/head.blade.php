@@ -9,6 +9,9 @@
 
 <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('theme/img/favicons/favicon-32x32.png') }}">
 <link rel="shortcut icon" type="image/x-icon" href="{{ asset('theme/img/favicons/favicon.ico') }}">
+<link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
+<link rel="apple-touch-icon" href="{{ asset('theme/img/favicons/apple-touch-icon.png') }}">
+<meta name="theme-color" content="#3874ff">
 
 <script src="{{ asset('theme/vendors/simplebar/simplebar.min.js') }}"></script>
 <script src="{{ asset('theme/js/config.js') }}"></script>

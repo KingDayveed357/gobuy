@@ -146,7 +146,18 @@
                             <p id="pd-stock" class="fw-semibold fs-7 mb-2 {{ $sel['stock'] > 0 ? 'text-success' : 'text-danger' }}">
                                 {{ $sel['stock'] > 0 ? 'In stock ('.$sel['stock'].' available)' : 'Out of stock' }}
                             </p>
-                            
+
+                            {{-- Back-in-stock capture — shown only while the selected variant is sold out. --}}
+                            <div id="pd-back-in-stock" class="mb-3 {{ $sel['stock'] > 0 ? 'd-none' : '' }}">
+                                <form action="{{ route('back-in-stock.store') }}" method="POST" class="d-flex flex-wrap gap-2 align-items-center">
+                                    @csrf
+                                    <input type="hidden" name="product_variant_id" id="pd-bis-variant" value="{{ $selected?->id }}">
+                                    <input type="email" name="email" class="form-control form-control-sm" style="max-width:15rem;" placeholder="you@email.com" value="{{ auth('web')->user()?->email }}" required>
+                                    <button type="submit" class="btn btn-sm btn-phoenix-warning"><span class="fas fa-bell me-1"></span>Notify me when available</button>
+                                </form>
+                                <p class="fs-9 text-body-tertiary mt-1 mb-0">We’ll email you the moment it’s restocked — no spam.</p>
+                            </div>
+
                             <p class="mb-2 text-body-secondary">{{ \Illuminate\Support\Str::limit($product->description, 280) }}</p>
 
                             <x-social-share class="mb-2" :url="route('products.show', $product)" :title="$product->name" :price="money($sel['unit'])" />
@@ -176,6 +187,30 @@
                                             <button class="btn btn-phoenix-primary px-3" data-type="minus" id="pd-qty-minus"><span class="fas fa-minus"></span></button>
                                             <input class="form-control text-center input-spin-none bg-transparent border-0 outline-none" style="width:50px;" type="number" id="pd-qty" value="{{ max(1, $sel['cartQty']) }}" min="1" max="{{ max(1, $sel['stock']) }}">
                                             <button class="btn btn-phoenix-primary px-3" data-type="plus" id="pd-qty-plus"><span class="fas fa-plus"></span></button>
+                                        </div>
+                                    </div>
+                                    {{-- Subtle max-quantity hint — shown when the shopper reaches the available stock. --}}
+                                    <p id="pd-qty-hint" class="fs-9 text-body-tertiary mt-2 mb-0 d-none">
+                                        <span class="fas fa-circle-info me-1"></span><span id="pd-qty-hint-text"></span>
+                                    </p>
+
+                                    {{-- Bulk / wholesale demand capture — a lead, not a backorder. --}}
+                                    <div class="mt-2">
+                                        <a class="fs-9 text-primary text-decoration-none" data-bs-toggle="collapse" href="#pd-bulk-form" role="button" aria-expanded="false">
+                                            <span class="fas fa-boxes-stacked me-1"></span>Need more than <span id="pd-bulk-max">{{ max(1, $sel['stock']) }}</span>? Request a bulk quantity
+                                        </a>
+                                        <div class="collapse mt-2" id="pd-bulk-form">
+                                            <form action="{{ route('bulk-requests.store') }}" method="POST" class="row g-2" style="max-width:32rem;">
+                                                @csrf
+                                                <input type="hidden" name="product_id" value="{{ $product->id }}">
+                                                <input type="hidden" name="product_variant_id" id="pd-bulk-variant" value="{{ $selected?->id }}">
+                                                <div class="col-6"><input name="name" class="form-control form-control-sm" placeholder="Name" value="{{ auth('web')->user()?->name }}" required></div>
+                                                <div class="col-6"><input type="email" name="email" class="form-control form-control-sm" placeholder="Email" value="{{ auth('web')->user()?->email }}" required></div>
+                                                <div class="col-6"><input name="phone" class="form-control form-control-sm" placeholder="Phone (optional)" value="{{ auth('web')->user()?->phone }}"></div>
+                                                <div class="col-6"><input type="number" name="quantity" min="1" class="form-control form-control-sm" placeholder="Quantity needed" required></div>
+                                                <div class="col-12"><textarea name="note" rows="2" class="form-control form-control-sm" placeholder="Anything else? (optional)"></textarea></div>
+                                                <div class="col-12"><button type="submit" class="btn btn-sm btn-phoenix-primary">Submit request</button></div>
+                                            </form>
                                         </div>
                                     </div>
                                 </div>
@@ -314,31 +349,50 @@
             var btnMinus = document.getElementById('pd-qty-minus');
             var btnPlus = document.getElementById('pd-qty-plus');
 
+            var hintEl = document.getElementById('pd-qty-hint');
+            var hintText = document.getElementById('pd-qty-hint-text');
+
+            // Clamp the input to [1, stock], keep the hidden field in sync, and
+            // reflect the ceiling: disable the "+" button and reveal a subtle hint
+            // once the shopper reaches the available stock.
+            function reflectMax() {
+                var max = parseInt(qtyInput.max) || 1;
+                var val = Math.max(1, Math.min(parseInt(qtyInput.value) || 1, max));
+                qtyInput.value = val;
+                hiddenQty.value = val;
+
+                var atMax = val >= max;
+                btnPlus.disabled = atMax;
+                btnPlus.classList.toggle('disabled', atMax);
+
+                if (hintEl) {
+                    hintEl.classList.toggle('d-none', !atMax);
+                    if (atMax && hintText) {
+                        hintText.textContent = 'Only ' + max + ' in stock — that’s the most you can add right now.';
+                    }
+                }
+            }
+
             function updateQtyUI(qty, maxQty, inCart) {
                 qtyInput.value = Math.max(1, Math.min(qty, maxQty));
                 hiddenQty.value = qtyInput.value;
                 document.getElementById('pd-add-text').textContent = inCart ? 'Update cart' : 'Add to cart';
+                reflectMax();
             }
 
             btnMinus.addEventListener('click', function(e) {
-                // Theme JS handles the actual decrement, we just sync the hidden input.
-                setTimeout(function() {
-                    hiddenQty.value = qtyInput.value;
-                }, 10);
+                // Theme JS handles the actual decrement, we just sync + reflect.
+                setTimeout(reflectMax, 10);
             });
 
             btnPlus.addEventListener('click', function(e) {
-                // Theme JS handles the actual increment, we just sync the hidden input.
-                setTimeout(function() {
-                    hiddenQty.value = qtyInput.value;
-                }, 10);
+                // Theme JS handles the actual increment, we just sync + cap.
+                setTimeout(reflectMax, 10);
             });
 
-            qtyInput.addEventListener('change', function() {
-                var max = parseInt(qtyInput.max) || 1;
-                qtyInput.value = Math.max(1, Math.min(parseInt(qtyInput.value) || 1, max));
-                hiddenQty.value = qtyInput.value;
-            });
+            qtyInput.addEventListener('change', reflectMax);
+
+            reflectMax();
 
             if (select) {
                 select.addEventListener('change', function () {
@@ -372,8 +426,18 @@
                     
                     qtyInput.max = Math.max(1, v.stock);
                     updateQtyUI(v.cartQty > 0 ? v.cartQty : 1, v.stock, v.cartQty > 0);
-                    
+
                     document.getElementById('pd-add').disabled = v.stock < 1;
+
+                    // Keep the demand-capture widgets pointed at the current variant.
+                    var bisWrap = document.getElementById('pd-back-in-stock');
+                    var bisVariant = document.getElementById('pd-bis-variant');
+                    var bulkVariant = document.getElementById('pd-bulk-variant');
+                    var bulkMax = document.getElementById('pd-bulk-max');
+                    if (bisWrap) { bisWrap.classList.toggle('d-none', v.stock > 0); }
+                    if (bisVariant) { bisVariant.value = this.value; }
+                    if (bulkVariant) { bulkVariant.value = this.value; }
+                    if (bulkMax) { bulkMax.textContent = Math.max(1, v.stock); }
                 });
             }
             

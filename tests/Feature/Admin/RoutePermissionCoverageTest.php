@@ -34,6 +34,8 @@ class RoutePermissionCoverageTest extends TestCase
         'admin.settings.two-factor', // personal 2FA toggle
         'admin.notifications.index', // the admin's own notification bell
         'admin.notifications.read',
+        'admin.push-subscriptions.store', // the admin's own browser push opt-in
+        'admin.push-subscriptions.destroy',
         // Pre-auth 2FA challenge (session-guarded, like login).
         'admin.2fa.challenge',
         'admin.2fa.verify',

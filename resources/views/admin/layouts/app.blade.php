@@ -56,6 +56,12 @@
         }, true);
     </script>
     <x-admin.action-modal />
+
+    {{-- Web Push (PWA) client — admin subscription endpoints. --}}
+    @include('partials.push-notifications', [
+        'pushStoreUrl' => route('admin.push-subscriptions.store'),
+        'pushDeleteUrl' => route('admin.push-subscriptions.destroy'),
+    ])
 </body>
 
 </html>

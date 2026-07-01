@@ -3,15 +3,18 @@
 namespace App\Modules\Catalog\Models;
 
 use App\Modules\Catalog\Database\Factories\ProductVariantFactory;
+use App\Modules\Catalog\Observers\ProductVariantObserver;
 use App\Modules\Pricing\Concerns\RecordsPriceHistory;
 use App\Modules\Pricing\Models\PromotionalPrice;
 use App\Support\Money;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+#[ObservedBy([ProductVariantObserver::class])]
 class ProductVariant extends Model
 {
     /** @use HasFactory<ProductVariantFactory> */

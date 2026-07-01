@@ -6,6 +6,8 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use NotificationChannels\WebPush\WebPushChannel;
+use NotificationChannels\WebPush\WebPushMessage;
 
 /**
  * A single, reusable operational alert for administrators. Channels are chosen by
@@ -32,7 +34,38 @@ class AdminAlertNotification extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
-        return $this->severity === 'critical' ? ['database', 'mail'] : ['database'];
+        $channels = $this->severity === 'critical' ? ['database', 'mail'] : ['database'];
+
+        // Also deliver as a browser/PWA push when the recipient has opted in.
+        // The channel itself no-ops for recipients without subscriptions.
+        if (method_exists($notifiable, 'pushSubscriptions')) {
+            $channels[] = WebPushChannel::class;
+        }
+
+        return $channels;
+    }
+
+    /**
+     * The in-app bell must appear immediately — operational awareness cannot wait
+     * on a queue worker — so the database channel is delivered synchronously while
+     * the slower mail/push channels ride the default (queued) connection.
+     *
+     * @return array<string, string>
+     */
+    public function viaConnections(): array
+    {
+        return ['database' => 'sync'];
+    }
+
+    public function toWebPush(object $notifiable, self $notification): WebPushMessage
+    {
+        return (new WebPushMessage)
+            ->title($this->title)
+            ->body($this->message)
+            ->icon(asset('theme/img/favicons/apple-touch-icon.png'))
+            ->badge(asset('theme/img/favicons/favicon-32x32.png'))
+            ->tag('gobuy-'.$this->severity)
+            ->data(['url' => $this->url ?? url('/admin')]);
     }
 
     /**

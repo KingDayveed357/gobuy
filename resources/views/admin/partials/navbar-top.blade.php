@@ -50,19 +50,17 @@
                         <div class="card-body p-0">
                             <div class="scrollbar-overlay" style="max-height: 22rem;">
                                 @forelse ($admin->notifications()->latest()->take(8)->get() as $note)
-                                    @if (isset($note->data['order_number']))
-                                        <a class="px-3 py-3 d-block border-bottom border-translucent text-decoration-none {{ $note->read_at ? '' : 'bg-primary-subtle bg-opacity-25' }}" href="{{ route('admin.orders.show', $note->data['order_number']) }}">
-                                            <p class="fs-9 text-body-emphasis mb-1 fw-semibold"><span class="fas fa-receipt text-primary me-2"></span>New paid order {{ $note->data['order_number'] }}</p>
-                                            <p class="fs-9 text-body-tertiary mb-0">{{ $note->data['customer'] ?? 'Unknown' }} · {{ money($note->data['total_kobo'] ?? 0) }} · {{ $note->created_at->diffForHumans() }}</p>
-                                        </a>
-                                    @endif
+                                    @include('admin.notifications._item')
                                 @empty
                                     <p class="text-center text-body-tertiary fs-9 py-4 mb-0">No notifications.</p>
                                 @endforelse
                             </div>
                         </div>
                         <div class="card-footer p-0 border-top text-center">
-                            <a class="fw-bold fs-10 d-block py-2" href="{{ route('admin.notifications.index') }}">View all</a>
+                            <button type="button" class="btn btn-link fw-bold fs-10 d-block w-100 py-2 text-decoration-none" data-push-toggle>
+                                <span class="fas fa-bell me-1"></span><span data-push-label>Enable alerts</span>
+                            </button>
+                            <a class="fw-bold fs-10 d-block py-2 border-top" href="{{ route('admin.notifications.index') }}">View all</a>
                         </div>
                     </div>
                 </div>

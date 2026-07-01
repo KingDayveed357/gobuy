@@ -52,6 +52,13 @@
             });
         </script>
     @endif
+    @if($errors->any())
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                Toast.error(@json($errors->first()));
+            });
+        </script>
+    @endif
 </body>
 
 </html>
