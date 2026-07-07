@@ -143,7 +143,7 @@
                         <a href="{{ route('checkout.show') }}" class="btn btn-primary w-100">Proceed to checkout<span class="fas fa-chevron-right ms-1 fs-10"></span></a>
                         @auth
                             @if (auth()->user()->isWholesale())
-                                <a href="{{ route('proforma.show') }}" class="btn btn-phoenix-secondary w-100 mt-2"><span class="fas fa-file-invoice me-2"></span>Download proforma invoice</a>
+                                <a href="{{ route('proforma.show') }}" target="_blank" class="btn btn-phoenix-secondary w-100 mt-2" title="Open proforma invoice in a new tab"><span class="fas fa-file-invoice me-2"></span>Download proforma invoice</a>
                             @endif
                         @endauth
                     </div>

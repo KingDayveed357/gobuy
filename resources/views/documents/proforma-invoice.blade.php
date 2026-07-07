@@ -70,8 +70,8 @@
                         <td class="text-xs text-secondary">{{ $line['item']->variant->sku ?? '—' }}</td>
                         <td>
                             <span class="cell-item-name">{{ $line['item']->variant->product->name }}</span>
-                            @if ($line['item']->variant->attributeLabel())
-                                <span class="cell-item-variant">{{ $line['item']->variant->attributeLabel() }}</span>
+                            @if ($line['item']->variant->label() !== 'Default')
+                                <span class="cell-item-variant">{{ $line['item']->variant->label() }}</span>
                             @endif
                         </td>
                         <td class="text-center">{{ $line['item']->quantity }}</td>

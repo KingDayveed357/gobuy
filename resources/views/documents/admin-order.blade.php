@@ -92,8 +92,8 @@
                         </td>
                         <td>
                             <span class="cell-item-name">{{ $item->name }}</span>
-                            @if ($item->variant?->attributeLabel())
-                                <span class="cell-item-variant">{{ $item->variant->attributeLabel() }}</span>
+                            @if ($item->variant && $item->variant->label() !== 'Default')
+                                <span class="cell-item-variant">{{ $item->variant->label() }}</span>
                             @endif
                         </td>
                         <td class="text-center font-bold">{{ $item->quantity }}</td>
