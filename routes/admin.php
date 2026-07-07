@@ -263,8 +263,11 @@ Route::middleware(['auth:admin', 'admin.active', 'admin.activity'])->group(funct
     Route::delete('push-subscriptions', [PushSubscriptionController::class, 'destroy'])->name('push-subscriptions.destroy');
 
     // ── Document System — admin print/preview routes ──────────────────────────
-    // These are intentionally unguarded by extra permission middleware: any admin
-    // who can view an order or the reconciliation screen can also print it.
-    Route::get('orders/{order}/print', [AdminDocumentController::class, 'order'])->name('orders.print');
-    Route::get('reconciliation/print', [AdminDocumentController::class, 'reconciliation'])->name('reconciliation.print');
+    // Gated by the SAME permission as the screen they print from, so "who can view
+    // it can print it" holds while every admin route still references a permission
+    // (enforced by RoutePermissionCoverageTest — no order/financial doc is open).
+    Route::get('orders/{order}/print', [AdminDocumentController::class, 'order'])
+        ->middleware('permission:manage_orders,admin')->name('orders.print');
+    Route::get('reconciliation/print', [AdminDocumentController::class, 'reconciliation'])
+        ->middleware('permission:manage_payments,admin')->name('reconciliation.print');
 });
