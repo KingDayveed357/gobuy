@@ -123,6 +123,55 @@
   font-size: clamp(0.85rem, 1.6vw, 1.05rem);
 }
 
+/* ---------- MX1: Marketing-creative banners ----------
+   The uploaded artwork IS the banner. aspect-ratio reserves the exact box
+   before the image arrives (zero CLS); a shimmer fills the wait. On phones the
+   box tightens and object-fit/focal-point crops the sides — the same centre-
+   safe-zone behaviour used by the big marketplaces. */
+.gb-banner--creative {
+  display: block;
+  width: 100%;
+  background: linear-gradient(100deg, var(--phoenix-body-highlight-bg, #eef0f3) 40%, rgba(255, 255, 255, 0.35) 50%, var(--phoenix-body-highlight-bg, #eef0f3) 60%) 0 0 / 200% 100%;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .gb-banner--creative { animation: gbShimmer 1.4s linear infinite; }
+}
+@keyframes gbShimmer {
+  to { background-position: -200% 0; }
+}
+.gb-banner--creative-sm { aspect-ratio: 4 / 1; }
+.gb-banner--creative-md { aspect-ratio: 3 / 1; }
+.gb-banner--creative-lg { aspect-ratio: 21 / 9; }
+@media (max-width: 575.98px) {
+  .gb-banner--creative-sm { aspect-ratio: 21 / 9; }
+  .gb-banner--creative-md,
+  .gb-banner--creative-lg { aspect-ratio: 16 / 9; }
+}
+.gb-banner--creative .gb-banner__img,
+.gb-banner--creative .gb-banner__img img {
+  z-index: 0; /* creative sits above the shimmer, not behind content */
+}
+/* Optional HTML CTA over the creative — decorative (pe-none): the whole
+   surface is one stretched-link click target and one analytics event. */
+.gb-banner__cta-overlay {
+  position: absolute;
+  inset: auto 0 0 0;
+  z-index: 1;
+}
+
+/* ---------- MX1: hero banner carousel ---------- */
+.gb-hero-carousel .swiper-slide { height: auto; }
+.gb-hero-carousel .gb-banner { height: 100%; }
+.gb-hero-carousel .swiper-pagination-bullet {
+  background: var(--phoenix-body-bg);
+  opacity: 0.6;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+.gb-hero-carousel .swiper-pagination-bullet-active {
+  background: var(--phoenix-primary);
+  opacity: 1;
+}
+
 /* ---------- Draft preview ribbon ---------- */
 .gb-preview-ribbon {
   position: sticky;
@@ -166,10 +215,18 @@
 /* Product-card hover lift (subtle, GPU-friendly). */
 .product-card-container {
   transition: transform var(--gb-motion-fast) var(--gb-ease), box-shadow var(--gb-motion-fast) var(--gb-ease);
+  background-color: transparent;
+}
+.product-card-container .product-card {
+  background-color: transparent !important;
 }
 .product-card-container:hover {
   transform: translateY(-4px);
-  box-shadow: var(--gb-shadow-lift);
+  /* box-shadow: var(--gb-shadow-lift); */
+  /* background-color: transparent; */
+}
+.product-card-container:hover .product-card {
+  background-color: transparent !important;
 }
 
 /* Section rhythm + gentle fade/rise on first paint. */
@@ -368,14 +425,23 @@
   z-index: 1;
 }
 
-.product-listing-grid {
+/* ---------- MX2: fluid product grid ----------
+   Replaces rigid Bootstrap column tiers (col-6 / md-4 / lg-3 / xxl-2) with a
+   grid that fills the available width — ~2 cards on phones scaling smoothly to
+   6 on wide desktops, with no breakpoint cliffs. auto-fill derives the count
+   from the space available; the Bootstrap container caps the width so it never
+   over-multiplies on ultra-wide screens. min(100%, …) keeps a single card from
+   overflowing a very narrow column. Cards stretch to equal heights for free. */
+.gb-product-grid {
+  --gb-card-min: clamp(10rem, 8rem + 8vw, 12.5rem);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--gb-card-min)), 1fr));
+  gap: 1.75rem 0.85rem;
   align-items: stretch;
 }
-
-@media (min-width: 1540px) {
-  .product-listing-grid > .col-xxl-2 {
-    flex: 0 0 auto;
-    width: 16.66666667%;
+@media (min-width: 768px) {
+  .gb-product-grid {
+    gap: 2.25rem 1rem;
   }
 }
 
@@ -1066,3 +1132,5 @@ nav[aria-label="Category and page links"] .container-small > div::-webkit-scroll
 .gb-merch-section:last-child {
   margin-bottom: 0;
 }
+
+

@@ -5,6 +5,7 @@ namespace App\Modules\Marketing\Services;
 use App\Modules\Catalog\Models\Brand;
 use App\Modules\Catalog\Models\Category;
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Marketing\Models\Page;
 
 /**
  * Turns a structured Link ({type, ref, label}) into a live storefront URL.
@@ -17,7 +18,7 @@ use App\Modules\Catalog\Models\Product;
  */
 class LinkResolver
 {
-    public const TYPES = ['product', 'category', 'brand', 'search', 'products', 'home', 'url'];
+    public const TYPES = ['product', 'category', 'brand', 'page', 'search', 'products', 'home', 'url'];
 
     /**
      * The URL for a structured link, or the legacy raw string when no structured
@@ -42,6 +43,9 @@ class LinkResolver
             'product' => ($p = Product::active()->find($ref)) ? route('products.show', $p) : null,
             'category' => ($c = Category::active()->find($ref)) ? route('products.index', ['category' => $c->slug]) : null,
             'brand' => ($b = Brand::where('is_active', true)->find($ref)) ? route('products.index', ['brand' => $b->slug]) : null,
+            // Stores the page ID; the URL is generated fresh per request, so it is
+            // slug-rename-safe AND environment-safe (never bakes a host into the DB).
+            'page' => ($pg = Page::published()->find($ref)) ? $pg->url() : null,
             'search' => $ref !== '' ? route('products.index', ['q' => $ref]) : null,
             'products' => route('products.index'),
             'home' => route('home'),

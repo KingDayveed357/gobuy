@@ -243,6 +243,15 @@
                     </select>
                 </div>
 
+                {{-- Carousel toggle (banner row): rotate banners in ONE slot instead of stacking --}}
+                <div class="mb-3 js-when-bannerrow" style="display:none;">
+                    <div class="form-check form-switch">
+                        <input type="hidden" name="settings[carousel]" value="0">
+                        <input class="form-check-input" type="checkbox" name="settings[carousel]" value="1" id="s-carousel">
+                        <label class="form-check-label fw-semibold" for="s-carousel">Rotate as a carousel <span class="fw-normal text-body-tertiary fs-10">(recommended for the hero — banners share one slot with autoplay instead of stacking)</span></label>
+                    </div>
+                </div>
+
                 {{-- Curated collection ref (manual source) --}}
                 <div class="mb-3 js-ref-collection" style="display:none;">
                     <label class="form-label">Collection</label>
@@ -351,6 +360,7 @@
             var whenEditorial = document.querySelector('.js-when-editorial');
             var mediaOnly = document.querySelector('.js-media-only');
             var richtextOnly = document.querySelector('.js-richtext-only');
+            var whenBannerRow = document.querySelector('.js-when-bannerrow');
 
             // Only one source_ref control is active at a time so a single value posts.
             function setRef(which) {
@@ -374,6 +384,7 @@
                 whenEditorial.style.display = isEditorial ? '' : 'none';
                 mediaOnly.style.display = (type === 'editorial_media') ? '' : 'none';
                 richtextOnly.style.display = (type === 'rich_text') ? '' : 'none';
+                whenBannerRow.style.display = (type === 'banner_row') ? '' : 'none';
 
                 if (type === 'banner_row') { setRef('placement'); }
                 else if (isProduct && sourceEl.value === 'category') { setRef('category'); }
@@ -422,6 +433,7 @@
                 document.getElementById('s-image').value = s.image_url || '';
                 document.getElementById('s-align').value = s.align || 'center';
                 document.getElementById('s-theme').value = s.theme || 'default';
+                document.getElementById('s-carousel').checked = !!parseInt(s.carousel || 0, 10);
                 var lpEdit = form.querySelector('.gb-link-picker'); if (lpEdit && lpEdit._gbSet) { lpEdit._gbSet(d.cta_link || {}); }
                 document.getElementById('s-starts').value = d.starts_at || '';
                 document.getElementById('s-ends').value = d.ends_at || '';

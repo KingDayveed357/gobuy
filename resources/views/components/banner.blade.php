@@ -40,8 +40,40 @@
 
     $hasCountdown = $banner->countdown_to && $banner->countdown_to->isFuture();
     $bannerUrl = $banner->destinationUrl();
+
+    // CTA overlay position for creative mode (bottom band, aligned per config).
+    $ctaAlign = match ($banner->content_position ?? 'start') {
+        'center' => 'justify-content-center',
+        'end' => 'justify-content-end',
+        default => 'justify-content-start',
+    };
 @endphp
 
+@if ($banner->isCreative())
+    {{-- MARKETING CREATIVE: the designed artwork IS the banner. The frontend adds
+         only responsive cropping (aspect-ratio locked → zero CLS), a full-surface
+         click target, an optional HTML CTA, and lazy/priority loading. --}}
+    <div {{ $attributes->merge(['class' => "gb-banner gb-banner--creative gb-banner--creative-{$height} rounded-3 overflow-hidden position-relative"]) }}>
+        <picture class="gb-banner__img">
+            @if ($mobileImg && $mobileImg !== $img)
+                <source media="(max-width: 575.98px)" srcset="{{ $mobileImg }}">
+            @endif
+            <img src="{{ $img }}"
+                 alt="{{ $banner->title }}"
+                 @if ($priority) loading="eager" fetchpriority="high" @else loading="lazy" @endif
+                 style="object-position: {{ $banner->focal_point ?: 'center' }}">
+        </picture>
+
+        @if ($bannerUrl)
+            <a class="stretched-link" href="{{ $bannerUrl }}" aria-label="{{ $banner->title }}"></a>
+            @if ($banner->cta_label)
+                <div class="gb-banner__cta-overlay d-flex {{ $ctaAlign }} p-3 p-md-4">
+                    <span class="btn {{ $btnStyle }} {{ $btnSize }} {{ $btnRadius }} fw-semibold position-relative z-2 pe-none">{{ $banner->cta_label }}</span>
+                </div>
+            @endif
+        @endif
+    </div>
+@else
 <div {{ $attributes->merge(['class' => "gb-banner gb-banner--{$height} rounded-3 overflow-hidden position-relative d-flex {$align}"]) }}
      @if (! $img) style="background: {{ $banner->gradient() }};" @endif>
 
@@ -85,3 +117,4 @@
         @endif
     </div>
 </div>
+@endif

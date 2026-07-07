@@ -182,22 +182,21 @@
                         </form>
                     </div>
 
-                    <div class="row gx-3 gy-6 mb-8 product-listing-grid">
-                        @forelse ($products as $product)
-                            {{-- Responsive columns: 1→2→3→4→5 across xs→sm→md→lg→xl --}}
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-3 col-xxl-2">
+                    @if ($products->isEmpty())
+                        <div class="card border border-translucent bg-body-emphasis mb-8">
+                            <div class="card-body text-center py-6">
+                                <p class="text-body-tertiary mb-0">No products match your filters.</p>
+                            </div>
+                        </div>
+                    @else
+                        {{-- Fluid grid: adapts to the width left by the filter sidebar
+                             (~2 cards on phones up to ~5–6 on wide). See gobuy.css. --}}
+                        <div class="gb-product-grid product-listing-grid mb-8">
+                            @foreach ($products as $product)
                                 <x-product-card :product="$product" />
-                            </div>
-                        @empty
-                            <div class="col-12">
-                                <div class="card border border-translucent bg-body-emphasis">
-                                    <div class="card-body text-center py-6">
-                                        <p class="text-body-tertiary mb-0">No products match your filters.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        @endforelse
-                    </div>
+                            @endforeach
+                        </div>
+                    @endif
 
                     {{ $products->links() }}
                 </div>

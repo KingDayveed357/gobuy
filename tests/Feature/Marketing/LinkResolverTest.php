@@ -5,6 +5,7 @@ namespace Tests\Feature\Marketing;
 use App\Modules\Catalog\Models\Brand;
 use App\Modules\Catalog\Models\Category;
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Marketing\Models\Page;
 use App\Modules\Marketing\Services\LinkResolver;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
@@ -57,5 +58,26 @@ class LinkResolverTest extends TestCase
         // A broken structured link still falls back to the legacy value.
         $this->assertSame('/legacy', $this->resolver->urlFor(['type' => 'product', 'ref' => '999999'], '/legacy'));
         $this->assertNull($this->resolver->urlFor(null, null));
+    }
+
+    public function test_a_page_link_resolves_to_the_current_url_at_render_time(): void
+    {
+        $page = Page::create(['title' => 'Flash Weekend', 'slug' => 'flash-weekend', 'status' => Page::STATUS_PUBLISHED]);
+
+        // Stores the ID, resolves per request — never a host baked into the DB.
+        $this->assertSame(route('storefront.page', 'flash-weekend'), $this->resolver->resolve(['type' => 'page', 'ref' => (string) $page->id]));
+
+        // A slug rename follows automatically.
+        $page->update(['slug' => 'flash-weekend-2026']);
+        $this->assertSame(route('storefront.page', 'flash-weekend-2026'), $this->resolver->resolve(['type' => 'page', 'ref' => (string) $page->id]));
+    }
+
+    public function test_a_link_to_a_draft_page_is_broken(): void
+    {
+        $page = Page::create(['title' => 'Unlaunched', 'slug' => 'unlaunched', 'status' => Page::STATUS_DRAFT]);
+
+        $link = ['type' => 'page', 'ref' => (string) $page->id];
+        $this->assertNull($this->resolver->resolve($link));
+        $this->assertTrue($this->resolver->isBroken($link));
     }
 }

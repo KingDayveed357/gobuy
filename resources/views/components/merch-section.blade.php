@@ -49,19 +49,40 @@
 
     @switch($type)
         @case(SectionType::BannerRow)
-            <div class="row g-3">
-                @foreach ($items as $banner)
-                    @php
-                        $col = match ($banner->layout) {
-                            'grid' => 'col-12 col-sm-6 col-lg-4',
-                            'split' => 'col-12 col-md-6 col-lg-6',
-                            default => 'col-12'
-                        };
-                    @endphp
-                    {{-- First banner in the first-rendered section gets eager loading for LCP --}}
-                    <div class="{{ $col }}"><x-banner :banner="$banner" :priority="$track && $loop->first" class="h-100" /></div>
-                @endforeach
-            </div>
+            @if ($section->setting('carousel') && $items->count() > 1)
+                {{-- Hero carousel: one rotating slot instead of stacked banners —
+                     the marketplace pattern. Autoplay pauses on hover; loops. --}}
+                <div class="swiper-theme-container products-slider gb-hero-carousel">
+                    <div class="swiper theme-slider"
+                         data-swiper='{"slidesPerView":1,"spaceBetween":16,"loop":true,"autoplay":{"delay":6000,"pauseOnMouseEnter":true,"disableOnInteraction":false},"pagination":{"el":".swiper-pagination","clickable":true}}'>
+                        <div class="swiper-wrapper">
+                            @foreach ($items as $banner)
+                                <div class="swiper-slide"><x-banner :banner="$banner" :priority="$track && $loop->first" /></div>
+                            @endforeach
+                        </div>
+                        <div class="swiper-pagination"></div>
+                    </div>
+                    {{-- Navigation arrows — DOM-rendered to avoid layout shift on init --}}
+                    <div class="swiper-nav" style="pointer-events:none;">
+                        <div class="swiper-button-next" aria-label="Next banner" style="pointer-events:auto;"><span class="fas fa-chevron-right nav-icon"></span></div>
+                        <div class="swiper-button-prev" aria-label="Previous banner" style="pointer-events:auto;"><span class="fas fa-chevron-left nav-icon"></span></div>
+                    </div>
+                </div>
+            @else
+                <div class="row g-3">
+                    @foreach ($items as $banner)
+                        @php
+                            $col = match ($banner->layout) {
+                                'grid' => 'col-12 col-sm-6 col-lg-4',
+                                'split' => 'col-12 col-md-6 col-lg-6',
+                                default => 'col-12'
+                            };
+                        @endphp
+                        {{-- First banner in the first-rendered section gets eager loading for LCP --}}
+                        <div class="{{ $col }}"><x-banner :banner="$banner" :priority="$track && $loop->first" class="h-100" /></div>
+                    @endforeach
+                </div>
+            @endif
             @break
 
         @case(SectionType::ProductRail)
@@ -94,9 +115,11 @@
             @break
 
         @case(SectionType::ProductGrid)
-            <div class="row gx-3 gy-5">
+            {{-- Fluid grid: fills the width (~2 cards on phones → 6 on wide desktops)
+                 without rigid breakpoint tiers. See .gb-product-grid in gobuy.css. --}}
+            <div class="gb-product-grid">
                 @foreach ($items as $product)
-                    <div class="col-6 col-md-4 col-lg-3 col-xxl-2"><x-product-card :product="$product" /></div>
+                    <x-product-card :product="$product" />
                 @endforeach
             </div>
             @break

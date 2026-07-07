@@ -28,6 +28,14 @@ class Banner extends Model implements HasMedia
 
     public const LAYOUTS = ['hero', 'split', 'grid'];
 
+    /**
+     * Rendering contract: 'creative' = a finished designer image IS the banner
+     * (frontend adds cropping/click/analytics only); 'composed' = HTML text &
+     * CTA rendered over a background. Creative is the recommended default for
+     * real campaigns; composed suits quick promos and countdown banners.
+     */
+    public const MODES = ['composed', 'creative'];
+
     public const SIZES = ['sm', 'md', 'lg'];
 
     public const POSITIONS = ['start', 'center', 'end'];
@@ -36,7 +44,7 @@ class Banner extends Model implements HasMedia
 
     protected $fillable = [
         'title', 'subtitle', 'cta_label', 'cta_variant', 'link_url',
-        'placement', 'layout', 'theme', 'text_theme', 'overlay_opacity',
+        'placement', 'layout', 'mode', 'theme', 'text_theme', 'overlay_opacity',
         'focal_point', 'is_active', 'sort_order', 'starts_at', 'ends_at',
         'height', 'content_position', 'title_size', 'cta_size', 'cta_radius',
         'ribbon', 'countdown_to', 'cta_link', 'campaign_id',
@@ -53,6 +61,12 @@ class Banner extends Model implements HasMedia
             'countdown_to' => 'datetime',
             'cta_link' => 'array',
         ];
+    }
+
+    /** Creative mode needs an uploaded image; without one it renders composed. */
+    public function isCreative(): bool
+    {
+        return $this->mode === 'creative' && $this->imageUrl() !== null;
     }
 
     /** Resolved destination URL — structured Link first, legacy link_url fallback. */

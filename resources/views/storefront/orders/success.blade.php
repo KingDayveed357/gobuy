@@ -107,6 +107,14 @@
 
                     <div class="text-center mt-4">
                         <a href="{{ route('orders.track.form') }}" class="btn btn-phoenix-primary me-2">Track this order</a>
+                        <a
+                            href="{{ route('orders.receipt', $order) }}"
+                            target="_blank"
+                            class="btn btn-phoenix-secondary me-2"
+                            title="Open a printable receipt in a new tab"
+                        >
+                            <span class="fas fa-print me-1"></span>Print receipt
+                        </a>
                         <a href="{{ route('products.index') }}" class="btn btn-phoenix-secondary">Continue shopping</a>
                     </div>
                 </div>

@@ -351,7 +351,7 @@ class MerchandisingDemoSeeder extends Seeder
         Banner::create([
             'title' => 'Weekend Flash Sale — up to 25% off', 'placement' => 'home_hero',
             'subtitle' => 'This weekend only. Ends Sunday midnight.',
-            'cta_label' => 'Shop the sale', 'cta_link' => ['type' => 'url', 'ref' => $page->url(), 'label' => 'Shop the sale'],
+            'cta_label' => 'Shop the sale', 'cta_link' => ['type' => 'page', 'ref' => $page->id, 'label' => 'Shop the sale'],
             'theme' => 'rose', 'text_theme' => 'light', 'ribbon' => 'FLASH SALE',
             'campaign_id' => $campaign->id, 'is_active' => false, 'sort_order' => 0,
         ]);
@@ -403,7 +403,7 @@ class MerchandisingDemoSeeder extends Seeder
         Banner::create([
             'title' => 'Clearance Corner — up to 60% off', 'placement' => 'home_strip',
             'subtitle' => 'Deep discounts, while stocks last.',
-            'cta_label' => 'Shop clearance', 'cta_link' => ['type' => 'url', 'ref' => $page->url(), 'label' => 'Shop clearance'],
+            'cta_label' => 'Shop clearance', 'cta_link' => ['type' => 'page', 'ref' => $page->id, 'label' => 'Shop clearance'],
             'theme' => 'amber', 'text_theme' => 'light', 'ribbon' => 'UP TO 60% OFF', 'layout' => 'grid',
             'campaign_id' => $campaign->id, 'is_active' => false, 'sort_order' => 4,
         ]);
@@ -462,7 +462,7 @@ class MerchandisingDemoSeeder extends Seeder
         Banner::create([
             'title' => 'Festive Season is coming', 'placement' => 'home_hero',
             'subtitle' => 'Gifts, décor and family favourites.',
-            'cta_label' => 'Get notified', 'cta_link' => ['type' => 'url', 'ref' => $page->url(), 'label' => 'Get notified'],
+            'cta_label' => 'Get notified', 'cta_link' => ['type' => 'page', 'ref' => $page->id, 'label' => 'Get notified'],
             'theme' => 'amber', 'text_theme' => 'light', 'ribbon' => 'COMING SOON',
             'campaign_id' => $campaign->id, 'is_active' => false, 'sort_order' => 3,
         ]);

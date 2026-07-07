@@ -5,7 +5,7 @@
     $vType = $value['type'] ?? '';
     $vRef = $value['ref'] ?? '';
     $vLabel = $value['label'] ?? '';
-    $isEntity = in_array($vType, ['product', 'category', 'brand'], true);
+    $isEntity = in_array($vType, ['product', 'category', 'brand', 'page'], true);
     $isFree = in_array($vType, ['search', 'url'], true);
 @endphp
 
@@ -16,6 +16,7 @@
         <option value="product" @selected($vType === 'product')>A product</option>
         <option value="category" @selected($vType === 'category')>A category</option>
         <option value="brand" @selected($vType === 'brand')>A brand</option>
+        <option value="page" @selected($vType === 'page')>A landing page</option>
         <option value="search" @selected($vType === 'search')>Search results</option>
         <option value="products" @selected($vType === 'products')>All products</option>
         <option value="home" @selected($vType === 'home')>Homepage</option>
@@ -64,7 +65,7 @@
                 var url = root.getAttribute('data-search-url');
                 var timer;
 
-                function isEntity(t) { return t === 'product' || t === 'category' || t === 'brand'; }
+                function isEntity(t) { return t === 'product' || t === 'category' || t === 'brand' || t === 'page'; }
                 function isFree(t) { return t === 'search' || t === 'url'; }
 
                 function sync() {

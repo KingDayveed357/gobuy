@@ -37,6 +37,7 @@ use App\Admin\Controllers\ShipmentController;
 use App\Admin\Controllers\StaffController;
 use App\Admin\Controllers\StoreCreditController;
 use App\Admin\Controllers\TransferReconciliationController;
+use App\Admin\Controllers\DocumentController as AdminDocumentController;
 use App\Admin\Controllers\WholesaleController;
 use App\Modules\Notification\Push\Http\Controllers\PushSubscriptionController;
 use Illuminate\Support\Facades\Route;
@@ -260,4 +261,10 @@ Route::middleware(['auth:admin', 'admin.active', 'admin.activity'])->group(funct
     // Web Push (PWA) subscription management for the logged-in admin.
     Route::post('push-subscriptions', [PushSubscriptionController::class, 'store'])->name('push-subscriptions.store');
     Route::delete('push-subscriptions', [PushSubscriptionController::class, 'destroy'])->name('push-subscriptions.destroy');
+
+    // ── Document System — admin print/preview routes ──────────────────────────
+    // These are intentionally unguarded by extra permission middleware: any admin
+    // who can view an order or the reconciliation screen can also print it.
+    Route::get('orders/{order}/print', [AdminDocumentController::class, 'order'])->name('orders.print');
+    Route::get('reconciliation/print', [AdminDocumentController::class, 'reconciliation'])->name('reconciliation.print');
 });

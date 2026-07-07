@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin;
 
 use App\Modules\Marketing\Models\Banner;
+use App\Modules\Marketing\Models\HomepageSection;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\Concerns\InteractsWithAdmin;
 use Tests\TestCase;
@@ -95,5 +96,85 @@ class BannerManagementTest extends TestCase
         $this->get(route('home'))->assertOk()
             ->assertSee('HOT DEAL')
             ->assertSee('gb-countdown', false); // live-timer element is present
+    }
+
+    public function test_a_creative_banner_renders_the_artwork_as_the_banner(): void
+    {
+        $banner = Banner::create([
+            'title' => 'Big Campaign Artwork', 'placement' => 'home_hero',
+            'is_active' => true, 'mode' => 'creative', 'cta_label' => 'Shop it',
+            'link_url' => '/products',
+        ]);
+        $banner->addMedia(public_path('theme/img/products/3.png'))
+            ->preservingOriginal()
+            ->toMediaCollection(Banner::MEDIA_IMAGE);
+
+        $response = $this->get(route('home'))->assertOk();
+
+        // The artwork IS the banner: aspect-locked creative container, one
+        // full-surface click target, the title as the accessible name…
+        $response->assertSee('gb-banner--creative', false)
+            ->assertSee('aria-label="Big Campaign Artwork"', false)
+            ->assertSee('stretched-link', false)
+            ->assertSee('Shop it');
+
+        // …and NO composed overlays (scrim or HTML headline) on top of it.
+        $response->assertDontSee('gb-banner__scrim', false)
+            ->assertDontSee('gb-banner__title', false);
+    }
+
+    public function test_a_creative_banner_without_artwork_falls_back_to_composed(): void
+    {
+        Banner::create([
+            'title' => 'No Artwork Yet', 'placement' => 'home_hero',
+            'is_active' => true, 'mode' => 'creative',
+        ]);
+
+        // Never a blank block: without an upload it renders the composed layout.
+        $this->get(route('home'))->assertOk()
+            ->assertSee('No Artwork Yet')
+            ->assertDontSee('gb-banner--creative', false);
+    }
+
+    public function test_banner_mode_is_validated_and_persisted(): void
+    {
+        $this->post(route('admin.banners.store'), [
+            'title' => 'Creative One', 'placement' => 'home_hero', 'layout' => 'hero',
+            'theme' => 'indigo', 'text_theme' => 'light', 'mode' => 'creative',
+        ])->assertRedirect();
+        $this->assertDatabaseHas('banners', ['title' => 'Creative One', 'mode' => 'creative']);
+
+        $this->post(route('admin.banners.store'), [
+            'title' => 'Bad Mode', 'placement' => 'home_hero', 'layout' => 'hero',
+            'theme' => 'indigo', 'text_theme' => 'light', 'mode' => 'photoshop',
+        ])->assertSessionHasErrors('mode');
+    }
+
+    public function test_a_banner_row_section_can_rotate_as_a_hero_carousel(): void
+    {
+        Banner::create(['title' => 'Slide One', 'placement' => 'home_hero', 'is_active' => true]);
+        Banner::create(['title' => 'Slide Two', 'placement' => 'home_hero', 'is_active' => true]);
+        HomepageSection::create([
+            'type' => 'banner_row', 'source_ref' => 'home_hero', 'title' => 'Hero',
+            'is_active' => true, 'status' => 'published', 'settings' => ['carousel' => '1'],
+        ]);
+
+        $this->get(route('home'))->assertOk()
+            ->assertSee('gb-hero-carousel', false)
+            ->assertSee('Slide One')
+            ->assertSee('Slide Two');
+    }
+
+    public function test_a_single_banner_never_renders_as_a_carousel(): void
+    {
+        Banner::create(['title' => 'Lonely Slide', 'placement' => 'home_hero', 'is_active' => true]);
+        HomepageSection::create([
+            'type' => 'banner_row', 'source_ref' => 'home_hero', 'title' => 'Hero',
+            'is_active' => true, 'status' => 'published', 'settings' => ['carousel' => '1'],
+        ]);
+
+        $this->get(route('home'))->assertOk()
+            ->assertSee('Lonely Slide')
+            ->assertDontSee('gb-hero-carousel', false);
     }
 }

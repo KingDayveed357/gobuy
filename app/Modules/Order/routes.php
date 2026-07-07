@@ -27,3 +27,8 @@ Route::controller(OrderController::class)->group(function (): void {
     Route::get('/orders/{order}/transfer', 'transferShow')->name('orders.transfer.show');
     Route::post('/orders/{order}/transfer', 'transferStore')->name('orders.transfer.store');
 });
+
+// ── Document System — print/preview routes ────────────────────────────────────
+// Renders a customer-facing order receipt as a standalone document (no app chrome).
+Route::get('/orders/{order}/receipt', [\App\Http\Controllers\DocumentController::class, 'orderReceipt'])
+    ->name('orders.receipt');

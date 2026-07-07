@@ -166,6 +166,7 @@
                                             'cta_link'        => $banner->cta_link,
                                             'placement'       => $banner->placement,
                                             'layout'          => $banner->layout,
+                                            'mode'            => $banner->mode ?? 'composed',
                                             'theme'           => $banner->theme,
                                             'text_theme'      => $banner->text_theme,
                                             'overlay_opacity' => $banner->overlay_opacity,
@@ -274,12 +275,32 @@
                 @csrf
                 <input type="hidden" name="_banner_id" id="f-banner-id" value="">
 
+                {{-- MX1: rendering contract — designed artwork vs composed layout --}}
+                <div class="mb-3">
+                    <label class="form-label">Banner type</label>
+                    <select class="form-select" name="mode" id="f-mode">
+                        <option value="creative">Marketing creative (recommended) — upload finished campaign artwork</option>
+                        <option value="composed">Composed layout — text &amp; button rendered over a background</option>
+                    </select>
+                </div>
+
+                <div class="alert alert-subtle-info fs-10 mb-3" id="creativeGuide" style="display:none;">
+                    <strong>Creative specs</strong> — the artwork <em>is</em> the banner; the storefront only crops and links it.
+                    <ul class="mb-0 ps-3 mt-1">
+                        <li>Desktop: <strong>1600×534px</strong> (3:1) for Medium height · 1600×400 (4:1) Short · 1680×720 (21:9) Tall. JPG/WebP, under 500KB.</li>
+                        <li>Keep headline &amp; key content in the <strong>centre 60% safe zone</strong> — phones crop the sides.</li>
+                        <li>Max ~10 words of text in the artwork. <strong>Don't bake a button into the image</strong> — set the CTA label below and we render a real, accessible button.</li>
+                        <li>Optional mobile crop: <strong>800×450px</strong> (16:9) — otherwise the desktop image is centre-cropped.</li>
+                    </ul>
+                </div>
+
                 <div class="row g-3 mb-3">
                     <div class="col-12">
                         <label class="form-label">Title <span class="text-danger">*</span></label>
                         <input class="form-control" name="title" id="f-title" required placeholder="Bold headline that grabs attention">
+                        <p class="fs-10 text-body-tertiary mb-0 js-creative-hint" style="display:none;">Used as the image's alt text and accessible name — not shown visually.</p>
                     </div>
-                    <div class="col-12">
+                    <div class="col-12 js-composed-only">
                         <label class="form-label">Subtitle</label>
                         <input class="form-control" name="subtitle" id="f-subtitle" placeholder="Supporting copy (optional)">
                     </div>
@@ -316,13 +337,13 @@
                 </div>
 
                 <div class="row g-2 mb-3">
-                    <div class="col-4">
+                    <div class="col-4 js-composed-only">
                         <label class="form-label">Colour theme</label>
                         <select class="form-select" name="theme" id="f-theme">
                             @foreach (array_keys(Banner::THEMES) as $t)<option value="{{ $t }}">{{ ucfirst($t) }}</option>@endforeach
                         </select>
                     </div>
-                    <div class="col-4">
+                    <div class="col-4 js-composed-only">
                         <label class="form-label">Text colour</label>
                         <select class="form-select" name="text_theme" id="f-text-theme">
                             <option value="light">Light</option>
@@ -353,7 +374,7 @@
                             <option value="start" selected>Left</option><option value="center">Center</option><option value="end">Right</option>
                         </select>
                     </div>
-                    <div class="col-4">
+                    <div class="col-4 js-composed-only">
                         <label class="form-label">Title size</label>
                         <select class="form-select" name="title_size" id="f-title-size">
                             <option value="sm">Small</option><option value="md" selected>Medium</option><option value="lg">Large</option>
@@ -374,13 +395,13 @@
                             <option value="pill" selected>Pill</option><option value="rounded">Rounded</option><option value="square">Square</option>
                         </select>
                     </div>
-                    <div class="col-4">
+                    <div class="col-4 js-composed-only">
                         <label class="form-label">Ribbon <span class="text-body-tertiary fs-10">(optional)</span></label>
                         <input class="form-control" name="ribbon" id="f-ribbon" maxlength="24" placeholder="-40%">
                     </div>
                 </div>
 
-                <div class="mb-3">
+                <div class="mb-3 js-composed-only">
                     <label class="form-label">Image overlay <span class="text-body-tertiary fs-10">(<span id="f-overlay-val">35</span>%)</span></label>
                     <input type="range" class="form-range" name="overlay_opacity" id="f-overlay" min="0" max="100" value="35">
                 </div>
@@ -424,7 +445,7 @@
                     </div>
                 </div>
 
-                <div class="mb-4">
+                <div class="mb-4 js-composed-only">
                     <label class="form-label">Countdown timer <span class="text-body-tertiary fs-10">(optional — shows a live countdown on the banner)</span></label>
                     <input class="form-control" type="datetime-local" name="countdown_to" id="f-countdown">
                 </div>
@@ -449,6 +470,7 @@
 
             var f = {
                 bannerId:    document.getElementById('f-banner-id'),
+                mode:        document.getElementById('f-mode'),
                 title:       document.getElementById('f-title'),
                 subtitle:    document.getElementById('f-subtitle'),
                 cta:         document.getElementById('f-cta'),
@@ -499,10 +521,19 @@
             var ctaSizes = { sm: 'btn-sm', md: '', lg: 'btn-lg' };
 
             function render() {
+                // MX1: creative mode — the artwork is the banner; the form hides
+                // composed-only controls and the preview shows the raw image.
+                var creative = f.mode.value === 'creative';
+                document.querySelectorAll('.js-composed-only').forEach(function (el) { el.style.display = creative ? 'none' : ''; });
+                document.querySelectorAll('.js-creative-hint').forEach(function (el) { el.style.display = creative ? '' : 'none'; });
+                document.getElementById('creativeGuide').style.display = creative ? '' : 'none';
+
                 bpTitle.textContent = f.title.value || 'Your headline';
+                bpTitle.style.display = creative ? 'none' : '';
                 bpSubtitle.textContent = f.subtitle.value || 'Supporting copy';
-                bpSubtitle.style.display = f.subtitle.value ? '' : 'none';
+                bpSubtitle.style.display = (creative || ! f.subtitle.value) ? 'none' : '';
                 bpCta.textContent = f.cta.value || 'Shop now';
+                bpCta.style.display = (creative && ! f.cta.value) ? 'none' : '';
 
                 var dark = f.textTheme.value === 'dark';
                 bpTitle.className = 'fw-bolder mb-1 ' + (dark ? 'text-dark' : 'text-white');
@@ -525,9 +556,21 @@
                 var o = (parseInt(f.overlay.value, 10) || 0) / 100;
                 document.getElementById('f-overlay-val').textContent = f.overlay.value;
 
-                if (uploadedUrl) {
+                if (creative) {
+                    // Creative preview: raw artwork, no scrim; dashed placeholder until uploaded.
+                    if (uploadedUrl) {
+                        preview.style.background = 'center/cover no-repeat url(' + uploadedUrl + ')';
+                        preview.style.outline = '';
+                    } else {
+                        preview.style.background = 'var(--phoenix-body-highlight-bg)';
+                        preview.style.outline = '2px dashed var(--phoenix-border-color)';
+                    }
+                    bpRibbon.style.display = 'none';
+                } else if (uploadedUrl) {
+                    preview.style.outline = '';
                     preview.style.background = 'linear-gradient(90deg, rgba(0,0,0,' + o + ') 0%, rgba(0,0,0,0) 100%), center/cover no-repeat url(' + uploadedUrl + ')';
                 } else {
+                    preview.style.outline = '';
                     preview.style.background = themes[f.theme.value] || themes.indigo;
                 }
                 preview.style.minHeight = heights[f.height.value] || heights.md;
@@ -580,6 +623,7 @@
                 }
 
                 f.bannerId.value = bannerId;
+                f.mode.value         = banner.mode || 'composed';
                 f.title.value        = banner.title || '';
                 f.subtitle.value     = banner.subtitle || '';
                 f.cta.value          = banner.cta_label || '';

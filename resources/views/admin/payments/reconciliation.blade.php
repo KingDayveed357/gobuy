@@ -6,6 +6,14 @@
 @section('content')
     <x-admin.page-header title="Daily reconciliation" subtitle="Orders vs collections for {{ $date->format('M j, Y') }}">
         <x-slot:actions>
+            <a
+                href="{{ route('admin.reconciliation.print', ['date' => $date->toDateString()]) }}"
+                target="_blank"
+                class="btn btn-phoenix-secondary"
+                title="Open printable reconciliation report in new tab"
+            >
+                <span class="fas fa-print me-2"></span>Print report
+            </a>
             <form method="GET" class="d-flex gap-2">
                 <input type="date" name="date" class="form-control form-control-sm" value="{{ $date->toDateString() }}">
                 <button class="btn btn-sm btn-primary">View</button>

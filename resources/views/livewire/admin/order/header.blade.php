@@ -7,6 +7,14 @@
                     <span class="fas fa-reply me-2"></span>Issue refund
                 </button>
             @endif
+            <a
+                href="{{ route('admin.orders.print', $order) }}"
+                target="_blank"
+                class="btn btn-sm btn-phoenix-secondary me-2"
+                title="Open packing slip in new tab"
+            >
+                <span class="fas fa-print me-1"></span>Print order
+            </a>
             <a href="{{ route('admin.orders.index') }}" class="btn btn-sm btn-phoenix-secondary">
                 <span class="fas fa-chevron-left me-2"></span>All orders
             </a>

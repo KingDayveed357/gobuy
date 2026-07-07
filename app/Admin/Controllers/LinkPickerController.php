@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Catalog\Models\Brand;
 use App\Modules\Catalog\Models\Category;
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Marketing\Models\Page;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -32,6 +33,8 @@ class LinkPickerController extends Controller
                 ->map(fn (Category $c) => ['value' => $c->id, 'label' => $c->name, 'sublabel' => null]),
             'brand' => Brand::where('is_active', true)->where('name', 'like', "%{$q}%")->limit(15)->get()
                 ->map(fn (Brand $b) => ['value' => $b->id, 'label' => $b->name, 'sublabel' => null]),
+            'page' => Page::where('slug', '!=', Page::HOME)->where('title', 'like', "%{$q}%")->limit(15)->get()
+                ->map(fn (Page $p) => ['value' => $p->id, 'label' => $p->title, 'sublabel' => '/p/'.$p->slug.($p->isPublished() ? '' : ' — draft')]),
             default => collect(),
         };
 

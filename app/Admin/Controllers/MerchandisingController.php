@@ -142,6 +142,8 @@ class MerchandisingController extends Controller
             'settings.image_url' => ['nullable', 'string', 'max:2048'],
             'settings.align' => ['nullable', Rule::in(['left', 'right', 'center', 'start'])],
             'settings.theme' => ['nullable', Rule::in(['default', 'accent'])],
+            'settings.carousel' => ['nullable', 'in:0,1'], // banner_row: rotate in one slot
+
             'is_active' => ['boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'starts_at' => ['nullable', 'date'],

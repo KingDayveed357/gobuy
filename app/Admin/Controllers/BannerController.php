@@ -81,6 +81,8 @@ class BannerController extends Controller
             'link.label' => ['nullable', 'string', 'max:255'],
             'placement' => ['required', 'in:home_hero,home_strip'],
             'layout' => ['required', 'in:hero,split,grid'],
+            // Nullable so the quick activate/deactivate toggle keeps the stored mode.
+            'mode' => ['nullable', Rule::in(Banner::MODES)],
             'theme' => ['required', 'in:indigo,sky,emerald,amber,rose,slate'],
             'text_theme' => ['required', 'in:light,dark'],
             'overlay_opacity' => ['nullable', 'integer', 'min:0', 'max:100'],
