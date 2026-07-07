@@ -84,6 +84,11 @@
                 <td class="text-end">
                     <div class="table-actions">
                         <a href="{{ route('admin.products.edit', $product) }}" class="btn btn-sm btn-phoenix-secondary">Edit</a>
+                        <x-admin.promote-button
+                            :url="route('products.show', $product)"
+                            :name="$product->name"
+                            :image="$product->imageUrl()"
+                            :price="$variant?->retail_price ? money($variant->retail_price) : null" />
                         <button class="btn btn-sm btn-phoenix-danger" type="button"
                                 data-bs-toggle="modal" data-bs-target="#deleteModal"
                                 data-action="{{ route('admin.products.destroy', $product) }}"

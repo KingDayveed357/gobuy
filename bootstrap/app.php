@@ -4,6 +4,7 @@ use App\Admin\Http\Middleware\EnsureAdminIsActive;
 use App\Admin\Http\Middleware\EnsureSuperAdmin;
 use App\Admin\Http\Middleware\RecordAdminActivity;
 use App\Modules\Customer\Http\Middleware\EnsureEmailVerified;
+use App\Modules\Marketing\Console\AuditLinksCommand;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -18,6 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    ->withCommands([
+        AuditLinksCommand::class,
+    ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->validateCsrfTokens(except: [
             'payment/webhook',

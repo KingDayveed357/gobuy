@@ -23,6 +23,7 @@ class PromotionalPrice extends Model
         'is_active',
         'starts_at',
         'ends_at',
+        'campaign_id',
     ];
 
     protected function casts(): array

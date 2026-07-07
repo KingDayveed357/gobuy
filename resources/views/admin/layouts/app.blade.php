@@ -56,6 +56,7 @@
         }, true);
     </script>
     <x-admin.action-modal />
+    @include('admin.partials.promote-modal')
 
     {{-- Web Push (PWA) client — admin subscription endpoints. --}}
     @include('partials.push-notifications', [

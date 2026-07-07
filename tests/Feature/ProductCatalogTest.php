@@ -28,6 +28,30 @@ class ProductCatalogTest extends TestCase
             ->assertDontSee('Hidden Widget');
     }
 
+    public function test_a_card_shows_no_rating_until_the_product_has_reviews(): void
+    {
+        Product::factory()->stock(5)->create(['name' => 'Unrated Widget', 'rating_count' => 0]);
+
+        // No fabricated stars: the old card claimed "Rated 5 out of 5" on everything.
+        $this->get(route('products.index'))
+            ->assertOk()
+            ->assertSee('Unrated Widget')
+            ->assertDontSee('Rated 5 out of 5')
+            ->assertDontSee('out of 5 by');
+    }
+
+    public function test_a_card_shows_the_real_verified_rating(): void
+    {
+        Product::factory()->stock(5)->create([
+            'name' => 'Rated Widget', 'rating_avg' => 4.00, 'rating_count' => 3,
+        ]);
+
+        $this->get(route('products.index'))
+            ->assertOk()
+            ->assertSee('Rated 4.0 out of 5 by 3 customers', false)
+            ->assertSee('(3)');
+    }
+
     public function test_product_detail_page_renders_for_active_product(): void
     {
         $product = Product::factory()->create();

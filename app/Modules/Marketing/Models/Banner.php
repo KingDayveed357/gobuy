@@ -2,6 +2,7 @@
 
 namespace App\Modules\Marketing\Models;
 
+use App\Modules\Marketing\Services\LinkResolver;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\MediaLibrary\HasMedia;
@@ -27,10 +28,18 @@ class Banner extends Model implements HasMedia
 
     public const LAYOUTS = ['hero', 'split', 'grid'];
 
+    public const SIZES = ['sm', 'md', 'lg'];
+
+    public const POSITIONS = ['start', 'center', 'end'];
+
+    public const CTA_RADII = ['pill', 'rounded', 'square'];
+
     protected $fillable = [
         'title', 'subtitle', 'cta_label', 'cta_variant', 'link_url',
         'placement', 'layout', 'theme', 'text_theme', 'overlay_opacity',
         'focal_point', 'is_active', 'sort_order', 'starts_at', 'ends_at',
+        'height', 'content_position', 'title_size', 'cta_size', 'cta_radius',
+        'ribbon', 'countdown_to', 'cta_link', 'campaign_id',
     ];
 
     protected function casts(): array
@@ -41,7 +50,21 @@ class Banner extends Model implements HasMedia
             'overlay_opacity' => 'integer',
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
+            'countdown_to' => 'datetime',
+            'cta_link' => 'array',
         ];
+    }
+
+    /** Resolved destination URL — structured Link first, legacy link_url fallback. */
+    public function destinationUrl(): ?string
+    {
+        return app(LinkResolver::class)->urlFor($this->cta_link, $this->link_url);
+    }
+
+    /** True when a structured link is set but its target no longer resolves. */
+    public function hasBrokenLink(): bool
+    {
+        return app(LinkResolver::class)->isBroken($this->cta_link);
     }
 
     public function registerMediaCollections(): void

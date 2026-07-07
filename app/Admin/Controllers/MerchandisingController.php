@@ -1,0 +1,166 @@
+<?php
+
+namespace App\Admin\Controllers;
+
+use App\Http\Controllers\Controller;
+use App\Modules\Catalog\Models\Brand;
+use App\Modules\Catalog\Models\Category;
+use App\Modules\Marketing\Enums\SectionSource;
+use App\Modules\Marketing\Enums\SectionStatus;
+use App\Modules\Marketing\Enums\SectionType;
+use App\Modules\Marketing\Models\HomepageSection;
+use App\Modules\Marketing\Models\Page;
+use App\Modules\Marketing\Models\ProductCollection;
+use App\Modules\Marketing\Services\BlockAnalytics;
+use App\Modules\Marketing\Services\HomepageMerchandiser;
+use App\Modules\Marketing\Services\LinkResolver;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Validation\Rule;
+
+class MerchandisingController extends Controller
+{
+    public function index(Request $request, HomepageMerchandiser $merchandiser, BlockAnalytics $analytics): View
+    {
+        $page = Page::where('slug', $request->query('page', Page::HOME))->firstOrFail();
+        $sections = $page->sections()->orderBy('sort_order')->get();
+
+        return view('admin.merchandising.index', [
+            'page' => $page,
+            'sections' => $sections,
+            // A live mini-preview (resolved items) per section for the canvas cards.
+            'previews' => $sections->mapWithKeys(fn (HomepageSection $s) => [$s->id => $merchandiser->resolveSection($s)->items]),
+            // Impression/click/CTR per section — closes the merchandising loop.
+            'stats' => $analytics->forSections($sections->pluck('id')),
+            'draftCount' => $page->sections()->where('status', SectionStatus::Draft->value)->count(),
+            'previewUrl' => URL::temporarySignedRoute('storefront.preview', now()->addDays(7), ['slug' => $page->slug]),
+            'types' => SectionType::cases(),
+            'sources' => SectionSource::cases(),
+            'categories' => Category::active()->orderBy('name')->get(['id', 'name']),
+            'brands' => Brand::where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'collections' => ProductCollection::where('is_active', true)->orderBy('name')->get(['id', 'name']),
+        ]);
+    }
+
+    /** Publish every draft section for a page, then flush the cache. */
+    public function publish(Request $request): RedirectResponse
+    {
+        $slug = $request->input('page', Page::HOME);
+
+        $count = HomepageSection::forPlacement($slug)
+            ->where('status', SectionStatus::Draft->value)
+            ->update(['status' => SectionStatus::Published->value]);
+
+        HomepageMerchandiser::forget($slug);
+
+        return back()->with('status', $count > 0 ? "{$count} section(s) published and now live." : 'No drafts to publish.');
+    }
+
+    /** Persist a drag-and-drop reorder (array of section ids in display order). */
+    public function reorder(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array'],
+            'ids.*' => ['integer'],
+        ]);
+
+        foreach (array_values($data['ids']) as $index => $id) {
+            HomepageSection::where('id', $id)->update(['sort_order' => $index]);
+        }
+
+        HomepageMerchandiser::forget($request->input('page', Page::HOME));
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        HomepageSection::create($this->validated($request));
+
+        return back()->with('status', 'Section created.');
+    }
+
+    public function update(Request $request, HomepageSection $section): RedirectResponse
+    {
+        $section->update($this->validated($request));
+
+        return back()->with('status', 'Section updated.');
+    }
+
+    public function destroy(HomepageSection $section): RedirectResponse
+    {
+        $section->delete();
+
+        return back()->with('status', 'Section removed.');
+    }
+
+    /**
+     * Handle a direct image upload for editorial sections.
+     * Stores to the public disk and returns the web-accessible URL.
+     */
+    public function uploadMedia(Request $request): JsonResponse
+    {
+        $request->validate([
+            'image' => ['required', 'image', 'max:5120', 'mimes:jpeg,jpg,png,gif,webp'],
+        ]);
+
+        $path = $request->file('image')->store('editorial', 'public');
+
+        return response()->json([
+            'url' => Storage::disk('public')->url($path),
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validated(Request $request): array
+    {
+        $data = $request->validate([
+            'type' => ['required', Rule::in(array_column(SectionType::cases(), 'value'))],
+            'placement' => ['nullable', 'string', 'max:80'],
+            'source' => ['nullable', Rule::in(array_column(SectionSource::cases(), 'value'))],
+            'source_ref' => ['nullable', 'string', 'max:60'],
+            'title' => ['nullable', 'string', 'max:120'],
+            'subtitle' => ['nullable', 'string', 'max:160'],
+            'cta_label' => ['nullable', 'string', 'max:40'],
+            'cta_url' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', Rule::in([SectionStatus::Draft->value, SectionStatus::Published->value])],
+            'link' => ['nullable', 'array'],
+            'link.type' => ['nullable', Rule::in(LinkResolver::TYPES)],
+            'link.ref' => ['nullable', 'string', 'max:2048'],
+            'link.label' => ['nullable', 'string', 'max:255'],
+            'item_limit' => ['nullable', 'integer', 'min:1', 'max:24'],
+            // Editorial (rich-text / image+copy) content lives in the settings bag.
+            'settings' => ['nullable', 'array'],
+            'settings.eyebrow' => ['nullable', 'string', 'max:80'],
+            'settings.body' => ['nullable', 'string', 'max:2000'],
+            'settings.image_url' => ['nullable', 'string', 'max:2048'],
+            'settings.align' => ['nullable', Rule::in(['left', 'right', 'center', 'start'])],
+            'settings.theme' => ['nullable', Rule::in(['default', 'accent'])],
+            'is_active' => ['boolean'],
+            'sort_order' => ['nullable', 'integer', 'min:0'],
+            'starts_at' => ['nullable', 'date'],
+            'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
+        ]);
+
+        unset($data['link']);
+
+        // Only touch the structured link when the full form was submitted (the
+        // visibility toggle omits it and must not clear it).
+        if ($request->has('link')) {
+            $type = $request->input('link.type');
+            $data['cta_link'] = $type ? [
+                'type' => $type,
+                'ref' => $request->input('link.ref'),
+                'label' => $request->input('link.label'),
+            ] : null;
+        }
+
+        return $data;
+    }
+}

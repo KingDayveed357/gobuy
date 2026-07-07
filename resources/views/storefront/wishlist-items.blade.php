@@ -1,6 +1,6 @@
 @foreach($products as $product)
     @php
-        $rPrice = app(\App\Modules\Pricing\Services\PricingEngine::class)->priceForProduct($product, auth()->user(), 1);
+        $rPrice = app(\App\Modules\Pricing\Services\PricingEngine::class)->priceForProduct($product, auth('web')->user(), 1);
         $primaryVariant = $product->primaryVariant();
     @endphp
     <tr class="hover-actions-trigger btn-reveal-trigger position-static">

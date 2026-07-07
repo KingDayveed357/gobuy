@@ -1,7 +1,8 @@
-@props(['product'])
+@props(['product', 'urgency' => false])
 
 @php($cardVariant = $product->primaryVariant())
-@php($cardPrice = app(\App\Modules\Pricing\Services\PricingEngine::class)->priceForProduct($product, auth()->user(), 1))
+@php($cardStock = $cardVariant?->stock ?? 0)
+@php($cardPrice = app(\App\Modules\Pricing\Services\PricingEngine::class)->priceForProduct($product, auth('web')->user(), 1))
 
 <div {{ $attributes->merge(['class' => 'product-card-container h-100']) }}>
     <div class="position-relative text-decoration-none product-card h-100">
@@ -12,26 +13,42 @@
                         <span class="fas fa-heart d-block-hover" data-fa-transform="down-1"></span>
                         <span class="far fa-heart d-none-hover" data-fa-transform="down-1"></span>
                     </button>
-                    <img class="img-fluid" src="{{ $product->imageUrl() }}" alt="{{ $product->name }}">
+                    <img class="img-fluid" src="{{ $product->imageUrl() }}" alt="{{ $product->name }}" width="300" height="300" loading="lazy">
                     @if ($product->is_featured)
                         <span class="badge text-bg-success fs-10 product-verified-badge">Featured<span class="fas fa-check ms-1"></span></span>
                     @endif
+                    @if ($urgency)
+                        <span class="gb-sale-badge">Sale</span>
+                    @endif
                 </div>
                 <a class="stretched-link" href="{{ route('products.show', $product) }}">
-                    <h6 class="mb-2 lh-sm line-clamp-3 product-name">{{ $product->name }}</h6>
+                    <h6 class="mb-2 lh-sm line-clamp-2 product-name">{{ $product->name }}</h6>
                 </a>
-                <p class="fs-9 mb-2" aria-label="Rated 5 out of 5">
-                    @for ($i = 0; $i < 5; $i++)
-                        <span class="fa fa-star text-warning"></span>
-                    @endfor
-                </p>
+                {{-- Real verified-purchase rating; hidden entirely until the product has reviews. --}}
+                @if ($product->rating_count > 0)
+                    @php($cardRating = (int) round($product->rating_avg))
+                    <p class="fs-9 mb-2" aria-label="Rated {{ number_format($product->rating_avg, 1) }} out of 5 by {{ $product->rating_count }} {{ \Illuminate\Support\Str::plural('customer', $product->rating_count) }}">
+                        @for ($i = 1; $i <= 5; $i++)
+                            <span class="fa{{ $i <= $cardRating ? 's' : 'r' }} fa-star text-warning" aria-hidden="true"></span>
+                        @endfor
+                        <span class="text-body-tertiary ms-1">({{ $product->rating_count }})</span>
+                    </p>
+                @endif
             </div>
             <div>
                 <p class="fs-9 text-body-tertiary mb-2">{{ $product->category->name }}</p>
                 <div class="mb-1">
                     <x-price-tag :product="$product" />
                 </div>
-                @if ($product->isInStock())
+                @if ($urgency && $cardStock > 0 && $cardStock <= 15)
+                    {{-- Flash-sale urgency: a low-stock progress bar drives conversion. --}}
+                    <div class="gb-urgency">
+                        <div class="progress" style="height:5px;">
+                            <div class="progress-bar bg-danger" role="progressbar" style="width: {{ max(12, (int) round($cardStock / 15 * 100)) }}%"></div>
+                        </div>
+                        <p class="fs-10 text-danger fw-bold lh-1 mb-0 mt-1">Only {{ $cardStock }} left</p>
+                    </div>
+                @elseif ($product->isInStock())
                     <p class="text-success fw-bold fs-9 lh-1 mb-0">In stock</p>
                 @else
                     <p class="text-body-tertiary fw-semibold fs-9 lh-1 mb-0">Sold out</p>

@@ -9,17 +9,22 @@ use App\Admin\Controllers\BannerController;
 use App\Admin\Controllers\BrandController;
 use App\Admin\Controllers\BulkPricingController;
 use App\Admin\Controllers\BulkRequestController;
+use App\Admin\Controllers\CampaignController;
 use App\Admin\Controllers\CategoryController;
+use App\Admin\Controllers\CollectionController;
 use App\Admin\Controllers\CouponController;
 use App\Admin\Controllers\CustomerController;
 use App\Admin\Controllers\DashboardController;
 use App\Admin\Controllers\DeliveryZoneController;
 use App\Admin\Controllers\InventoryController;
 use App\Admin\Controllers\InventoryImportController;
+use App\Admin\Controllers\LinkPickerController;
 use App\Admin\Controllers\LocationController;
 use App\Admin\Controllers\LogisticsController;
+use App\Admin\Controllers\MerchandisingController;
 use App\Admin\Controllers\NotificationController;
 use App\Admin\Controllers\OrderController;
+use App\Admin\Controllers\PageController;
 use App\Admin\Controllers\PaymentController;
 use App\Admin\Controllers\ProductController;
 use App\Admin\Controllers\PromotionController;
@@ -136,6 +141,46 @@ Route::middleware(['auth:admin', 'admin.active', 'admin.activity'])->group(funct
         Route::post('banners', [BannerController::class, 'store'])->name('banners.store');
         Route::put('banners/{banner}', [BannerController::class, 'update'])->name('banners.update');
         Route::delete('banners/{banner}', [BannerController::class, 'destroy'])->name('banners.destroy');
+
+        // Link Picker search — powers structured "smart destination" links.
+        Route::get('link-picker/search', [LinkPickerController::class, 'search'])->name('link-picker.search');
+
+        // Campaigns — coordinate members under one schedule + launch/kill switch.
+        Route::get('campaigns', [CampaignController::class, 'index'])->name('campaigns.index');
+        Route::post('campaigns', [CampaignController::class, 'store'])->name('campaigns.store');
+        Route::post('campaigns/from-template', [CampaignController::class, 'fromTemplate'])->name('campaigns.from-template');
+        Route::get('campaigns/{campaign}', [CampaignController::class, 'show'])->name('campaigns.show');
+        Route::put('campaigns/{campaign}', [CampaignController::class, 'update'])->name('campaigns.update');
+        Route::delete('campaigns/{campaign}', [CampaignController::class, 'destroy'])->name('campaigns.destroy');
+        Route::post('campaigns/{campaign}/launch', [CampaignController::class, 'launch'])->name('campaigns.launch');
+        Route::post('campaigns/{campaign}/end', [CampaignController::class, 'end'])->name('campaigns.end');
+        Route::post('campaigns/{campaign}/attach', [CampaignController::class, 'attach'])->name('campaigns.attach');
+        Route::post('campaigns/{campaign}/detach', [CampaignController::class, 'detach'])->name('campaigns.detach');
+
+        // Storefront pages (home + campaign landing pages).
+        Route::get('pages', [PageController::class, 'index'])->name('pages.index');
+        Route::post('pages', [PageController::class, 'store'])->name('pages.store');
+        Route::put('pages/{page}', [PageController::class, 'update'])->name('pages.update');
+        Route::delete('pages/{page}', [PageController::class, 'destroy'])->name('pages.destroy');
+
+        // Homepage merchandising builder — dynamic, schedulable storefront sections.
+        Route::get('merchandising', [MerchandisingController::class, 'index'])->name('merchandising.index');
+        Route::post('merchandising/reorder', [MerchandisingController::class, 'reorder'])->name('merchandising.reorder');
+        Route::post('merchandising/publish', [MerchandisingController::class, 'publish'])->name('merchandising.publish');
+        Route::post('merchandising/media/upload', [MerchandisingController::class, 'uploadMedia'])->name('merchandising.media.upload');
+        Route::post('merchandising', [MerchandisingController::class, 'store'])->name('merchandising.store');
+        Route::put('merchandising/{section}', [MerchandisingController::class, 'update'])->name('merchandising.update');
+        Route::delete('merchandising/{section}', [MerchandisingController::class, 'destroy'])->name('merchandising.destroy');
+
+        // Curated product collections (source for "manual" merchandising sections).
+        Route::get('collections', [CollectionController::class, 'index'])->name('collections.index');
+        Route::post('collections', [CollectionController::class, 'store'])->name('collections.store');
+        Route::get('collections/{collection}', [CollectionController::class, 'show'])->name('collections.show');
+        Route::put('collections/{collection}', [CollectionController::class, 'update'])->name('collections.update');
+        Route::delete('collections/{collection}', [CollectionController::class, 'destroy'])->name('collections.destroy');
+        Route::post('collections/{collection}/products', [CollectionController::class, 'attach'])->name('collections.attach');
+        Route::delete('collections/{collection}/products/{product}', [CollectionController::class, 'detach'])->name('collections.detach');
+        Route::post('collections/{collection}/reorder', [CollectionController::class, 'reorder'])->name('collections.reorder');
     });
 
     Route::middleware('permission:manage_orders,admin')->group(function (): void {

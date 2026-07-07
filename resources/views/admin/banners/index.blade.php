@@ -163,12 +163,20 @@
                                             'cta_label'       => $banner->cta_label,
                                             'cta_variant'     => $banner->cta_variant,
                                             'link_url'        => $banner->link_url,
+                                            'cta_link'        => $banner->cta_link,
                                             'placement'       => $banner->placement,
                                             'layout'          => $banner->layout,
                                             'theme'           => $banner->theme,
                                             'text_theme'      => $banner->text_theme,
                                             'overlay_opacity' => $banner->overlay_opacity,
                                             'focal_point'     => $banner->focal_point ?? 'center',
+                                            'height'          => $banner->height ?? 'md',
+                                            'content_position' => $banner->content_position ?? 'start',
+                                            'title_size'      => $banner->title_size ?? 'md',
+                                            'cta_size'        => $banner->cta_size ?? 'md',
+                                            'cta_radius'      => $banner->cta_radius ?? 'pill',
+                                            'ribbon'          => $banner->ribbon,
+                                            'countdown_to'    => optional($banner->countdown_to)->format('Y-m-d\TH:i'),
                                             'sort_order'      => $banner->sort_order,
                                             'is_active'       => $banner->is_active ? 1 : 0,
                                             'starts_at'       => optional($banner->starts_at)->format('Y-m-d\TH:i'),
@@ -177,6 +185,12 @@
                                         ]) }}">
                                         <span class="fas fa-pen"></span>
                                     </button>
+                                    @if ($banner->destinationUrl())
+                                        <x-admin.promote-button :url="$banner->destinationUrl()" :name="$banner->title" :image="$banner->imageUrl()" :campaign="$banner->title" />
+                                    @endif
+                                    @if ($banner->hasBrokenLink())
+                                        <span class="badge badge-phoenix badge-phoenix-warning" title="This banner's link target is no longer available"><span class="fas fa-link-slash me-1"></span>Broken link</span>
+                                    @endif
                                     <form action="{{ route('admin.banners.update', $banner) }}" method="POST" class="d-inline">
                                         @csrf @method('PUT')
                                         <input type="hidden" name="title" value="{{ $banner->title }}">
@@ -242,10 +256,11 @@
                         <span class="fas fa-mobile-screen me-1"></span>Mobile
                     </button>
                 </div>
-                <div class="js-preview-container rounded-3 overflow-hidden position-relative d-flex align-items-center transition-all"
+                <div class="js-preview-container gb-banner rounded-3 overflow-hidden position-relative d-flex align-items-center transition-all"
                      id="bannerPreview"
                      style="min-height: 180px; transition: all 0.25s ease;">
-                    <div class="p-4 position-relative">
+                    <span id="bp-ribbon" class="gb-banner__ribbon" style="display:none;"></span>
+                    <div class="p-4 position-relative" id="bp-content" style="max-width:62%;">
                         <h3 id="bp-title" class="fw-bolder mb-1 text-white">Your headline</h3>
                         <p id="bp-subtitle" class="text-white-50 mb-3">Supporting copy</p>
                         <a id="bp-cta" class="btn btn-light btn-sm rounded-pill" href="#!">Shop now</a>
@@ -271,13 +286,12 @@
                 </div>
 
                 <div class="row g-2 mb-3">
-                    <div class="col-6">
+                    <div class="col-12 col-sm-5">
                         <label class="form-label">CTA label</label>
                         <input class="form-control" name="cta_label" id="f-cta" placeholder="Shop now">
                     </div>
-                    <div class="col-6">
-                        <label class="form-label">Link URL</label>
-                        <input class="form-control" name="link_url" id="f-link" placeholder="/products">
+                    <div class="col-12 col-sm-7">
+                        <x-admin.link-picker name="link" label="Button links to" />
                     </div>
                 </div>
 
@@ -326,6 +340,46 @@
                     </div>
                 </div>
 
+                <div class="row g-2 mb-3">
+                    <div class="col-4">
+                        <label class="form-label">Banner height</label>
+                        <select class="form-select" name="height" id="f-height">
+                            <option value="sm">Short</option><option value="md" selected>Medium</option><option value="lg">Tall</option>
+                        </select>
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label">Content position</label>
+                        <select class="form-select" name="content_position" id="f-position">
+                            <option value="start" selected>Left</option><option value="center">Center</option><option value="end">Right</option>
+                        </select>
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label">Title size</label>
+                        <select class="form-select" name="title_size" id="f-title-size">
+                            <option value="sm">Small</option><option value="md" selected>Medium</option><option value="lg">Large</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-4">
+                        <label class="form-label">CTA size</label>
+                        <select class="form-select" name="cta_size" id="f-cta-size">
+                            <option value="sm">Small</option><option value="md" selected>Medium</option><option value="lg">Large</option>
+                        </select>
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label">CTA shape</label>
+                        <select class="form-select" name="cta_radius" id="f-cta-radius">
+                            <option value="pill" selected>Pill</option><option value="rounded">Rounded</option><option value="square">Square</option>
+                        </select>
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label">Ribbon <span class="text-body-tertiary fs-10">(optional)</span></label>
+                        <input class="form-control" name="ribbon" id="f-ribbon" maxlength="24" placeholder="-40%">
+                    </div>
+                </div>
+
                 <div class="mb-3">
                     <label class="form-label">Image overlay <span class="text-body-tertiary fs-10">(<span id="f-overlay-val">35</span>%)</span></label>
                     <input type="range" class="form-range" name="overlay_opacity" id="f-overlay" min="0" max="100" value="35">
@@ -359,7 +413,7 @@
                     </div>
                 </div>
 
-                <div class="row g-2 mb-4">
+                <div class="row g-2 mb-3">
                     <div class="col-6">
                         <label class="form-label">Start date</label>
                         <input class="form-control" type="datetime-local" name="starts_at" id="f-starts">
@@ -368,6 +422,11 @@
                         <label class="form-label">End date</label>
                         <input class="form-control" type="datetime-local" name="ends_at" id="f-ends">
                     </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label">Countdown timer <span class="text-body-tertiary fs-10">(optional — shows a live countdown on the banner)</span></label>
+                    <input class="form-control" type="datetime-local" name="countdown_to" id="f-countdown">
                 </div>
 
                 <div class="d-flex gap-2">
@@ -393,7 +452,6 @@
                 title:       document.getElementById('f-title'),
                 subtitle:    document.getElementById('f-subtitle'),
                 cta:         document.getElementById('f-cta'),
-                link:        document.getElementById('f-link'),
                 layout:      document.getElementById('f-layout'),
                 placement:   document.getElementById('f-placement'),
                 sort:        document.getElementById('f-sort'),
@@ -406,7 +464,16 @@
                 focal:       document.getElementById('f-focal'),
                 starts:      document.getElementById('f-starts'),
                 ends:        document.getElementById('f-ends'),
+                height:      document.getElementById('f-height'),
+                position:    document.getElementById('f-position'),
+                titleSize:   document.getElementById('f-title-size'),
+                ctaSize:     document.getElementById('f-cta-size'),
+                ctaRadius:   document.getElementById('f-cta-radius'),
+                ribbon:      document.getElementById('f-ribbon'),
+                countdown:   document.getElementById('f-countdown'),
             };
+            var bpRibbon  = document.getElementById('bp-ribbon');
+            var bpContent = document.getElementById('bp-content');
 
             var form      = document.getElementById('bannerForm');
             var submitBtn = document.getElementById('bannerSubmitBtn');
@@ -426,6 +493,11 @@
                 });
             });
 
+            var titleSizes = { sm: '1.3rem', md: '1.7rem', lg: '2.3rem' };
+            var heights = { sm: '150px', md: '200px', lg: '260px' };
+            var radii = { pill: 'rounded-pill', rounded: 'rounded-3', square: 'rounded-0' };
+            var ctaSizes = { sm: 'btn-sm', md: '', lg: 'btn-lg' };
+
             function render() {
                 bpTitle.textContent = f.title.value || 'Your headline';
                 bpSubtitle.textContent = f.subtitle.value || 'Supporting copy';
@@ -434,9 +506,21 @@
 
                 var dark = f.textTheme.value === 'dark';
                 bpTitle.className = 'fw-bolder mb-1 ' + (dark ? 'text-dark' : 'text-white');
+                bpTitle.style.fontSize = titleSizes[f.titleSize.value] || titleSizes.md;
                 bpSubtitle.className = (dark ? 'text-body-secondary' : 'text-white-50') + ' mb-3';
+
                 var ctaMap = { light: 'btn-light', dark: 'btn-dark', primary: 'btn-primary', outline: 'btn-outline-light' };
-                bpCta.className = 'btn btn-sm rounded-pill ' + (ctaMap[f.ctaVariant.value] || 'btn-light');
+                bpCta.className = 'btn ' + (ctaSizes[f.ctaSize.value] || '') + ' ' + (radii[f.ctaRadius.value] || 'rounded-pill') + ' ' + (ctaMap[f.ctaVariant.value] || 'btn-light');
+
+                // Content position → flex + text alignment.
+                var pos = f.position.value;
+                preview.style.justifyContent = pos === 'center' ? 'center' : (pos === 'end' ? 'flex-end' : 'flex-start');
+                bpContent.style.textAlign = pos === 'center' ? 'center' : (pos === 'end' ? 'right' : 'left');
+                bpContent.style.maxWidth = pos === 'center' ? '90%' : '62%';
+
+                // Ribbon.
+                if (f.ribbon.value) { bpRibbon.style.display = ''; bpRibbon.textContent = f.ribbon.value; }
+                else { bpRibbon.style.display = 'none'; }
 
                 var o = (parseInt(f.overlay.value, 10) || 0) / 100;
                 document.getElementById('f-overlay-val').textContent = f.overlay.value;
@@ -446,7 +530,7 @@
                 } else {
                     preview.style.background = themes[f.theme.value] || themes.indigo;
                 }
-                preview.style.minHeight = f.layout.value === 'grid' ? '120px' : '180px';
+                preview.style.minHeight = heights[f.height.value] || heights.md;
             }
 
             Object.values(f).forEach(function (el) {
@@ -465,6 +549,7 @@
                 form.querySelector('[name="_method"]') && form.querySelector('[name="_method"]').remove();
                 f.bannerId.value = '';
                 form.reset();
+                var lpNew = form.querySelector('.gb-link-picker'); if (lpNew && lpNew._gbReset) { lpNew._gbReset(); }
                 uploadedUrl = null;
                 canvasLabel.textContent = 'New banner';
                 canvasSubtitle.textContent = 'Preview updates live as you fill in the form.';
@@ -499,13 +584,20 @@
                 f.subtitle.value     = banner.subtitle || '';
                 f.cta.value          = banner.cta_label || '';
                 f.ctaVariant.value   = banner.cta_variant || 'light';
-                f.link.value         = banner.link_url || '';
+                var lpEdit = form.querySelector('.gb-link-picker'); if (lpEdit && lpEdit._gbSet) { lpEdit._gbSet(banner.cta_link || {}); }
                 f.placement.value    = banner.placement || 'home_hero';
                 f.layout.value       = banner.layout || 'hero';
                 f.theme.value        = banner.theme || 'indigo';
                 f.textTheme.value    = banner.text_theme || 'light';
                 f.overlay.value      = banner.overlay_opacity || 35;
                 f.focal.value        = banner.focal_point || 'center';
+                f.height.value       = banner.height || 'md';
+                f.position.value     = banner.content_position || 'start';
+                f.titleSize.value    = banner.title_size || 'md';
+                f.ctaSize.value      = banner.cta_size || 'md';
+                f.ctaRadius.value    = banner.cta_radius || 'pill';
+                f.ribbon.value       = banner.ribbon || '';
+                f.countdown.value    = banner.countdown_to || '';
                 f.sort.value         = banner.sort_order || 0;
                 f.active.checked     = !!banner.is_active;
                 f.starts.value       = banner.starts_at || '';

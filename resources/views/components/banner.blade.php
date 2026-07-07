@@ -1,38 +1,87 @@
-@props(['banner'])
+@props(['banner', 'priority' => false])
 
 @php
     $img = $banner->imageUrl();
     $mobileImg = $banner->mobileImageUrl();
-    $textClass = $banner->text_theme === 'dark' ? 'text-dark' : 'text-white';
-    $subClass = $banner->text_theme === 'dark' ? 'text-body-secondary' : 'text-white-50';
+    $dark = $banner->text_theme === 'dark';
+    $textClass = $dark ? 'text-dark' : 'text-white';
+    $subClass = $dark ? 'text-body-secondary' : 'text-white-50';
     $overlay = max(0, min(100, (int) $banner->overlay_opacity)) / 100;
-    // Image background with a dark scrim for legibility; gradient preset otherwise.
-    $bg = $img
-        ? "linear-gradient(90deg, rgba(0,0,0,{$overlay}) 0%, rgba(0,0,0," . ($overlay * 0.5) . ") 60%, rgba(0,0,0,0) 100%), center/cover no-repeat url('{$img}')"
-        : $banner->gradient();
-    $btnClass = match ($banner->cta_variant) {
+
+    // Height + typography come from the design-token scale (gobuy.css :root) so
+    // banners share one fluid type system with the rest of the storefront.
+    $height = in_array($banner->height, ['sm', 'md', 'lg'], true) ? $banner->height : 'md';
+    $titleSize = in_array($banner->title_size, ['sm', 'md', 'lg'], true) ? $banner->title_size : 'md';
+
+    // Content placement + the matching legibility-scrim direction.
+    [$align, $scrimDir] = match ($banner->content_position ?? 'start') {
+        'center' => ['align-items-center text-center', 'to top'],
+        'end' => ['align-items-end text-end', '270deg'],
+        default => ['align-items-start', '90deg'],
+    };
+    $maxW = ($banner->content_position ?? 'start') === 'center' ? '90%' : '62%';
+
+    $scrim = $img
+        ? "linear-gradient({$scrimDir}, rgba(0,0,0,{$overlay}) 0%, rgba(0,0,0," . ($overlay * 0.55) . ") 45%, rgba(0,0,0,0) 100%)"
+        : null;
+
+    $btnStyle = match ($banner->cta_variant) {
         'primary' => 'btn-primary',
         'dark' => 'btn-dark',
         'outline' => 'btn-outline-light',
         default => 'btn-light',
     };
-    $minH = $banner->layout === 'grid' ? '180px' : '240px';
+    $btnSize = match ($banner->cta_size ?? 'md') { 'sm' => 'btn-sm', 'lg' => 'btn-lg', default => '' };
+    $btnRadius = match ($banner->cta_radius ?? 'pill') {
+        'rounded' => 'rounded-3',
+        'square' => 'rounded-0',
+        default => 'rounded-pill',
+    };
+
+    $hasCountdown = $banner->countdown_to && $banner->countdown_to->isFuture();
+    $bannerUrl = $banner->destinationUrl();
 @endphp
 
-<div {{ $attributes->merge(['class' => 'gb-banner rounded-3 overflow-hidden position-relative d-flex align-items-center']) }}
-     style="min-height: {{ $minH }}; background: {{ $bg }}; background-position: {{ $banner->focal_point }};">
-    <div class="p-5 p-md-6 position-relative" style="max-width: {{ $banner->layout === 'split' ? '58%' : '100%' }};">
-        @if ($banner->subtitle && $banner->layout !== 'grid')
-            <span class="badge {{ $banner->text_theme === 'dark' ? 'text-bg-light' : 'text-bg-dark' }} bg-opacity-50 mb-2">{{ \Illuminate\Support\Str::limit($banner->subtitle, 40) }}</span>
+<div {{ $attributes->merge(['class' => "gb-banner gb-banner--{$height} rounded-3 overflow-hidden position-relative d-flex {$align}"]) }}
+     @if (! $img) style="background: {{ $banner->gradient() }};" @endif>
+
+    {{-- Art-directed image layer: mobile crop on small screens, desktop otherwise. --}}
+    @if ($img)
+        <picture class="gb-banner__img">
+            @if ($mobileImg && $mobileImg !== $img)
+                <source media="(max-width: 575.98px)" srcset="{{ $mobileImg }}">
+            @endif
+            {{-- Above-fold banners (first section, first banner) use eager loading
+                 + fetchpriority=high to maximise LCP score. All others lazy-load. --}}
+            <img src="{{ $img }}"
+                 alt="{{ $banner->title }}"
+                 @if ($priority) loading="eager" fetchpriority="high" @else loading="lazy" @endif
+                 style="object-position: {{ $banner->focal_point ?: 'center' }}">
+        </picture>
+        <span class="gb-banner__scrim" style="background: {{ $scrim }};"></span>
+    @endif
+
+    @if ($banner->ribbon)
+        <span class="gb-banner__ribbon">{{ \Illuminate\Support\Str::limit($banner->ribbon, 18) }}</span>
+    @endif
+
+    <div class="gb-banner__content p-4 p-md-5" style="max-width: {{ $maxW }};">
+        @if ($banner->subtitle)
+            <span class="badge {{ $dark ? 'text-bg-light' : 'text-bg-dark' }} bg-opacity-50 mb-2">{{ \Illuminate\Support\Str::limit($banner->subtitle, 48) }}</span>
         @endif
-        <h2 class="fw-bolder mb-1 {{ $textClass }} {{ $banner->layout === 'grid' ? 'fs-4' : 'fs-2' }}">{{ $banner->title }}</h2>
-        @if ($banner->subtitle && $banner->layout === 'grid')
-            <p class="{{ $subClass }} fs-9 mb-3">{{ $banner->subtitle }}</p>
-        @elseif ($banner->subtitle)
-            <p class="{{ $subClass }} fs-7 mb-3">{{ $banner->subtitle }}</p>
+
+        <h2 class="gb-banner__title--{{ $titleSize }} fw-bolder mb-2 {{ $textClass }}">{{ $banner->title }}</h2>
+
+        @if ($hasCountdown)
+            {{-- role="timer" (implicit aria-live=off) — a ticking region must never
+                 announce every second; the label carries the human-readable end. --}}
+            <div class="gb-countdown {{ $subClass }} mb-2" role="timer"
+                 data-countdown="{{ $banner->countdown_to->toIso8601String() }}"
+                 aria-label="Offer ends {{ $banner->countdown_to->format('M j, g:i A') }}"></div>
         @endif
-        @if ($banner->link_url)
-            <a class="btn {{ $btnClass }} rounded-pill {{ $banner->layout === 'grid' ? 'btn-sm' : '' }}" href="{{ $banner->link_url }}">{{ $banner->cta_label ?: 'Shop now' }}</a>
+
+        @if ($bannerUrl)
+            <a class="btn {{ $btnStyle }} {{ $btnSize }} {{ $btnRadius }} fw-semibold" href="{{ $bannerUrl }}">{{ $banner->cta_label ?: 'Shop now' }}</a>
         @endif
     </div>
 </div>

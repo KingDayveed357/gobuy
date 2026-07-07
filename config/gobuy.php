@@ -29,6 +29,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Homepage merchandising cache
+    |--------------------------------------------------------------------------
+    |
+    | Seconds to cache the resolved homepage sections. Invalidated automatically
+    | when sections, collections or banners change. Set to 0 to disable (the test
+    | suite does, for deterministic assertions).
+    |
+    */
+
+    'homepage_cache_ttl' => (int) env('GOBUY_HOMEPAGE_CACHE_TTL', 300),
+
+    /*
+    |--------------------------------------------------------------------------
     | Inventory
     |--------------------------------------------------------------------------
     |

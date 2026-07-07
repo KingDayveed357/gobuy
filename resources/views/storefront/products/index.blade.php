@@ -184,7 +184,8 @@
 
                     <div class="row gx-3 gy-6 mb-8 product-listing-grid">
                         @forelse ($products as $product)
-                            <div class="col-12 col-sm-6 col-md-4 col-xxl-2">
+                            {{-- Responsive columns: 1→2→3→4→5 across xs→sm→md→lg→xl --}}
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-3 col-xxl-2">
                                 <x-product-card :product="$product" />
                             </div>
                         @empty

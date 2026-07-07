@@ -60,4 +60,40 @@ class BannerManagementTest extends TestCase
 
         $this->get(route('home'))->assertOk()->assertSee('Split Banner');
     }
+
+    public function test_admin_can_create_a_banner_with_premium_options(): void
+    {
+        $this->post(route('admin.banners.store'), [
+            'title' => 'Flash Sale', 'placement' => 'home_hero', 'is_active' => 1,
+            'layout' => 'hero', 'theme' => 'amber', 'text_theme' => 'light',
+            'height' => 'lg', 'content_position' => 'center', 'title_size' => 'lg',
+            'cta_size' => 'lg', 'cta_radius' => 'square', 'ribbon' => '-40%',
+            'countdown_to' => now()->addDay()->format('Y-m-d\TH:i'),
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('banners', [
+            'title' => 'Flash Sale', 'height' => 'lg', 'content_position' => 'center',
+            'cta_radius' => 'square', 'ribbon' => '-40%',
+        ]);
+    }
+
+    public function test_an_invalid_premium_option_is_rejected(): void
+    {
+        $this->post(route('admin.banners.store'), [
+            'title' => 'Bad', 'placement' => 'home_hero', 'layout' => 'hero',
+            'theme' => 'indigo', 'text_theme' => 'light', 'height' => 'huge',
+        ])->assertSessionHasErrors('height');
+    }
+
+    public function test_ribbon_and_countdown_render_on_the_homepage(): void
+    {
+        Banner::create([
+            'title' => 'Ribbon Promo', 'placement' => 'home_hero', 'is_active' => true,
+            'ribbon' => 'HOT DEAL', 'countdown_to' => now()->addDay(),
+        ]);
+
+        $this->get(route('home'))->assertOk()
+            ->assertSee('HOT DEAL')
+            ->assertSee('gb-countdown', false); // live-timer element is present
+    }
 }

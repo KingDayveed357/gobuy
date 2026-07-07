@@ -24,6 +24,9 @@
     @include('partials.wishlist-script')
     @include('partials.cart-script')
     @include('partials.search-script')
+    @include('partials.countdown-script')
+    @include('partials.block-tracking-script')
+    @include('partials.reveal-script')
 
     {{-- Bridge: let any Livewire component raise a Toast via $this->dispatch('toast', type, message). --}}
     <script>

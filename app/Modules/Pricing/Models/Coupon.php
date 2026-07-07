@@ -26,6 +26,7 @@ class Coupon extends Model
         'expires_at',
         'usage_limit_total',
         'usage_limit_per_user',
+        'campaign_id',
     ];
 
     protected $attributes = [

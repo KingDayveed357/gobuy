@@ -12,6 +12,10 @@ use App\Modules\Inventory\Listeners\DeductInventoryForOrder;
 use App\Modules\Inventory\Listeners\ReleaseInventoryForOrder;
 use App\Modules\Inventory\Listeners\ReserveInventoryForOrder;
 use App\Modules\Logistics\Listeners\SyncShipmentToOrderStatus;
+use App\Modules\Marketing\Models\Banner;
+use App\Modules\Marketing\Models\HomepageSection;
+use App\Modules\Marketing\Models\ProductCollection;
+use App\Modules\Marketing\Services\HomepageMerchandiser;
 use App\Modules\Order\Enums\OrderStatus;
 use App\Modules\Order\Events\OrderCancelled;
 use App\Modules\Order\Events\OrderPaid;
@@ -59,6 +63,17 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(OrderCancelled::class, NotifyCustomerOfCancellation::class);
         Event::listen(OrderStatusChanged::class, SyncShipmentToOrderStatus::class);
         Event::listen(OrderStatusChanged::class, NotifyCustomerOfCompletion::class);
+
+        // Invalidate the cached page whenever its inputs change. A section clears
+        // its own page; banners/collections can appear on any page, so clear home
+        // (the only cached page — landing pages resolve fresh).
+        HomepageSection::saved(fn (HomepageSection $s) => HomepageMerchandiser::forget($s->placement ?? 'home'));
+        HomepageSection::deleted(fn (HomepageSection $s) => HomepageMerchandiser::forget($s->placement ?? 'home'));
+        $forgetHome = fn () => HomepageMerchandiser::forget();
+        ProductCollection::saved($forgetHome);
+        ProductCollection::deleted($forgetHome);
+        Banner::saved($forgetHome);
+        Banner::deleted($forgetHome);
 
         Order::updated(function (Order $order) {
             if ($order->wasChanged('status') && $order->status === OrderStatus::Cancelled) {

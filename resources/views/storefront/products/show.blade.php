@@ -116,8 +116,28 @@
             cursor: zoom-in;
             transition: transform 0.2s;
         }
-        #pd-main-image:hover {
+        #pd-main-image:not(.pd-main-image-animate):hover {
             transform: scale(1.02);
+        }
+        .pd-main-image-animate {
+            transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.22s ease-in-out !important;
+            pointer-events: none;
+        }
+        .slide-out-left {
+            transform: translateX(-40px) scale(0.95) !important;
+            opacity: 0 !important;
+        }
+        .slide-out-right {
+            transform: translateX(40px) scale(0.95) !important;
+            opacity: 0 !important;
+        }
+        .slide-in-left {
+            transform: translateX(-40px) scale(0.95) !important;
+            opacity: 0 !important;
+        }
+        .slide-in-right {
+            transform: translateX(40px) scale(0.95) !important;
+            opacity: 0 !important;
         }
         /* Custom UI Info button in toolbar */
         .pswp__button--info-btn {
@@ -157,7 +177,7 @@
                             @endif
                         </div>
                         <div class="col-12 col-md-10 col-lg-12 col-xl-10">
-                            <div class="d-flex align-items-center border border-translucent rounded-3 text-center p-5 h-100" style="min-height: 360px;">
+                            <div class="d-flex align-items-center border border-translucent rounded-3 text-center p-5 h-100 overflow-hidden position-relative" style="min-height: 360px;">
                                 <img id="pd-main-image" class="img-fluid" style="max-height: 360px; object-fit: contain; width: 100%;" src="{{ $product->imageUrl() }}" alt="{{ $product->name }}">
                             </div>
                         </div>
@@ -204,8 +224,8 @@
                                 @endif
                             </div>
 
-                            @auth
-                                @if (auth()->user()->isWholesale())
+                            @auth('web')
+                                @if (auth('web')->user()->isWholesale())
                                     <div class="alert alert-subtle-info fs-9 py-2 mb-2">Wholesale pricing is applied to your account.</div>
                                 @endif
                             @endauth
@@ -443,14 +463,50 @@
 
             document.querySelectorAll('.pd-thumb').forEach(function (btn, index) {
                 btn.addEventListener('click', function () {
-                    main.src = btn.getAttribute('data-full');
+                    if (index === currentIndex) return;
+
+                    var direction = index > currentIndex ? 'left' : 'right';
                     currentIndex = index;
+
                     document.querySelectorAll('.pd-thumb').forEach(function (b) {
                         b.classList.remove('border-primary');
                         b.classList.add('border-translucent');
                     });
                     btn.classList.remove('border-translucent');
                     btn.classList.add('border-primary');
+
+                    // Start slide-out
+                    main.classList.add('pd-main-image-animate');
+                    if (direction === 'left') {
+                        main.classList.add('slide-out-left');
+                    } else {
+                        main.classList.add('slide-out-right');
+                    }
+
+                    setTimeout(function () {
+                        // Swap image src
+                        main.src = btn.getAttribute('data-full');
+
+                        // Reset position off-stage instantly
+                        main.classList.remove('pd-main-image-animate', 'slide-out-left', 'slide-out-right');
+                        if (direction === 'left') {
+                            main.classList.add('slide-in-right');
+                        } else {
+                            main.classList.add('slide-in-left');
+                        }
+
+                        // Force reflow
+                        main.offsetHeight;
+
+                        // Slide-in to center
+                        main.classList.add('pd-main-image-animate');
+                        main.classList.remove('slide-in-right', 'slide-in-left');
+
+                        // Clean up animation tags after transition completes
+                        setTimeout(function () {
+                            main.classList.remove('pd-main-image-animate');
+                        }, 220);
+                    }, 220);
                 });
             });
 

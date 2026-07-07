@@ -30,10 +30,11 @@
             </div>
             <div class="col-6 col-md-3">
                 <h6 class="mb-3">Stay updated</h6>
-                <div class="input-group">
-                    <input class="form-control form-control-sm" type="email" placeholder="Email address">
-                    <button class="btn btn-sm btn-primary" type="button">Subscribe</button>
-                </div>
+                <form method="POST" action="{{ route('newsletter.store') }}" class="input-group">
+                    @csrf
+                    <input class="form-control form-control-sm" type="email" name="email" required placeholder="Email address">
+                    <button class="btn btn-sm btn-primary" type="submit">Subscribe</button>
+                </form>
             </div>
         </div>
     </div>

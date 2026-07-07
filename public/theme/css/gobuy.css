@@ -2,6 +2,34 @@
    gobuy custom premium styles (loaded after the Phoenix theme)
    ============================================================ */
 
+/* ---------- Design tokens ----------
+   Single source of truth for rhythm, motion, display type and
+   elevation. Every gb-* component reads these — change a token,
+   change the whole storefront consistently. */
+:root {
+  /* Vertical rhythm between merchandising sections */
+  --gb-section-gap: clamp(2.75rem, 6vw, 4.5rem);
+
+  /* Motion */
+  --gb-motion-fast: 0.18s;
+  --gb-motion-slow: 0.5s;
+  --gb-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  /* Fluid display type scale (banner / hero headlines) */
+  --gb-display-sm: clamp(1.1rem, 2.6vw, 1.6rem);
+  --gb-display-md: clamp(1.35rem, 3.6vw, 2.25rem);
+  --gb-display-lg: clamp(1.6rem, 5vw, 3rem);
+
+  /* Banner height scale */
+  --gb-hero-h-sm: clamp(140px, 22vw, 220px);
+  --gb-hero-h-md: clamp(190px, 30vw, 340px);
+  --gb-hero-h-lg: clamp(240px, 40vw, 460px);
+
+  /* Elevation */
+  --gb-shadow-lift: 0 14px 30px rgba(0, 0, 0, 0.1);
+  --gb-shadow-pop: 0 12px 26px rgba(0, 0, 0, 0.14);
+}
+
 /* ---------- Category strip ---------- */
 .gb-category-strip {
   display: flex;
@@ -28,11 +56,11 @@
   color: var(--phoenix-primary);
   background: var(--phoenix-primary-bg-subtle);
   border: 1px solid var(--phoenix-border-color-translucent);
-  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  transition: transform var(--gb-motion-fast) var(--gb-ease), box-shadow var(--gb-motion-fast) var(--gb-ease), background var(--gb-motion-fast) var(--gb-ease);
 }
 .gb-category-item:hover .gb-category-tile {
   transform: translateY(-4px);
-  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.14);
+  box-shadow: var(--gb-shadow-pop);
   background: var(--phoenix-primary);
   color: #fff;
 }
@@ -44,40 +72,170 @@
 }
 
 /* ---------- Banners: consistent heights + cover ---------- */
-.gb-banner-tall { min-height: 240px; }
-.gb-banner-wide { min-height: 210px; }
-.gb-banner-tall .bg-holder,
-.gb-banner-wide .bg-holder {
-  background-size: cover;
-  background-position: center;
+/* ---------- Premium admin-managed banner (x-banner) ---------- */
+.gb-banner {
+  isolation: isolate;
 }
-.gb-banner-img {
-  max-height: 170px;
-  width: auto;
-  object-fit: contain;
+.gb-banner--sm { min-height: var(--gb-hero-h-sm); }
+.gb-banner--md { min-height: var(--gb-hero-h-md); }
+.gb-banner--lg { min-height: var(--gb-hero-h-lg); }
+.gb-banner__title--sm { font-size: var(--gb-display-sm); }
+.gb-banner__title--md { font-size: var(--gb-display-md); }
+.gb-banner__title--lg { font-size: var(--gb-display-lg); }
+.gb-banner__img,
+.gb-banner__img img,
+.gb-banner__scrim {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
 }
-
-/* ---------- Promo banner (image-free, premium) ---------- */
-.gb-promo {
+.gb-banner__img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.gb-banner__content {
   position: relative;
-  overflow: hidden;
-  border-radius: 1.25rem;
-  color: #fff;
-  background:
-    radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.16) 0%, transparent 42%),
-    linear-gradient(120deg, #4f46e5 0%, #7c3aed 52%, #2563eb 100%);
-  box-shadow: 0 18px 40px rgba(37, 99, 235, 0.28);
+  z-index: 1;
+  width: 100%;
 }
-.gb-promo .gb-promo-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  background: rgba(255, 255, 255, 0.18);
+.gb-banner__content h2 {
+  line-height: 1.1;
+  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.28);
+}
+.gb-banner__ribbon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  background: #e63757;
   color: #fff;
   font-weight: 700;
-  font-size: 0.78rem;
-  padding: 0.35rem 0.8rem;
-  border-radius: 999px;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  padding: 0.3rem 1.4rem;
+  transform: translate(28%, 55%) rotate(45deg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+.gb-countdown {
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(0.85rem, 1.6vw, 1.05rem);
+}
+
+/* ---------- Draft preview ribbon ---------- */
+.gb-preview-ribbon {
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+  background: repeating-linear-gradient(45deg, #f5803e, #f5803e 12px, #e8722f 12px, #e8722f 24px);
+  color: #fff;
+  letter-spacing: 0.01em;
+}
+
+/* ---------- Flash-sale (countdown deal) section ---------- */
+.gb-flash-bar {
+  background: linear-gradient(90deg, #e63757 0%, #f5803e 100%);
+  color: #fff;
+}
+.gb-flash-bar .fa-bolt { color: #ffe066; }
+.gb-flash-countdown {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+.gb-urgency .progress { background: rgba(230, 55, 87, 0.15); }
+
+/* ---------- Phase 5 polish: image category tiles + micro-interactions ---------- */
+.gb-category-tile--image {
+  width: 4.5rem;
+  height: 4.5rem;
+  padding: 0;
+  overflow: hidden;
+  background: var(--phoenix-body-highlight-bg, #fff);
+}
+.gb-category-tile--image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.gb-category-item:hover .gb-category-tile--image {
+  background: var(--phoenix-body-highlight-bg, #fff);
+  color: inherit;
+}
+
+/* Product-card hover lift (subtle, GPU-friendly). */
+.product-card-container {
+  transition: transform var(--gb-motion-fast) var(--gb-ease), box-shadow var(--gb-motion-fast) var(--gb-ease);
+}
+.product-card-container:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--gb-shadow-lift);
+}
+
+/* Section rhythm + gentle fade/rise on first paint. */
+.gb-merch-section {
+  margin-bottom: var(--gb-section-gap);
+}
+
+/* ---------- Scroll reveal (M7 motion) ----------
+   Blocks ease in as they enter the viewport. Guarded by html.js so no-JS users
+   always see content, and by prefers-reduced-motion so it respects the OS. */
+@media (prefers-reduced-motion: no-preference) {
+  html.js .gb-reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity var(--gb-motion-slow) var(--gb-ease), transform var(--gb-motion-slow) var(--gb-ease);
+    will-change: opacity, transform;
+  }
+  html.js .gb-reveal.gb-reveal--in {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- Editorial (story) blocks ---------- */
+.gb-editorial {
+  background: var(--phoenix-body-highlight-bg, rgba(0, 0, 0, 0.02));
+  border: 1px solid var(--phoenix-border-color-translucent);
+}
+.gb-editorial--accent {
+  background: var(--phoenix-primary);
+  border: 0;
+  color: #fff;
+}
+.gb-editorial--accent .gb-editorial__eyebrow,
+.gb-editorial--accent .gb-editorial__body { color: rgba(255, 255, 255, 0.9) !important; }
+.gb-editorial--accent .btn-primary { background: #fff; border-color: #fff; color: var(--phoenix-primary); }
+.gb-editorial__eyebrow { letter-spacing: 0.12em; color: var(--phoenix-primary); }
+
+.gb-editorial-media {
+  border: 1px solid var(--phoenix-border-color-translucent);
+  background: var(--phoenix-body-bg);
+  box-shadow: var(--gb-shadow-lift);
+}
+.gb-editorial-media__figure {
+  min-height: 240px;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--phoenix-body-highlight-bg, #eef0f3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--phoenix-quaternary-color);
+  font-size: 2rem;
+}
+@media (min-width: 768px) {
+  .gb-editorial-media__figure { min-height: 340px; }
+}
+
+/* Horizontal-scroll affordance: fade the trailing edge on viewports where the
+   carousel arrows are hidden, hinting there is more content to swipe. */
+@media (max-width: 991.98px) {
+  .gb-category-strip,
+  .gb-merch-section .swiper {
+    mask-image: linear-gradient(90deg, #000 calc(100% - 2.25rem), transparent);
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 2.25rem), transparent);
+  }
 }
 
 /* ---------- Product carousel arrows ---------- */
@@ -178,12 +336,16 @@
 
 /* ---------- Product filter page: Phoenix template glue ---------- */
 .gb-template-product-media {
-  height: 13.25rem;
+  /* Uniform 1:1 aspect-ratio box — all product images occupy identical space
+     regardless of whether the source is landscape, portrait, or square.
+     object-fit:contain keeps the full image visible with no cropping. */
+  aspect-ratio: 1 / 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: 0.75rem;
   overflow: hidden;
+  background: var(--phoenix-body-highlight-bg, rgba(0,0,0,0.02));
 }
 
 .gb-template-product-media img {
@@ -682,3 +844,225 @@ nav[aria-label="Category and page links"] .container-small > div::-webkit-scroll
 
 /* Progressive enhancement: hide no-JS-only controls when JS is available. */
 .js [data-js-hidden] { display: none !important; }
+
+/* =====================================================================
+   Skeleton Loaders — CLS-free loading states for product carousels.
+   Dimensions match the final card so there is zero layout shift.
+   ===================================================================== */
+@keyframes gbShimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
+}
+
+.gb-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--phoenix-body-highlight-bg, #eef0f3) 25%,
+    var(--phoenix-body-bg, #f8f9fa) 37%,
+    var(--phoenix-body-highlight-bg, #eef0f3) 63%
+  );
+  background-size: 1200px 100%;
+  animation: gbShimmer 1.5s ease-in-out infinite;
+  border-radius: 0.5rem;
+}
+
+.gb-skeleton-card {
+  border: 1px solid var(--phoenix-border-color-translucent);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  padding: 0.5rem;
+  height: 100%;
+}
+
+.gb-skeleton-img {
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  border-radius: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.gb-skeleton-line {
+  height: 0.85rem;
+  border-radius: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.gb-skeleton-line--short { width: 55%; }
+.gb-skeleton-line--medium { width: 75%; }
+.gb-skeleton-line--long { width: 100%; }
+
+.gb-skeleton-btn {
+  height: 2.25rem;
+  border-radius: 0.375rem;
+  width: 100%;
+  margin-top: 0.75rem;
+}
+
+/* Swiper skeleton wrapper — pre-occupies carousel space before Swiper init */
+.gb-swiper-skeleton {
+  display: flex;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.gb-swiper-skeleton > .gb-skeleton-card {
+  flex: 0 0 calc(50% - 6px);
+}
+
+@media (min-width: 576px) {
+  .gb-swiper-skeleton > .gb-skeleton-card { flex: 0 0 calc(44% - 6px); }
+}
+@media (min-width: 768px) {
+  .gb-swiper-skeleton > .gb-skeleton-card { flex: 0 0 calc(32% - 6px); }
+}
+@media (min-width: 992px) {
+  .gb-swiper-skeleton > .gb-skeleton-card { flex: 0 0 calc(25% - 6px); }
+}
+@media (min-width: 1200px) {
+  .gb-swiper-skeleton > .gb-skeleton-card { flex: 0 0 calc(19.5% - 6px); }
+}
+
+/* Hide skeleton once Swiper has initialised */
+.swiper-initialized + .gb-swiper-skeleton,
+.gb-swiper-skeleton[data-swiper-done] {
+  display: none;
+}
+
+/* ---------- ProductGrid equal-height cards in grid sections ---------- */
+.gb-merch-section .row > [class*='col-'] {
+  display: flex;
+  flex-direction: column;
+}
+
+.gb-merch-section .row > [class*='col-'] > * {
+  flex: 1;
+}
+
+/* ---------- Section type visual differentiation ---------- */
+/* ProductRail gets a subtle bolt icon styling via the header — no
+   background change, just a colour accent on the title already present */
+
+/* ---------- CategoryGrid — desktop scroll affordance ---------- */
+.gb-category-strip-wrap {
+  position: relative;
+}
+
+/* =====================================================================
+   EditorialMedia — proper <img> rendering (replacing background-image)
+   ===================================================================== */
+.gb-editorial-media__figure {
+  position: relative;
+  overflow: hidden;
+  min-height: 250px;
+}
+@media (min-width: 768px) {
+  .gb-editorial-media__figure {
+    min-height: 250px;
+  }
+}
+@media (min-width: 1200px) {
+  .gb-editorial-media__figure {
+    min-height: 300px;
+  }
+}
+
+.gb-editorial-media__figure img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+/* Placeholder when no image is uploaded */
+.gb-editorial-media__figure--empty {
+  background: var(--phoenix-body-highlight-bg, #eef0f3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--phoenix-quaternary-color);
+  font-size: 2.5rem;
+}
+
+/* =====================================================================
+   Flash Sale — product badge overlay
+   ===================================================================== */
+.gb-sale-badge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 3;
+  background: linear-gradient(90deg, #e63757, #f5803e);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+/* =====================================================================
+   Brand Rail — premium treatment
+   ===================================================================== */
+.gb-brand-rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  align-items: center;
+}
+
+.gb-brand-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--phoenix-border-color-translucent);
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--phoenix-secondary-color);
+  text-decoration: none;
+  background: var(--phoenix-body-bg);
+  transition: border-color var(--gb-motion-fast) var(--gb-ease),
+              background var(--gb-motion-fast) var(--gb-ease),
+              color var(--gb-motion-fast) var(--gb-ease),
+              box-shadow var(--gb-motion-fast) var(--gb-ease);
+}
+
+.gb-brand-pill:hover,
+.gb-brand-pill:focus {
+  border-color: var(--phoenix-primary);
+  color: var(--phoenix-primary);
+  background: var(--phoenix-primary-bg-subtle);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* =====================================================================
+   Section Vertical Rhythm
+   Standardised spacing between merchandising sections.
+   Overrides the default theme <section> padding to prevent huge gaps.
+   ===================================================================== */
+.gb-merch-section {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  margin-bottom: 2rem;
+}
+@media (min-width: 768px) {
+  .gb-merch-section {
+    margin-bottom: 3rem;
+  }
+}
+@media (min-width: 1200px) {
+  .gb-merch-section {
+    margin-bottom: 4rem;
+  }
+}
+
+.gb-merch-section:last-child {
+  margin-bottom: 0;
+}
