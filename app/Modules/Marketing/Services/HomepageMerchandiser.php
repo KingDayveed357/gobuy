@@ -95,9 +95,7 @@ class HomepageMerchandiser
     private function itemsFor(HomepageSection $section): Collection
     {
         return match ($section->type) {
-            SectionType::BannerRow => Banner::query()->live()
-                ->placement($section->source_ref ?: 'home_hero')
-                ->orderBy('sort_order')->get(),
+            SectionType::BannerRow => $this->banners($section),
             SectionType::CategoryGrid => $this->categories($section),
             SectionType::BrandRail => Brand::query()->where('is_active', true)
                 ->orderBy('name')->take($section->item_limit)->get(),
@@ -105,6 +103,27 @@ class HomepageMerchandiser
             // Editorial blocks render from their own `settings`, not a collection.
             SectionType::RichText, SectionType::EditorialMedia => collect(),
         };
+    }
+
+    /**
+     * Banners for a banner-row block. Prefers the block's own ordered list of
+     * specific banners (settings.banner_ids); falls back to the legacy placement
+     * bucket for rows configured before direct references existed.
+     */
+    private function banners(HomepageSection $section): Collection
+    {
+        $ids = $section->bannerIds();
+
+        if ($ids !== []) {
+            $live = Banner::query()->live()->whereIn('id', $ids)->get()->keyBy('id');
+
+            // Preserve the admin-chosen order; drop any that are no longer live.
+            return collect($ids)->map(fn (int $id) => $live->get($id))->filter()->values();
+        }
+
+        return Banner::query()->live()
+            ->placement($section->source_ref ?: 'home_hero')
+            ->orderBy('sort_order')->get();
     }
 
     private function categories(HomepageSection $section): Collection

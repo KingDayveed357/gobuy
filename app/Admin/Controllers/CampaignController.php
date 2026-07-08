@@ -3,15 +3,9 @@
 namespace App\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Marketing\Models\Banner;
 use App\Modules\Marketing\Models\Campaign;
-use App\Modules\Marketing\Models\HomepageSection;
-use App\Modules\Marketing\Services\BlockAnalytics;
 use App\Modules\Marketing\Services\CampaignService;
-use App\Modules\Pricing\Models\Coupon;
-use App\Modules\Pricing\Models\PromotionalPrice;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -48,20 +42,10 @@ class CampaignController extends Controller
             ->with('status', 'Campaign scaffolded from template — review the drafts, then launch.');
     }
 
-    public function show(Campaign $campaign, BlockAnalytics $analytics): View
+    public function show(Campaign $campaign): View
     {
-        $campaign->load(['page', 'sections', 'banners', 'coupons', 'promotionalPrices']);
-
-        return view('admin.campaigns.show', [
-            'campaign' => $campaign,
-            'analytics' => $analytics->forCampaign($campaign),
-            'candidates' => [
-                'section' => HomepageSection::whereNull('campaign_id')->orderBy('title')->get(['id', 'title']),
-                'banner' => Banner::whereNull('campaign_id')->orderBy('title')->get(['id', 'title']),
-                'coupon' => Coupon::whereNull('campaign_id')->orderBy('code')->get(['id', 'code']),
-                'promo' => PromotionalPrice::whereNull('campaign_id')->latest()->get(['id', 'label']),
-            ],
-        ]);
+        // The page is a thin shell; the reactive editor (Livewire) owns the UI.
+        return view('admin.campaigns.show', ['campaign' => $campaign]);
     }
 
     public function update(Request $request, Campaign $campaign): RedirectResponse
@@ -99,7 +83,7 @@ class CampaignController extends Controller
             'member_id' => ['required', 'integer'],
         ]);
 
-        $this->memberModel($data['member_type'])::whereKey($data['member_id'])->update(['campaign_id' => $campaign->id]);
+        $this->campaigns->attachMember($campaign, $data['member_type'], (int) $data['member_id']);
 
         return back()->with('status', 'Added to campaign.');
     }
@@ -111,24 +95,9 @@ class CampaignController extends Controller
             'member_id' => ['required', 'integer'],
         ]);
 
-        $this->memberModel($data['member_type'])::whereKey($data['member_id'])
-            ->where('campaign_id', $campaign->id)
-            ->update(['campaign_id' => null]);
+        $this->campaigns->detachMember($campaign, $data['member_type'], (int) $data['member_id']);
 
         return back()->with('status', 'Removed from campaign.');
-    }
-
-    /**
-     * @return class-string<Model>
-     */
-    private function memberModel(string $type): string
-    {
-        return match ($type) {
-            'section' => HomepageSection::class,
-            'banner' => Banner::class,
-            'coupon' => Coupon::class,
-            'promo' => PromotionalPrice::class,
-        };
     }
 
     /**

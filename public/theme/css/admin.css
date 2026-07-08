@@ -276,3 +276,72 @@ html.navbar-vertical-collapsed .navbar-vertical-toggle-icon {
 .admin-perm-row { transition: background-color .12s ease; }
 .admin-perm-row:hover { background-color: var(--phoenix-secondary-bg-subtle, rgba(125,125,125,.06)); }
 .admin-avatar { width: 2.25rem; height: 2.25rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: .8rem; flex-shrink: 0; }
+
+/* ============================================================
+   MX4 — Campaign editor (Livewire)
+   ============================================================ */
+.gb-campaign-bar {
+  position: sticky;
+  top: 4.3125rem; /* clears the fixed admin top navbar */
+  z-index: 1020;
+  background: var(--phoenix-body-bg);
+  border: 1px solid var(--phoenix-border-color-translucent);
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+}
+
+.gb-stat-tile {
+  border: 1px solid var(--phoenix-border-color-translucent);
+  border-radius: 0.75rem;
+  padding: 0.85rem 1rem;
+  height: 100%;
+  background: var(--phoenix-body-bg);
+}
+.gb-stat-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--phoenix-tertiary-color);
+  margin-bottom: 0.15rem;
+}
+.gb-stat-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+/* Landing-page block chips (read-only preview of the page's layout) */
+.gb-block-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 100%;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--phoenix-border-color-translucent);
+  border-radius: 2rem;
+  background: var(--phoenix-secondary-bg-subtle, rgba(125, 125, 125, 0.05));
+}
+
+/* Lever cards: bundled members + inline add */
+.gb-lever-item {
+  padding: 0.4rem 0;
+  border-bottom: 1px dashed var(--phoenix-border-color-translucent);
+}
+.gb-lever-item:last-of-type { border-bottom: 0; }
+
+.gb-lever-candidates {
+  max-height: 11rem;
+  overflow-y: auto;
+}
+.gb-lever-add {
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.375rem;
+  color: inherit;
+}
+.gb-lever-add:hover {
+  background: var(--phoenix-primary-bg-subtle, rgba(56, 116, 255, 0.08));
+}

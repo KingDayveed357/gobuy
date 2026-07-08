@@ -4,7 +4,7 @@
 @section('page-title', 'Pages')
 
 @section('content')
-    <x-admin.page-header title="Storefront pages" subtitle="The homepage and campaign landing pages — each built from merchandising sections.">
+    <x-admin.page-header title="Storefront pages" subtitle="The homepage and campaign landing pages — each built from content blocks.">
         <x-slot:actions>
             <button type="button" class="btn btn-primary btn-sm" id="btnNewPage"><span class="fas fa-plus me-1"></span>New page</button>
         </x-slot:actions>
@@ -30,7 +30,7 @@
                             <td><span class="badge badge-phoenix {{ $page->isPublished() ? 'badge-phoenix-success' : 'badge-phoenix-warning' }}">{{ ucfirst($page->status) }}</span></td>
                             <td class="text-end">
                                 <div class="table-actions justify-content-end">
-                                    <a href="{{ route('admin.merchandising.index', ['page' => $page->slug]) }}" class="btn btn-sm btn-phoenix-primary">Manage sections</a>
+                                    <a href="{{ route('admin.merchandising.index', ['page' => $page->slug]) }}" class="btn btn-sm btn-phoenix-primary">Edit content</a>
                                     <a href="{{ $page->url() }}" target="_blank" class="btn btn-sm btn-phoenix-secondary" title="View live"><span class="fas fa-external-link"></span></a>
                                     @unless ($page->isHome())
                                         <button type="button" class="btn btn-sm btn-phoenix-secondary js-edit-page"

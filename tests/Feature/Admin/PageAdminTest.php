@@ -55,6 +55,7 @@ class PageAdminTest extends TestCase
     public function test_sections_created_in_the_builder_belong_to_the_selected_page(): void
     {
         Page::create(['title' => 'Promo Page', 'slug' => 'promo-page', 'status' => 'published']);
+        \App\Modules\Catalog\Models\Product::factory()->stock(5)->create(); // so the rail resolves & can publish
 
         $this->post(route('admin.merchandising.store'), [
             'type' => 'product_grid', 'source' => 'latest', 'title' => 'Promo Rail',

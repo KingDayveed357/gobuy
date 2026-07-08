@@ -3,9 +3,13 @@
 namespace App\Modules\Marketing\Services;
 
 use App\Modules\Marketing\Enums\SectionStatus;
+use App\Modules\Marketing\Models\Banner;
 use App\Modules\Marketing\Models\Campaign;
 use App\Modules\Marketing\Models\HomepageSection;
 use App\Modules\Marketing\Models\Page;
+use App\Modules\Pricing\Models\Coupon;
+use App\Modules\Pricing\Models\PromotionalPrice;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -95,6 +99,36 @@ class CampaignService
 
             return $campaign;
         });
+    }
+
+    /** Member kinds that can be tagged to a campaign. */
+    public const MEMBER_TYPES = ['section', 'banner', 'coupon', 'promo'];
+
+    /** Tag a library entity (banner/coupon/promo/section) to this campaign. */
+    public function attachMember(Campaign $campaign, string $type, int $memberId): void
+    {
+        $this->memberModel($type)::whereKey($memberId)->update(['campaign_id' => $campaign->id]);
+    }
+
+    /** Untag a member — it survives, just no longer coordinated by this campaign. */
+    public function detachMember(Campaign $campaign, string $type, int $memberId): void
+    {
+        $this->memberModel($type)::whereKey($memberId)
+            ->where('campaign_id', $campaign->id)
+            ->update(['campaign_id' => null]);
+    }
+
+    /**
+     * @return class-string<Model>
+     */
+    public function memberModel(string $type): string
+    {
+        return match ($type) {
+            'section' => HomepageSection::class,
+            'banner' => Banner::class,
+            'coupon' => Coupon::class,
+            'promo' => PromotionalPrice::class,
+        };
     }
 
     private function flush(Campaign $campaign): void

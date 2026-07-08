@@ -39,6 +39,7 @@
             function go(term) { recentAdd(term); window.location = PRODUCTS_URL + '?q=' + encodeURIComponent(term); }
 
             function renderIdle() {
+                panel.classList.remove('gb-search-loading');
                 var recent = recentGet();
                 var html = '';
                 if (recent.length) {
@@ -55,8 +56,28 @@
                 return '<a href="#" class="dropdown-item d-flex align-items-center gap-2 fs-9" data-gb-item data-gb-term="' + esc(term) + '"><span class="fas fa-clock-rotate-left text-body-tertiary fs-10"></span>' + esc(term) + '</a>';
             }
 
+            // MX3: loading feedback while the suggestion request is in flight.
+            // Skeleton rows on a cold panel; a top progress shimmer when we
+            // already have results to keep (stale-while-revalidate — no flicker).
+            function beginSearch() {
+                if (!panel.querySelector('[data-gb-item]')) {
+                    var html = '<h6 class="dropdown-header">Products</h6>';
+                    for (var i = 0; i < 3; i++) {
+                        html += '<div class="dropdown-item d-flex align-items-center gap-2 py-2" aria-hidden="true">'
+                            + '<span class="gb-skeleton flex-shrink-0" style="width:34px;height:34px;border-radius:.25rem"></span>'
+                            + '<span class="flex-grow-1"><span class="gb-skeleton d-block mb-1" style="height:.7rem;width:70%"></span>'
+                            + '<span class="gb-skeleton d-block" style="height:.6rem;width:40%"></span></span></div>';
+                    }
+                    panel.innerHTML = html;
+                } else {
+                    panel.classList.add('gb-search-loading');
+                }
+                open();
+            }
+
             function renderResults(data) {
                 var q = data.query;
+                panel.classList.remove('gb-search-loading');
                 var html = '';
                 if (data.products.length) {
                     html += '<h6 class="dropdown-header">Products</h6>';
@@ -77,13 +98,13 @@
                 fetch(SUGGEST_URL + '?q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } })
                     .then(function (r) { return r.json(); })
                     .then(function (d) { if (input.value.trim() === q) { renderResults(d); } })
-                    .catch(function () {});
+                    .catch(function () { panel.classList.remove('gb-search-loading'); });
             }, 220);
 
             input.addEventListener('focus', function () { if (input.value.trim().length < 2) { renderIdle(); } });
             input.addEventListener('input', function () {
                 var q = input.value.trim();
-                if (q.length < 2) { renderIdle(); } else { fetchSuggest(q); }
+                if (q.length < 2) { renderIdle(); } else { beginSearch(); fetchSuggest(q); }
             });
             input.addEventListener('keydown', function (e) {
                 var list = items();

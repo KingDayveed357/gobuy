@@ -29,6 +29,18 @@
     <script src="{{ asset('theme/js/toast.js') }}"></script>
     <script src="{{ asset('theme/js/admin.js') }}"></script>
 
+    {{-- Bridge: any admin Livewire component can raise a Toast via $this->dispatch('toast', type, message). --}}
+    <script>
+        document.addEventListener('livewire:init', function () {
+            Livewire.on('toast', function (e) {
+                var p = Array.isArray(e) ? e[0] : e;
+                var type = (p && p.type) || 'info';
+                if (window.Toast && typeof Toast[type] === 'function') { Toast[type](p.message); }
+                else if (window.Toast) { Toast.info(p.message); }
+            });
+        });
+    </script>
+
     {{-- Trigger Premium Toast Notifications --}}
     @if(session('status'))
         <script>

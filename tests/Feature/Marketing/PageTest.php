@@ -3,6 +3,8 @@
 namespace Tests\Feature\Marketing;
 
 use App\Modules\Catalog\Models\Product;
+use App\Modules\Marketing\Models\Banner;
+use App\Modules\Marketing\Models\Campaign;
 use App\Modules\Marketing\Models\HomepageSection;
 use App\Modules\Marketing\Models\Page;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -41,6 +43,37 @@ class PageTest extends TestCase
 
         $preview = URL::temporarySignedRoute('storefront.preview', now()->addHour(), ['slug' => 'sneak']);
         $this->get($preview)->assertOk()->assertSee('Sneak Rail')->assertSee('Preview mode', false);
+    }
+
+    public function test_a_landing_page_has_seo_meta_and_breadcrumbs(): void
+    {
+        Page::create(['title' => 'Summer Sale', 'slug' => 'summer-sale', 'status' => 'published', 'meta_description' => 'Hot summer deals']);
+
+        $this->get('/p/summer-sale')->assertOk()
+            ->assertSee('<meta property="og:title" content="Summer Sale">', false)
+            ->assertSee('<meta property="og:type" content="website">', false)
+            ->assertSee('Hot summer deals')                 // meta description + hero lead
+            ->assertSee('"@type":"BreadcrumbList"', false)  // structured data
+            ->assertSee('aria-label="Breadcrumb"', false);  // visible breadcrumb
+    }
+
+    public function test_a_campaign_page_shows_a_branded_hero_and_a_creative_og_image(): void
+    {
+        $page = Page::create(['title' => 'Black Friday', 'slug' => 'black-friday', 'status' => 'published']);
+        Campaign::create(['name' => 'Black Friday', 'page_id' => $page->id, 'badge_text' => 'FLASH SALE', 'accent_color' => '#e63757']);
+
+        $banner = Banner::create(['title' => 'BF Hero', 'placement' => 'home_hero', 'is_active' => true]);
+        $banner->addMedia(public_path('theme/img/products/3.png'))->preservingOriginal()->toMediaCollection(Banner::MEDIA_IMAGE);
+        HomepageSection::create([
+            'placement' => 'black-friday', 'type' => 'banner_row', 'is_active' => true, 'status' => 'published',
+            'settings' => ['banner_ids' => [$banner->id]],
+        ]);
+
+        $response = $this->get('/p/black-friday')->assertOk();
+        $response->assertSee('gb-page-hero--branded', false)  // branded hero band
+            ->assertSee('FLASH SALE')                          // campaign badge
+            ->assertSee('<meta property="og:image"', false)   // derived from the banner creative
+            ->assertSee('twitter:card" content="summary_large_image"', false);
     }
 
     public function test_the_home_slug_is_not_served_as_a_landing_page(): void

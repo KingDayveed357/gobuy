@@ -131,4 +131,47 @@ class MerchandisingAdminTest extends TestCase
             'settings' => ['align' => 'diagonal'],
         ])->assertSessionHasErrors('settings.align');
     }
+
+    public function test_an_empty_block_cannot_be_published(): void
+    {
+        // An editorial block with no heading and no body would render blank —
+        // publishing it (published + visible) must be blocked with a reason.
+        $this->post(route('admin.merchandising.store'), [
+            'type' => 'rich_text', 'status' => 'published', 'is_active' => 1, 'settings' => [],
+        ])->assertSessionHasErrors('publish');
+
+        $this->assertDatabaseCount('homepage_sections', 0);
+    }
+
+    public function test_an_empty_block_can_still_be_saved_as_a_draft(): void
+    {
+        // Drafts are work-in-progress — incompleteness is allowed until publish.
+        $this->post(route('admin.merchandising.store'), [
+            'type' => 'rich_text', 'status' => 'draft', 'is_active' => 1, 'settings' => [],
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertDatabaseCount('homepage_sections', 1);
+    }
+
+    public function test_the_builder_flags_an_incomplete_section_contextually(): void
+    {
+        // A product rail with no source resolves to nothing — the canvas must
+        // warn the admin why, before they try to publish.
+        HomepageSection::create(['type' => 'product_grid', 'title' => 'No Source Rail', 'is_active' => true, 'status' => 'draft', 'placement' => 'home']);
+
+        $this->get(route('admin.merchandising.index'))->assertOk()
+            ->assertSee('Incomplete')
+            ->assertSee('where the products come from');
+    }
+
+    public function test_bulk_publish_skips_incomplete_drafts(): void
+    {
+        $complete = HomepageSection::create(['type' => 'rich_text', 'title' => 'Ready', 'is_active' => true, 'status' => 'draft']);
+        $incomplete = HomepageSection::create(['type' => 'rich_text', 'is_active' => true, 'status' => 'draft', 'settings' => []]);
+
+        $this->post(route('admin.merchandising.publish'))->assertRedirect();
+
+        $this->assertSame('published', $complete->fresh()->status->value);
+        $this->assertSame('draft', $incomplete->fresh()->status->value); // held back — nothing to show
+    }
 }

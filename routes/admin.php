@@ -139,6 +139,8 @@ Route::middleware(['auth:admin', 'admin.active', 'admin.activity'])->group(funct
 
         // Homepage banner CMS.
         Route::get('banners', [BannerController::class, 'index'])->name('banners.index');
+        Route::get('banners/search', [BannerController::class, 'search'])->name('banners.search');
+        Route::post('banners/quick', [BannerController::class, 'quickStore'])->name('banners.quick-store');
         Route::post('banners', [BannerController::class, 'store'])->name('banners.store');
         Route::put('banners/{banner}', [BannerController::class, 'update'])->name('banners.update');
         Route::delete('banners/{banner}', [BannerController::class, 'destroy'])->name('banners.destroy');

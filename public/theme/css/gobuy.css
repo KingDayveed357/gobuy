@@ -172,6 +172,30 @@
   opacity: 1;
 }
 
+/* ---------- MX5: landing-page hero opener ---------- */
+.gb-page-hero__lead {
+  max-width: 620px;
+}
+.gb-page-hero--branded {
+  --gb-page-accent: var(--phoenix-primary);
+  border-radius: 1rem;
+  padding: 2.75rem 1.5rem;
+  margin-top: 0.25rem;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--gb-page-accent) 13%, transparent), transparent 85%);
+}
+.gb-page-hero__badge {
+  display: inline-block;
+  background: var(--gb-page-accent, var(--phoenix-primary));
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.32rem 0.95rem;
+  border-radius: 2rem;
+  margin-bottom: 0.9rem;
+}
+
 /* ---------- Draft preview ribbon ---------- */
 .gb-preview-ribbon {
   position: sticky;
@@ -900,6 +924,7 @@ nav[aria-label="Category and page links"] .container-small > div::-webkit-scroll
   font-size: 0.85rem;
 }
 .gb-search-panel {
+  position: absolute !important;
   max-height: 70vh;
   overflow-y: auto;
   border-radius: 0.75rem;
@@ -992,6 +1017,31 @@ nav[aria-label="Category and page links"] .container-small > div::-webkit-scroll
 .swiper-initialized + .gb-swiper-skeleton,
 .gb-swiper-skeleton[data-swiper-done] {
   display: none;
+}
+
+/* MX3: predictive-search loading — a top progress shimmer shown while a
+   suggestion request is in flight over already-visible results (no flicker). */
+.gb-search-loading {
+  position: relative;
+}
+.gb-search-loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--phoenix-primary, #3874ff), transparent);
+  background-size: 40% 100%;
+  background-repeat: no-repeat;
+  animation: gbSearchBar 0.9s linear infinite;
+}
+@keyframes gbSearchBar {
+  0%   { background-position: -40% 0; }
+  100% { background-position: 140% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gb-search-loading::after { animation: none; opacity: 0.6; background-position: 50% 0; }
 }
 
 /* ---------- ProductGrid equal-height cards in grid sections ---------- */

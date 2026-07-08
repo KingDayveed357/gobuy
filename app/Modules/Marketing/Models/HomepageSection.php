@@ -46,6 +46,20 @@ class HomepageSection extends Model
         return data_get($this->settings, $key, $default);
     }
 
+    /**
+     * The ordered banner ids a banner-row block directly references.
+     *
+     * @return list<int>
+     */
+    public function bannerIds(): array
+    {
+        return collect($this->setting('banner_ids', []))
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->values()
+            ->all();
+    }
+
     /** Resolved "See all" URL — structured Link first, legacy cta_url fallback. */
     public function destinationUrl(): ?string
     {

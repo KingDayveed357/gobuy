@@ -8,23 +8,27 @@ use App\Modules\Catalog\Models\Category;
 use App\Modules\Marketing\Enums\SectionSource;
 use App\Modules\Marketing\Enums\SectionStatus;
 use App\Modules\Marketing\Enums\SectionType;
+use App\Modules\Marketing\Models\Banner;
 use App\Modules\Marketing\Models\HomepageSection;
 use App\Modules\Marketing\Models\Page;
 use App\Modules\Marketing\Models\ProductCollection;
 use App\Modules\Marketing\Services\BlockAnalytics;
 use App\Modules\Marketing\Services\HomepageMerchandiser;
 use App\Modules\Marketing\Services\LinkResolver;
+use App\Modules\Marketing\Services\SectionValidator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class MerchandisingController extends Controller
 {
-    public function index(Request $request, HomepageMerchandiser $merchandiser, BlockAnalytics $analytics): View
+    public function index(Request $request, HomepageMerchandiser $merchandiser, BlockAnalytics $analytics, SectionValidator $validator): View
     {
         $page = Page::where('slug', $request->query('page', Page::HOME))->firstOrFail();
         $sections = $page->sections()->orderBy('sort_order')->get();
@@ -34,6 +38,10 @@ class MerchandisingController extends Controller
             'sections' => $sections,
             // A live mini-preview (resolved items) per section for the canvas cards.
             'previews' => $sections->mapWithKeys(fn (HomepageSection $s) => [$s->id => $merchandiser->resolveSection($s)->items]),
+            // Publish-readiness problems per section — surfaced contextually on the card.
+            'problems' => $sections->mapWithKeys(fn (HomepageSection $s) => [$s->id => $validator->problems($s)]),
+            // The chosen banners (ordered, all states) per banner-row, for the picker on edit.
+            'bannerChoices' => $this->bannerChoices($sections),
             // Impression/click/CTR per section — closes the merchandising loop.
             'stats' => $analytics->forSections($sections->pluck('id')),
             'draftCount' => $page->sections()->where('status', SectionStatus::Draft->value)->count(),
@@ -46,18 +54,52 @@ class MerchandisingController extends Controller
         ]);
     }
 
-    /** Publish every draft section for a page, then flush the cache. */
-    public function publish(Request $request): RedirectResponse
+    /**
+     * The ordered, chosen banners (all states) for each banner-row section — so
+     * the picker can rehydrate on edit without an N+1 query per card.
+     *
+     * @param  Collection<int, HomepageSection>  $sections
+     * @return Collection<int, Collection<int, array<string, mixed>>>
+     */
+    private function bannerChoices(Collection $sections): Collection
+    {
+        $rows = $sections->filter(fn (HomepageSection $s) => $s->type === SectionType::BannerRow);
+        $banners = Banner::whereIn('id', $rows->flatMap->bannerIds()->unique())->get()->keyBy('id');
+
+        return $rows->mapWithKeys(fn (HomepageSection $s) => [$s->id => collect($s->bannerIds())
+            ->map(fn (int $id) => $banners->get($id))
+            ->filter()
+            ->map(fn (Banner $b) => ['id' => $b->id, 'title' => $b->title, 'thumb' => $b->imageUrl(), 'gradient' => $b->gradient(), 'live' => $b->isLive()])
+            ->values(),
+        ]);
+    }
+
+    /** Publish every complete draft section for a page; skip (and report) incomplete ones. */
+    public function publish(Request $request, SectionValidator $validator): RedirectResponse
     {
         $slug = $request->input('page', Page::HOME);
+        $drafts = HomepageSection::forPlacement($slug)->where('status', SectionStatus::Draft->value)->get();
 
-        $count = HomepageSection::forPlacement($slug)
-            ->where('status', SectionStatus::Draft->value)
-            ->update(['status' => SectionStatus::Published->value]);
+        $published = 0;
+        $skipped = [];
+
+        foreach ($drafts as $section) {
+            if ($validator->isPublishable($section)) {
+                $section->update(['status' => SectionStatus::Published->value]);
+                $published++;
+            } else {
+                $skipped[] = $section->title ?: '(untitled '.$section->type->label().')';
+            }
+        }
 
         HomepageMerchandiser::forget($slug);
 
-        return back()->with('status', $count > 0 ? "{$count} section(s) published and now live." : 'No drafts to publish.');
+        $message = $published > 0 ? "{$published} section(s) published and now live." : 'No sections were published.';
+        if ($skipped !== []) {
+            $message .= ' Skipped '.count($skipped).' incomplete: '.implode(', ', $skipped).'.';
+        }
+
+        return back()->with('status', $message);
     }
 
     /** Persist a drag-and-drop reorder (array of section ids in display order). */
@@ -77,18 +119,46 @@ class MerchandisingController extends Controller
         return response()->json(['ok' => true]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, SectionValidator $validator): RedirectResponse
     {
-        HomepageSection::create($this->validated($request));
+        $section = new HomepageSection($this->validated($request));
+        $this->guardPublishTransition($section, wasLive: false, validator: $validator);
+        $section->save();
 
         return back()->with('status', 'Section created.');
     }
 
-    public function update(Request $request, HomepageSection $section): RedirectResponse
+    public function update(Request $request, HomepageSection $section, SectionValidator $validator): RedirectResponse
     {
-        $section->update($this->validated($request));
+        $wasLive = $this->isLiveState($section);
+        $section->fill($this->validated($request));
+        $this->guardPublishTransition($section, $wasLive, $validator);
+        $section->save();
 
         return back()->with('status', 'Section updated.');
+    }
+
+    /** Publicly visible = published AND active. */
+    private function isLiveState(HomepageSection $section): bool
+    {
+        return $section->status === SectionStatus::Published && (bool) $section->is_active;
+    }
+
+    /**
+     * Block only the moment a block BECOMES publicly visible while incomplete —
+     * so you can freely edit an already-live block, but can't publish an empty
+     * one. Problems surface as contextual, field-free errors.
+     */
+    private function guardPublishTransition(HomepageSection $section, bool $wasLive, SectionValidator $validator): void
+    {
+        if ($wasLive || ! $this->isLiveState($section)) {
+            return;
+        }
+
+        $problems = $validator->problems($section);
+        if ($problems !== []) {
+            throw ValidationException::withMessages(['publish' => $problems]);
+        }
     }
 
     public function destroy(HomepageSection $section): RedirectResponse
@@ -143,6 +213,8 @@ class MerchandisingController extends Controller
             'settings.align' => ['nullable', Rule::in(['left', 'right', 'center', 'start'])],
             'settings.theme' => ['nullable', Rule::in(['default', 'accent'])],
             'settings.carousel' => ['nullable', 'in:0,1'], // banner_row: rotate in one slot
+            'settings.banner_ids' => ['nullable', 'array'], // banner_row: ordered, chosen banners
+            'settings.banner_ids.*' => ['integer', 'exists:banners,id'],
 
             'is_active' => ['boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],

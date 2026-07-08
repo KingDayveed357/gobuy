@@ -1,12 +1,13 @@
 @extends('admin.layouts.app')
 
 @use('App\Modules\Marketing\Enums\SectionType')
+@use('App\Modules\Marketing\Models\Banner')
 
-@section('title', 'Merchandising — gobuy admin')
-@section('page-title', 'Merchandising')
+@section('title', 'Page content — gobuy admin')
+@section('page-title', 'Page content')
 
 @section('content')
-    <x-admin.page-header :title="$page->isHome() ? 'Homepage merchandising' : $page->title.' — sections'" :subtitle="$page->isHome() ? 'Compose, order and schedule the storefront homepage — no developer required.' : 'Building the /p/'.$page->slug.' landing page.'">
+    <x-admin.page-header :title="$page->isHome() ? 'Homepage content' : $page->title.' — content'" :subtitle="$page->isHome() ? 'Compose, order and schedule what shoppers see on the homepage — no developer required.' : 'Building the /p/'.$page->slug.' landing page.'">
         <x-slot:actions>
             <a href="{{ route('admin.pages.index') }}" class="btn btn-phoenix-secondary btn-sm me-2"><span class="fas fa-chevron-left me-1"></span>Pages</a>
             <a href="{{ $previewUrl }}" target="_blank" class="btn btn-phoenix-info btn-sm me-2"><span class="fas fa-eye me-1"></span>Preview</a>
@@ -71,7 +72,18 @@
                             @if ($section->hasBrokenLink())
                                 <span class="badge badge-phoenix badge-phoenix-warning fs-10" title="The &quot;See all&quot; link target is no longer available"><span class="fas fa-link-slash"></span> Broken link</span>
                             @endif
+                            @php($sectionProblems = $problems[$section->id] ?? [])
+                            @if ($sectionProblems !== [])
+                                <span class="badge badge-phoenix badge-phoenix-danger fs-10" title="{{ implode(' ', $sectionProblems) }}"><span class="fas fa-triangle-exclamation me-1"></span>Incomplete</span>
+                            @endif
                         </div>
+
+                        @if ($sectionProblems !== [])
+                            <div class="alert alert-subtle-warning py-1 px-2 mb-2 fs-10 d-flex align-items-start gap-2">
+                                <span class="fas fa-circle-info mt-1"></span>
+                                <span>{{ $sectionProblems[0] }}@if (count($sectionProblems) > 1) <span class="text-body-tertiary">(+{{ count($sectionProblems) - 1 }} more)</span>@endif</span>
+                            </div>
+                        @endif
 
                         {{-- Live mini-preview of the block's content --}}
                         <div class="d-flex align-items-center gap-1 flex-wrap">
@@ -121,6 +133,7 @@
                                 'cta_url' => $section->cta_url,
                                 'cta_link' => $section->cta_link,
                                 'settings' => $section->settings,
+                                'banners' => $bannerChoices[$section->id] ?? [],
                                 'item_limit' => $section->item_limit,
                                 'sort_order' => $section->sort_order,
                                 'is_active' => $section->is_active ? 1 : 0,
@@ -234,13 +247,18 @@
                     </select>
                 </div>
 
-                {{-- Banner placement ref (banner row) --}}
-                <div class="mb-3 js-ref-placement" style="display:none;">
-                    <label class="form-label">Banner placement</label>
-                    <select class="form-select" name="source_ref" id="s-ref-placement" disabled>
-                        <option value="home_hero">Home hero</option>
-                        <option value="home_strip">Home strip</option>
-                    </select>
+                {{-- Banner row: pick the exact banners to show, in order --}}
+                <div class="mb-3 js-when-bannerrow" style="display:none;">
+                    <label class="form-label d-flex justify-content-between align-items-center">
+                        <span>Banners in this row</span>
+                        <button type="button" class="btn btn-link btn-sm p-0 fs-10" id="s-banner-new"><span class="fas fa-plus me-1"></span>Create banner</button>
+                    </label>
+                    <div class="position-relative">
+                        <input type="text" class="form-control form-control-sm" id="s-banner-search" placeholder="Search banners to add…" autocomplete="off">
+                        <div class="list-group position-absolute w-100 shadow-sm" id="s-banner-results" style="z-index:30; display:none; max-height:230px; overflow:auto;"></div>
+                    </div>
+                    <div id="s-banner-chips" class="mt-2 d-flex flex-column gap-2"></div>
+                    <p class="fs-10 text-body-tertiary mb-0 mt-1" id="s-banner-empty">No banners chosen yet — search above, or create one.</p>
                 </div>
 
                 {{-- Carousel toggle (banner row): rotate banners in ONE slot instead of stacking --}}
@@ -354,17 +372,16 @@
 
             var refCategory = document.querySelector('.js-ref-category');
             var refBrand = document.querySelector('.js-ref-brand');
-            var refPlacement = document.querySelector('.js-ref-placement');
             var refCollection = document.querySelector('.js-ref-collection');
             var whenProduct = document.querySelectorAll('.js-when-product');
             var whenEditorial = document.querySelector('.js-when-editorial');
             var mediaOnly = document.querySelector('.js-media-only');
             var richtextOnly = document.querySelector('.js-richtext-only');
-            var whenBannerRow = document.querySelector('.js-when-bannerrow');
+            var whenBannerRow = document.querySelectorAll('.js-when-bannerrow');
 
             // Only one source_ref control is active at a time so a single value posts.
             function setRef(which) {
-                var map = { category: refCategory, brand: refBrand, placement: refPlacement, collection: refCollection };
+                var map = { category: refCategory, brand: refBrand, collection: refCollection };
                 Object.keys(map).forEach(function (k) {
                     var wrap = map[k];
                     var input = wrap.querySelector('select');
@@ -384,10 +401,9 @@
                 whenEditorial.style.display = isEditorial ? '' : 'none';
                 mediaOnly.style.display = (type === 'editorial_media') ? '' : 'none';
                 richtextOnly.style.display = (type === 'rich_text') ? '' : 'none';
-                whenBannerRow.style.display = (type === 'banner_row') ? '' : 'none';
+                whenBannerRow.forEach(function (el) { el.style.display = (type === 'banner_row') ? '' : 'none'; });
 
-                if (type === 'banner_row') { setRef('placement'); }
-                else if (isProduct && sourceEl.value === 'category') { setRef('category'); }
+                if (isProduct && sourceEl.value === 'category') { setRef('category'); }
                 else if (isProduct && sourceEl.value === 'brand') { setRef('brand'); }
                 else if (isProduct && sourceEl.value === 'manual') { setRef('collection'); }
                 else { setRef(null); }
@@ -401,6 +417,7 @@
                 var m = form.querySelector('[name="_method"]'); if (m) { m.remove(); }
                 form.reset();
                 var lpNew = form.querySelector('.gb-link-picker'); if (lpNew && lpNew._gbReset) { lpNew._gbReset(); }
+                if (window._gbBannerPicker) { window._gbBannerPicker.reset(); }
                 document.getElementById('s-active').checked = true;
                 document.getElementById('s-status').value = 'draft'; // new sections stage as draft
                 label.textContent = 'New section';
@@ -442,7 +459,7 @@
 
                 sync();
                 // Set the active ref value after sync() enabled the right control.
-                if (d.type === 'banner_row') { document.getElementById('s-ref-placement').value = d.source_ref || 'home_hero'; }
+                if (d.type === 'banner_row') { if (window._gbBannerPicker) { window._gbBannerPicker.set(d.banners || []); } }
                 else if (d.source === 'category') { document.getElementById('s-ref-category').value = d.source_ref || ''; }
                 else if (d.source === 'brand') { document.getElementById('s-ref-brand').value = d.source_ref || ''; }
                 else if (d.source === 'manual') { document.getElementById('s-ref-collection').value = d.source_ref || ''; }
@@ -536,6 +553,154 @@
                     });
                 }
             })();
+        })();
+        </script>
+    @endpush
+
+    {{-- Quick-create a banner without leaving the page (MX4.4) --}}
+    <div class="modal fade" id="bannerQuickModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title mb-0">Create a banner</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3"><label class="form-label">Title</label><input class="form-control" id="qb-title" placeholder="e.g. Weekend Flash Sale"></div>
+                    <div class="row g-2">
+                        <div class="col-6"><label class="form-label">Placement</label>
+                            <select class="form-select" id="qb-placement">
+                                <option value="home_hero">Home hero</option>
+                                <option value="home_strip">Home strip</option>
+                            </select>
+                        </div>
+                        <div class="col-6"><label class="form-label">Colour</label>
+                            <select class="form-select" id="qb-theme">
+                                @foreach (array_keys(Banner::THEMES) as $t)<option value="{{ $t }}">{{ ucfirst($t) }}</option>@endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <p class="fs-10 text-body-tertiary mt-2 mb-0">Creates a simple colour banner and adds it to this row. Upload artwork later on the Banners screen.</p>
+                    <div class="text-danger fs-10 mt-1" id="qb-error"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-phoenix-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="qb-save">Create &amp; add</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @push('scripts')
+        <script>
+        (function () {
+            // ── Banner-row picker: search, pick (ordered), remove, reorder, quick-create ──
+            var searchInput = document.getElementById('s-banner-search');
+            if (!searchInput) { return; }
+            var results = document.getElementById('s-banner-results');
+            var chips = document.getElementById('s-banner-chips');
+            var emptyHint = document.getElementById('s-banner-empty');
+            var SEARCH_URL = '{{ route('admin.banners.search') }}';
+            var QUICK_URL = '{{ route('admin.banners.quick-store') }}';
+            var CSRF = '{{ csrf_token() }}';
+
+            function chosenIds() {
+                return Array.prototype.slice.call(chips.querySelectorAll('[data-banner-id]'))
+                    .map(function (c) { return parseInt(c.getAttribute('data-banner-id'), 10); });
+            }
+            function refreshEmpty() { emptyHint.style.display = chips.children.length ? 'none' : ''; }
+
+            function swatch(b) {
+                return b.thumb
+                    ? '<span class="flex-shrink-0 rounded-1 border border-translucent" style="width:44px;height:30px;background:center/cover no-repeat url(' + b.thumb + ')"></span>'
+                    : '<span class="flex-shrink-0 rounded-1" style="width:44px;height:30px;background:' + (b.gradient || '#3874ff') + '"></span>';
+            }
+
+            function addChip(b) {
+                if (chosenIds().indexOf(b.id) !== -1) { return; } // no duplicates
+                var chip = document.createElement('div');
+                chip.className = 'gb-lever-item d-flex align-items-center gap-2 border border-translucent rounded-2 p-2';
+                chip.setAttribute('data-banner-id', b.id);
+                chip.innerHTML =
+                    '<span class="gb-drag-handle text-body-tertiary" style="cursor:grab"><span class="fas fa-grip-vertical"></span></span>'
+                    + swatch(b)
+                    + '<span class="flex-grow-1 min-w-0 text-truncate fw-semibold fs-9">' + (b.title || 'Untitled') + '</span>'
+                    + (b.live ? '' : '<span class="badge badge-phoenix badge-phoenix-secondary fs-10">Hidden</span>')
+                    + '<input type="hidden" name="settings[banner_ids][]" value="' + b.id + '">'
+                    + '<button type="button" class="btn btn-sm btn-phoenix-danger js-banner-remove" title="Remove"><span class="fas fa-xmark"></span></button>';
+                chips.appendChild(chip);
+                refreshEmpty();
+            }
+
+            function renderResults(list) {
+                if (!list.length) { results.innerHTML = '<div class="px-3 py-2 text-body-tertiary fs-10">No banners found.</div>'; results.style.display = ''; return; }
+                results.innerHTML = list.map(function (b) {
+                    return '<button type="button" class="list-group-item list-group-item-action d-flex align-items-center gap-2 py-2" data-add=\'' + JSON.stringify(b) + '\'>'
+                        + swatch(b)
+                        + '<span class="flex-grow-1 min-w-0 text-truncate fs-9">' + (b.title || 'Untitled') + '</span>'
+                        + '<span class="badge badge-phoenix badge-phoenix-' + (b.live ? 'success' : 'secondary') + ' fs-10">' + (b.live ? 'Live' : 'Hidden') + '</span></button>';
+                }).join('');
+                results.style.display = '';
+            }
+
+            var t;
+            searchInput.addEventListener('input', function () {
+                clearTimeout(t);
+                var q = searchInput.value.trim();
+                t = setTimeout(function () {
+                    fetch(SEARCH_URL + '?q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } })
+                        .then(function (r) { return r.json(); })
+                        .then(renderResults)
+                        .catch(function () {});
+                }, 220);
+            });
+            searchInput.addEventListener('focus', function () { if (searchInput.value.trim() === '') { searchInput.dispatchEvent(new Event('input')); } });
+
+            results.addEventListener('click', function (e) {
+                var btn = e.target.closest('[data-add]');
+                if (!btn) { return; }
+                addChip(JSON.parse(btn.getAttribute('data-add')));
+                results.style.display = 'none'; searchInput.value = ''; searchInput.focus();
+            });
+
+            chips.addEventListener('click', function (e) {
+                var rm = e.target.closest('.js-banner-remove');
+                if (rm) { rm.closest('[data-banner-id]').remove(); refreshEmpty(); }
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!e.target.closest('#s-banner-search') && !e.target.closest('#s-banner-results')) { results.style.display = 'none'; }
+            });
+
+            if (window.Sortable) { window.Sortable.create(chips, { handle: '.gb-drag-handle', animation: 150 }); }
+
+            // Reset + populate hooks used by the section form's new/edit handlers.
+            window._gbBannerPicker = {
+                reset: function () { chips.innerHTML = ''; results.style.display = 'none'; searchInput.value = ''; refreshEmpty(); },
+                set: function (banners) { chips.innerHTML = ''; (banners || []).forEach(addChip); refreshEmpty(); },
+            };
+
+            // Quick-create modal.
+            var qbSave = document.getElementById('qb-save');
+            var qbError = document.getElementById('qb-error');
+            document.getElementById('s-banner-new').addEventListener('click', function () {
+                qbError.textContent = ''; document.getElementById('qb-title').value = '';
+                new window.bootstrap.Modal(document.getElementById('bannerQuickModal')).show();
+            });
+            qbSave.addEventListener('click', function () {
+                var title = document.getElementById('qb-title').value.trim();
+                if (!title) { qbError.textContent = 'Give the banner a title.'; return; }
+                qbSave.disabled = true;
+                fetch(QUICK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+                    body: JSON.stringify({ title: title, placement: document.getElementById('qb-placement').value, theme: document.getElementById('qb-theme').value }),
+                }).then(function (r) { return r.json(); }).then(function (b) {
+                    addChip(b);
+                    window.bootstrap.Modal.getInstance(document.getElementById('bannerQuickModal')).hide();
+                }).catch(function () { qbError.textContent = 'Could not create the banner.'; })
+                  .finally(function () { qbSave.disabled = false; });
+            });
         })();
         </script>
     @endpush

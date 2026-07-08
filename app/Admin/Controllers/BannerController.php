@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Marketing\Models\Banner;
 use App\Modules\Marketing\Services\LinkResolver;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -36,6 +37,61 @@ class BannerController extends Controller
         $this->syncImages($request, $banner);
 
         return back()->with('status', 'Banner created.');
+    }
+
+    /**
+     * Search-as-you-type backend for the merch banner-row picker. Returns
+     * lightweight candidates (id, title, thumbnail, live state) as JSON.
+     */
+    public function search(Request $request): JsonResponse
+    {
+        $q = $request->string('q')->toString();
+
+        $banners = Banner::query()
+            ->when($q !== '', fn ($query) => $query->where('title', 'like', "%{$q}%"))
+            ->orderByDesc('is_active')->orderBy('title')
+            ->limit(20)->get();
+
+        return response()->json($banners->map(fn (Banner $b) => $this->candidate($b))->all());
+    }
+
+    /**
+     * Create a minimal (composed, gradient) banner inline from the merch
+     * builder — so a marketer never has to leave the page to add one. Artwork
+     * and fine styling can be added later on the full Banners screen.
+     */
+    public function quickStore(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'placement' => ['required', 'in:home_hero,home_strip'],
+            'theme' => ['nullable', Rule::in(array_keys(Banner::THEMES))],
+        ]);
+
+        $banner = Banner::create([
+            'title' => $data['title'],
+            'placement' => $data['placement'],
+            'theme' => $data['theme'] ?? 'indigo',
+            'text_theme' => 'light',
+            'is_active' => true,
+        ]);
+
+        return response()->json($this->candidate($banner));
+    }
+
+    /**
+     * @return array{id: int, title: string, thumb: ?string, gradient: string, placement: string, live: bool}
+     */
+    private function candidate(Banner $banner): array
+    {
+        return [
+            'id' => $banner->id,
+            'title' => $banner->title,
+            'thumb' => $banner->imageUrl(),
+            'gradient' => $banner->gradient(),
+            'placement' => $banner->placement,
+            'live' => $banner->isLive(),
+        ];
     }
 
     public function update(Request $request, Banner $banner): RedirectResponse
