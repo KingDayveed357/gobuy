@@ -60,13 +60,38 @@ class AccountController extends Controller
 
         return view('account.dashboard', [
             'user' => $user,
-            'recentOrders' => $user->orders()->with('items')->take(5)->get(),
+            'balance' => $this->storeCredit->balanceFor($user),
+            'recentOrders' => $user->orders()->latest()->with('items')->take(5)->get(),
         ]);
     }
 
-    public function orders(): View
+    public function orders(Request $request): View
     {
-        $orders = Auth::user()->orders()->with('items')->paginate(10);
+        $query = Auth::user()->orders()->with('items')->latest();
+
+        if ($search = $request->input('search')) {
+            $query->where('order_number', 'like', "%{$search}%");
+        }
+
+        if ($status = $request->input('status')) {
+            $query->where('status', $status);
+        }
+
+        if ($sort = $request->input('sort')) {
+            switch ($sort) {
+                case 'oldest':
+                    $query->reorder('created_at', 'asc');
+                    break;
+                case 'highest_value':
+                    $query->reorder('total', 'desc');
+                    break;
+                case 'lowest_value':
+                    $query->reorder('total', 'asc');
+                    break;
+            }
+        }
+
+        $orders = $query->paginate(10)->withQueryString();
 
         return view('account.orders', ['orders' => $orders]);
     }

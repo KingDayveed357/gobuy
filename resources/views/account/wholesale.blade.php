@@ -1,99 +1,106 @@
-@extends('layouts.storefront')
+@extends('layouts.account')
 
 @section('title', 'Apply for wholesale — gobuy')
 
-@section('content')
-    <section class="pt-5 pb-9">
-        <div class="container-small">
-            <div class="row justify-content-center">
-                <div class="col-lg-7">
-                    <nav class="mb-3" aria-label="breadcrumb">
-                        <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="{{ route('account.dashboard') }}">Account</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Wholesale application</li>
-                        </ol>
-                    </nav>
-                    <h2 class="mb-2">Apply for wholesale pricing</h2>
-                    <p class="text-body-tertiary mb-4">Once approved, wholesale prices apply automatically at qualifying quantities.</p>
+@php
+    $pageTitle = 'Wholesale';
+@endphp
 
-                    @if ($user->hasPendingWholesaleApplication())
-                        <div class="alert alert-subtle-warning">Your application is under review. You can update your details below.</div>
-                    @endif
+@section('account_content')
+    <div class="mb-4">
+        <a href="{{ route('account.dashboard') }}" class="btn btn-link px-0 text-body-tertiary mb-2"><span class="fas fa-arrow-left me-2"></span>Back to Dashboard</a>
+        <h3 class="mb-1 text-body-emphasis">Apply for Wholesale Pricing</h3>
+        <p class="text-body-tertiary mb-0">Once approved, wholesale prices apply automatically at qualifying quantities.</p>
+    </div>
 
-                    @if ($errors->any())
-                        <div class="alert alert-subtle-danger">
-                            <ul class="mb-0">
-                                @foreach ($errors->all() as $error)
-                                    <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    @endif
+    @if ($user->hasPendingWholesaleApplication())
+        <div class="alert alert-subtle-warning shadow-sm border-0 mb-4 d-flex align-items-center gap-3">
+            <span class="fas fa-clock fs-3 text-warning"></span>
+            <div>
+                <h6 class="mb-1 text-warning-emphasis">Application Under Review</h6>
+                <p class="mb-0 fs-9">You can update your details below while we review your application.</p>
+            </div>
+        </div>
+    @endif
 
-                    @if (! $user->hasVerifiedEmail())
-                        <div class="card border-warning text-center">
-                            <div class="card-body py-5">
-                                <!-- <span class="fas fa-mobile-alt text-warning fs-3 mb-3"></span>
-                                <h4 class="mb-2">Verify your account</h4>
-                                <p class="text-body-tertiary mb-4">You need to verify your account with an OTP code before you can apply for a wholesale account.</p> -->
-                                  <span class="fas fa-envelope-open-text text-warning fs-3 mb-3"></span>
-                                <h4 class="mb-2">Verify your email address</h4>
-                                <p class="text-body-tertiary mb-4">You need to verify your email address before you can apply for a wholesale account.</p>
-                                <div class="d-flex justify-content-center gap-2">
-                                    <form action="{{ route('verification.resend') }}" method="POST" class="d-inline">
-                                        @csrf
-                                        <button type="submit" class="btn btn-warning">Send verification code</button>
-                                    </form>
-                                    <a href="{{ route('verification.notice') }}" class="btn btn-outline-warning">Enter existing code</a>
-                                </div>
-                            </div>
-                        </div>
-                    @else
-                        <div class="card">
-                            <div class="card-body">
-                                <form action="{{ route('account.wholesale') }}" method="POST" enctype="multipart/form-data">
-                                    @csrf
-                                    @php($profile = $user->wholesaleProfile)
-                                    <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <label class="form-label">Business name</label>
-                                            <input class="form-control" type="text" name="business_name" value="{{ old('business_name', $profile?->business_name) }}" required>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label">RC number <span class="text-body-tertiary">(optional)</span></label>
-                                            <input class="form-control" type="text" name="rc_number" value="{{ old('rc_number', $profile?->rc_number) }}">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label">Business phone</label>
-                                            <input class="form-control" type="text" name="business_phone" value="{{ old('business_phone', $profile?->business_phone) }}" required>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label">Industry <span class="text-body-tertiary">(optional)</span></label>
-                                            <input class="form-control" type="text" name="industry" value="{{ old('industry', $profile?->industry) }}" placeholder="e.g. Construction, Oil & Gas">
-                                        </div>
-                                        <div class="col-12">
-                                            <label class="form-label">Business address</label>
-                                            <input class="form-control" type="text" name="business_address" value="{{ old('business_address', $profile?->business_address) }}" required>
-                                        </div>
-                                        <div class="col-12">
-                                            <label class="form-label">Why do you want a wholesale account?</label>
-                                            <textarea class="form-control" name="intent" rows="3" required placeholder="Tell us about your buying needs and expected volumes…">{{ old('intent', $profile?->intent) }}</textarea>
-                                        </div>
-                                        <div class="col-12">
-                                            <label class="form-label">Supporting documents <span class="text-body-tertiary">(optional — CAC certificate, utility bill)</span></label>
-                                            <input class="form-control" type="file" name="documents[]" accept=".pdf,image/*" multiple>
-                                            @if ($profile && $profile->documents()->isNotEmpty())
-                                                <p class="fs-9 text-body-tertiary mt-2 mb-0">{{ $profile->documents()->count() }} document(s) already uploaded.</p>
-                                            @endif
-                                        </div>
-                                    </div>
-                                    <button class="btn btn-primary mt-4" type="submit">Submit application</button>
-                                </form>
-                            </div>
-                        </div>
-                    @endif
+    @if ($errors->any())
+        <div class="alert alert-subtle-danger shadow-sm border-0 mb-4">
+            <ul class="mb-0">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    @if (! $user->hasVerifiedEmail())
+        <div class="card border-0 shadow-sm border-warning">
+            <div class="card-body text-center py-6">
+                <span class="fas fa-envelope-open-text text-warning fs-1 mb-3"></span>
+                <h4 class="mb-2 text-body-emphasis">Verify your email address</h4>
+                <p class="text-body-tertiary mb-4">You need to verify your email address before you can apply for a wholesale account.</p>
+                <div class="d-flex justify-content-center gap-2">
+                    <form action="{{ route('verification.resend') }}" method="POST" class="d-inline">
+                        @csrf
+                        <button type="submit" class="btn btn-warning">Send verification link</button>
+                    </form>
                 </div>
             </div>
         </div>
-    </section>
+    @else
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4 p-md-5">
+                <form action="{{ route('account.wholesale') }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    @php($profile = $user->wholesaleProfile)
+                    
+                    <h5 class="mb-4">Business Information</h5>
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Business Name</label>
+                            <input class="form-control" type="text" name="business_name" value="{{ old('business_name', $profile?->business_name) }}" placeholder="Your registered business name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">RC Number <span class="text-body-tertiary fw-normal">(Optional)</span></label>
+                            <input class="form-control" type="text" name="rc_number" value="{{ old('rc_number', $profile?->rc_number) }}" placeholder="e.g. RC123456">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Business Phone</label>
+                            <input class="form-control" type="tel" name="business_phone" value="{{ old('business_phone', $profile?->business_phone) }}" placeholder="+234 800 000 0000" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Industry <span class="text-body-tertiary fw-normal">(Optional)</span></label>
+                            <input class="form-control" type="text" name="industry" value="{{ old('industry', $profile?->industry) }}" placeholder="e.g. Construction, Retail, Oil & Gas">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Business Address</label>
+                            <input class="form-control" type="text" name="business_address" value="{{ old('business_address', $profile?->business_address) }}" placeholder="Full physical address of your business" required>
+                        </div>
+                    </div>
+
+                    <hr class="border-translucent mb-4">
+                    <h5 class="mb-4">Application Details</h5>
+
+                    <div class="row g-4 mb-4">
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Why do you want a wholesale account?</label>
+                            <textarea class="form-control" name="intent" rows="4" required placeholder="Tell us about your buying needs, expected volumes, and business goals...">{{ old('intent', $profile?->intent) }}</textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Supporting Documents <span class="text-body-tertiary fw-normal">(Optional — CAC certificate, utility bill)</span></label>
+                            <input class="form-control" type="file" name="documents[]" accept=".pdf,image/*" multiple>
+                            @if ($profile && $profile->documents()->isNotEmpty())
+                                <p class="fs-9 text-success fw-semibold mt-2 mb-0"><span class="fas fa-check-circle me-1"></span>{{ $profile->documents()->count() }} document(s) already uploaded.</p>
+                            @endif
+                            <div class="form-text mt-2">You can select multiple files. Acceptable formats: PDF, JPG, PNG.</div>
+                        </div>
+                    </div>
+
+                    <div class="text-end pt-3 border-top border-translucent">
+                        <button class="btn btn-primary px-5" type="submit">{{ $user->hasPendingWholesaleApplication() ? 'Update Application' : 'Submit Application' }}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
 @endsection
