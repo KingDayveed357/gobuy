@@ -70,6 +70,9 @@
     <x-admin.action-modal />
     @include('admin.partials.promote-modal')
 
+    {{-- Global Command Palette (Ctrl+K) — lazy-loaded on first trigger --}}
+    @include('admin.partials.command-palette')
+
     {{-- Web Push (PWA) client — admin subscription endpoints. --}}
     @include('partials.push-notifications', [
         'pushStoreUrl' => route('admin.push-subscriptions.store'),

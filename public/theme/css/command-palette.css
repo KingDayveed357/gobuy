@@ -1,0 +1,497 @@
+/* =============================================================================
+   gobuy admin — Global Command Palette (Ctrl+K)
+   Glassmorphism overlay, premium micro-animations, dark-mode aware.
+   All colours come from the Phoenix/gobuy CSS custom-property system
+   so dark-mode and theme changes are handled automatically.
+   ============================================================================= */
+
+/* ── Variables ──────────────────────────────────────────────────────────────── */
+:root {
+  --gcp-z:            10050;
+  --gcp-radius:       0.875rem;
+  --gcp-max-w:        640px;
+  --gcp-item-radius:  0.5rem;
+  --gcp-kbd-radius:   0.3rem;
+  --gcp-anim:         220ms cubic-bezier(0.16, 1, 0.3, 1);
+  --gcp-shadow:
+    0 0 0 1px rgba(0,0,0,.04),
+    0 4px 6px -2px rgba(0,0,0,.05),
+    0 20px 48px -8px rgba(0,0,0,.18);
+}
+
+/* ── Backdrop ────────────────────────────────────────────────────────────────── */
+.gcp-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--gcp-z);
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: max(5vh, 3rem);
+  padding-inline: 1rem;
+
+  opacity: 0;
+  transition: opacity var(--gcp-anim);
+  pointer-events: none;
+}
+
+.gcp-backdrop.gcp-open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* ── Dialog shell ─────────────────────────────────────────────────────────── */
+.gcp-dialog {
+  position: relative;
+  width: 100%;
+  max-width: var(--gcp-max-w);
+  max-height: min(82vh, 700px);
+  display: flex;
+  flex-direction: column;
+
+  background: var(--phoenix-body-bg);
+  border: 1px solid var(--phoenix-border-color-translucent);
+  border-radius: var(--gcp-radius);
+  box-shadow: var(--gcp-shadow);
+  overflow: hidden;
+
+  transform: scale(0.97) translateY(-8px);
+  opacity: 0;
+  transition: transform var(--gcp-anim), opacity var(--gcp-anim);
+}
+
+.gcp-backdrop.gcp-open .gcp-dialog {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+/* Dark mode glassmorphism — slightly frosted when dark theme active */
+[data-phoenix-theme="dark"] .gcp-dialog,
+html[data-bs-theme="dark"] .gcp-dialog {
+  background: color-mix(in srgb, var(--phoenix-body-bg) 92%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-color: rgba(255,255,255,0.08);
+}
+
+/* ── Search bar ──────────────────────────────────────────────────────────── */
+.gcp-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.875rem 1.125rem;
+  border-bottom: 1px solid var(--phoenix-border-color-translucent);
+  flex-shrink: 0;
+}
+
+.gcp-search-icon {
+  color: var(--phoenix-tertiary-color);
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
+.gcp-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.9375rem;
+  font-weight: 400;
+  color: var(--phoenix-body-color);
+  caret-color: var(--phoenix-primary);
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+.gcp-input::placeholder {
+  color: var(--phoenix-tertiary-color);
+}
+
+.gcp-clear-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: var(--phoenix-border-color-translucent);
+  border-radius: 999px;
+  cursor: pointer;
+  color: var(--phoenix-secondary-color);
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.gcp-clear-btn:hover {
+  background: var(--phoenix-secondary-bg);
+}
+
+.gcp-clear-btn.gcp-visible {
+  display: flex;
+}
+
+/* ── Cancel button (mobile only) ─────────────────────────────────────────── */
+.gcp-cancel-btn {
+  display: none;
+  border: none;
+  background: transparent;
+  color: var(--phoenix-secondary-color);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0 0 0 0.5rem;
+  flex-shrink: 0;
+  transition: color 0.15s;
+  font-family: inherit;
+}
+
+.gcp-cancel-btn:hover {
+  color: var(--phoenix-primary);
+}
+
+.gcp-cancel-btn:focus-visible {
+  outline: none;
+  color: var(--phoenix-primary);
+}
+
+@media (max-width: 767.98px) {
+  .gcp-cancel-btn {
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+/* ── Results scroll area ─────────────────────────────────────────────────── */
+.gcp-results {
+  overflow-y: auto;
+  flex: 1 1 auto;
+  padding: 0.5rem;
+  overscroll-behavior: contain;
+  /* Thin scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: var(--phoenix-border-color-translucent) transparent;
+}
+
+.gcp-results::-webkit-scrollbar {
+  width: 4px;
+}
+
+.gcp-results::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.gcp-results::-webkit-scrollbar-thumb {
+  background: var(--phoenix-border-color-translucent);
+  border-radius: 4px;
+}
+
+/* ── Section label ───────────────────────────────────────────────────────── */
+.gcp-section {
+  padding: 0.35rem 0.625rem 0.2rem;
+  font-size: 0.675rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--phoenix-tertiary-color);
+  margin-top: 0.25rem;
+  user-select: none;
+}
+
+.gcp-section:first-child {
+  margin-top: 0;
+}
+
+/* ── Result item ─────────────────────────────────────────────────────────── */
+.gcp-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: var(--gcp-item-radius);
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.1s ease;
+  outline: none;
+  position: relative;
+}
+
+.gcp-item:hover,
+.gcp-item.gcp-active {
+  background: var(--phoenix-body-highlight-bg);
+  color: inherit;
+}
+
+.gcp-item.gcp-active {
+  background: var(--phoenix-primary-bg-subtle);
+}
+
+/* ── Item icon ───────────────────────────────────────────────────────────── */
+.gcp-item-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--phoenix-body-highlight-bg);
+  color: var(--phoenix-secondary-color);
+  transition: background 0.1s, color 0.1s;
+}
+
+.gcp-item.gcp-active .gcp-item-icon {
+  background: var(--phoenix-primary-bg-subtle);
+  color: var(--phoenix-primary);
+}
+
+.gcp-item-icon svg,
+.gcp-item-icon [data-feather] {
+  width: 15px;
+  height: 15px;
+  stroke-width: 2;
+}
+
+/* ── Item text ───────────────────────────────────────────────────────────── */
+.gcp-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.gcp-item-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--phoenix-body-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.gcp-item-subtitle {
+  font-size: 0.75rem;
+  color: var(--phoenix-tertiary-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+  margin-top: 0.1rem;
+}
+
+/* ── Breadcrumb path ─────────────────────────────────────────────────────── */
+.gcp-item-breadcrumb {
+  font-size: 0.7rem;
+  color: var(--phoenix-tertiary-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  margin-left: auto;
+  padding-left: 0.5rem;
+  opacity: 0.75;
+}
+
+.gcp-item-breadcrumb-sep {
+  opacity: 0.4;
+}
+
+/* ── Match highlight ─────────────────────────────────────────────────────── */
+.gcp-highlight {
+  color: var(--phoenix-primary);
+  font-weight: 700;
+  background: transparent;
+}
+
+/* ── Type badge (action vs navigate) ─────────────────────────────────────── */
+.gcp-type-badge {
+  flex-shrink: 0;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--gcp-kbd-radius);
+  background: var(--phoenix-warning-bg-subtle);
+  color: var(--phoenix-warning-text);
+  display: none; /* hidden by default; show only for action type if needed */
+}
+
+/* ── Keyboard shortcut badge ────────────────────────────────────────────── */
+.gcp-kbd {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.gcp-kbd kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 0.35rem;
+  font-size: 0.68rem;
+  font-family: inherit;
+  font-weight: 600;
+  color: var(--phoenix-tertiary-color);
+  background: var(--phoenix-body-highlight-bg);
+  border: 1px solid var(--phoenix-border-color-translucent);
+  border-radius: var(--gcp-kbd-radius);
+  box-shadow: 0 1px 0 var(--phoenix-border-color-translucent);
+  letter-spacing: 0;
+}
+
+.gcp-item.gcp-active .gcp-kbd kbd {
+  background: rgba(0,0,0,.05);
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+.gcp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1rem;
+  text-align: center;
+  gap: 0.5rem;
+}
+
+.gcp-empty-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--phoenix-body-highlight-bg);
+  color: var(--phoenix-tertiary-color);
+  margin-bottom: 0.25rem;
+}
+
+.gcp-empty-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.gcp-empty-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--phoenix-body-color);
+}
+
+.gcp-empty-subtitle {
+  font-size: 0.8rem;
+  color: var(--phoenix-tertiary-color);
+}
+
+/* ── Footer hint bar ─────────────────────────────────────────────────────── */
+.gcp-footer {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  border-top: 1px solid var(--phoenix-border-color-translucent);
+  font-size: 0.72rem;
+  color: var(--phoenix-tertiary-color);
+  user-select: none;
+}
+
+.gcp-footer-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.gcp-footer-hint kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 0.3rem;
+  font-size: 0.65rem;
+  font-family: inherit;
+  color: var(--phoenix-tertiary-color);
+  background: var(--phoenix-body-highlight-bg);
+  border: 1px solid var(--phoenix-border-color-translucent);
+  border-radius: 0.25rem;
+  box-shadow: 0 1px 0 var(--phoenix-border-color-translucent);
+}
+
+.gcp-footer-spacer {
+  flex: 1;
+}
+
+/* ── Mobile responsive ───────────────────────────────────────────────────── */
+@media (max-width: 767.98px) {
+  .gcp-backdrop {
+    align-items: flex-start;
+    padding-top: 0;
+    padding-inline: 0;
+  }
+
+  .gcp-dialog {
+    max-width: 100%;
+    width: 100%;
+    max-height: 100dvh;
+    height: 100dvh;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    transform: scale(1) translateY(-12px);
+  }
+
+  .gcp-backdrop.gcp-open .gcp-dialog {
+    transform: scale(1) translateY(0);
+  }
+
+  /* Breadcrumb hidden on mobile to save space */
+  .gcp-item-breadcrumb {
+    display: none;
+  }
+}
+
+/* ── Reduced motion ─────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .gcp-backdrop,
+  .gcp-dialog {
+    transition: none;
+  }
+}
+
+/* ── Focus visible indicator on items ──────────────────────────────────── */
+.gcp-item:focus-visible {
+  outline: none; /* We use .gcp-active class instead */
+}
+
+/* ── Loading spinner (future DB search) ─────────────────────────────────── */
+.gcp-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1.5rem;
+}
+
+.gcp-spinner-ring {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--phoenix-border-color-translucent);
+  border-top-color: var(--phoenix-primary);
+  border-radius: 50%;
+  animation: gcp-spin 0.6s linear infinite;
+}
+
+@keyframes gcp-spin {
+  to { transform: rotate(360deg); }
+}

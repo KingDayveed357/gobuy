@@ -14,14 +14,43 @@
             </a>
         </div>
 
-        @if ($admin->can('manage_products'))
-            <form class="search-box navbar-top-search-box d-none d-lg-block" action="{{ route('admin.products.index') }}" method="GET" style="width: 25rem;">
-                <div class="position-relative">
-                    <input class="form-control search-input rounded-pill form-control-sm" type="search" name="q" value="{{ request('q') }}" placeholder="Search products...">
-                    <span class="fas fa-search search-box-icon"></span>
-                </div>
-            </form>
-        @endif
+        {{--
+            Global Command Palette Trigger
+            Replaces the old single-module product search with a palette
+            that searches the entire admin experience. Ctrl+K also works.
+        --}}
+        <button
+            id="gcp-trigger"
+            class="gcp-trigger d-none d-lg-inline-flex"
+            type="button"
+            aria-label="Open command palette (Ctrl+K)"
+            aria-haspopup="dialog"
+            aria-keyshortcuts="Control+k Meta+k"
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                 aria-hidden="true">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <span class="gcp-trigger-text">Search pages &amp; actions…</span>
+            <span class="gcp-trigger-kbd" aria-hidden="true">
+                <kbd id="gcp-trigger-mod">Ctrl</kbd><kbd>K</kbd>
+            </span>
+        </button>
+
+        {{-- Mobile icon-only trigger (shown on small screens via CSS) --}}
+        <button
+            class="gcp-trigger d-lg-none"
+            type="button"
+            aria-label="Search (Ctrl+K)"
+            aria-haspopup="dialog"
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                 aria-hidden="true">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+        </button>
 
         <ul class="navbar-nav navbar-nav-icons flex-row">
             <li class="nav-item">
@@ -107,3 +136,12 @@
         </ul>
     </div>
 </nav>
+
+{{-- Detect Mac and update the displayed modifier key --}}
+<script>
+(function () {
+    var isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    var el = document.getElementById('gcp-trigger-mod');
+    if (el && isMac) { el.textContent = '⌘'; }
+})();
+</script>

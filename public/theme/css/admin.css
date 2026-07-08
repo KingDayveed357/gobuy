@@ -345,3 +345,105 @@ html.navbar-vertical-collapsed .navbar-vertical-toggle-icon {
 .gb-lever-add:hover {
   background: var(--phoenix-primary-bg-subtle, rgba(56, 116, 255, 0.08));
 }
+
+/* ============================================================
+   GCP (Global Command Palette) trigger button styles
+   Loaded immediately on page load to prevent layout shifts.
+   ============================================================ */
+.gcp-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.75rem 0.3rem 0.6rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--phoenix-border-color-translucent);
+  background: var(--phoenix-body-highlight-bg);
+  color: var(--phoenix-tertiary-color);
+  font-size: 0.8rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+  height: 34px;
+  width: 100%;
+  max-width: 25rem;
+  text-align: left;
+  box-shadow: none;
+}
+
+.gcp-trigger:hover {
+  border-color: var(--phoenix-primary);
+  background: var(--phoenix-primary-bg-subtle);
+  color: var(--phoenix-body-color);
+  box-shadow: 0 0 0 3px var(--phoenix-primary-bg-subtle);
+}
+
+.gcp-trigger:focus-visible {
+  outline: 2px solid var(--phoenix-primary);
+  outline-offset: 2px;
+}
+
+.gcp-trigger svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.gcp-trigger-text {
+  color: var(--phoenix-tertiary-color);
+  flex-grow: 1;
+  text-align: left;
+  margin-left: 0.25rem;
+}
+
+.gcp-trigger-kbd {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  margin-left: 0.25rem;
+}
+
+.gcp-trigger-kbd kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 0.28rem;
+  font-size: 0.62rem;
+  font-family: inherit;
+  color: var(--phoenix-tertiary-color);
+  background: var(--phoenix-body-bg);
+  border: 1px solid var(--phoenix-border-color-translucent);
+  border-radius: 0.25rem;
+  box-shadow: 0 1px 0 var(--phoenix-border-color-translucent);
+}
+
+/* Mobile responsive trigger styling override */
+@media (max-width: 767.98px) {
+  .gcp-trigger-text,
+  .gcp-trigger-kbd {
+    display: none;
+  }
+
+  .gcp-trigger {
+    padding: 0.3rem;
+    width: 34px;
+    justify-content: center;
+    background: transparent;
+    border-color: transparent;
+  }
+
+  .gcp-trigger:hover {
+    background: var(--phoenix-body-highlight-bg);
+    border-color: var(--phoenix-border-color-translucent);
+    box-shadow: none;
+  }
+}
+
+/* Prevent flash of unstyled content (FOUC) for lazy-loaded command palette */
+.gcp-backdrop {
+  display: none;
+}
+
+

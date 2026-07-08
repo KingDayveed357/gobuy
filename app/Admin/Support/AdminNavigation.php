@@ -47,6 +47,11 @@ class AdminNavigation
             }
 
             if ($type === 'link') {
+                // Skip entries that are search-only (not intended for the sidebar).
+                if (($entry['sidebar'] ?? true) === false) {
+                    continue;
+                }
+
                 if (! $this->adminCan($admin, $entry['permission'] ?? null)) {
                     continue;
                 }
