@@ -34,12 +34,15 @@
     document.addEventListener('DOMContentLoaded', function () {
         const actionModal = document.getElementById('actionModal');
         let currentTargetForm = null;
+        let currentLivewireClick = null;
+        let currentComponent = null;
 
         if (actionModal) {
             actionModal.addEventListener('show.bs.modal', function (event) {
                 const button = event.relatedTarget;
                 const formId = button.getAttribute('data-form-id');
                 const actionUrl = button.getAttribute('data-action');
+                currentLivewireClick = button.getAttribute('data-livewire-click');
                 
                 if (formId) {
                     currentTargetForm = document.getElementById(formId);
@@ -48,6 +51,15 @@
                     document.getElementById('actionForm').action = actionUrl;
                     document.getElementById('actionFormMethod').value = method;
                     currentTargetForm = document.getElementById('actionForm');
+                } else {
+                    currentTargetForm = null;
+                }
+
+                if (currentLivewireClick) {
+                    const wireEl = button.closest('[wire\\:id]');
+                    currentComponent = (window.Livewire && wireEl) ? Livewire.find(wireEl.getAttribute('wire:id')) : null;
+                } else {
+                    currentComponent = null;
                 }
 
                 const title = button.getAttribute('data-title') || 'Confirm Action';
@@ -69,15 +81,15 @@
                 icon.className = 'fas fa-stack-1x text-' + variant;
                 
                 if(variant === 'danger') {
-                    icon.classList.add('fa-trash-alt');
+                    icon.className = 'fas fa-stack-1x text-danger fa-trash-alt';
                 } else if(variant === 'warning') {
-                    icon.classList.add('fa-exclamation-triangle');
+                    icon.className = 'fas fa-stack-1x text-warning fa-exclamation-triangle';
                 } else if(variant === 'info') {
-                    icon.classList.add('fa-info-circle');
+                    icon.className = 'fas fa-stack-1x text-info fa-info-circle';
                 } else if(variant === 'success') {
-                    icon.classList.add('fa-check-circle');
+                    icon.className = 'fas fa-stack-1x text-success fa-check-circle';
                 } else {
-                    icon.classList.add('fa-question-circle');
+                    icon.className = 'fas fa-stack-1x text-secondary fa-question-circle';
                 }
                 
                 // reset loading state
@@ -92,6 +104,31 @@
                     document.getElementById('actionModalCancelBtn').disabled = true;
                     document.getElementById('actionModalSpinner').classList.remove('d-none');
                     currentTargetForm.submit();
+                } else if(currentLivewireClick && currentComponent) {
+                    this.disabled = true;
+                    document.getElementById('actionModalCancelBtn').disabled = true;
+                    document.getElementById('actionModalSpinner').classList.remove('d-none');
+                    
+                    const match = currentLivewireClick.match(/^([a-zA-Z0-9_]+)\((.*)\)$/);
+                    if (match) {
+                        const method = match[1];
+                        const argsString = match[2].trim();
+                        let args = [];
+                        if (argsString !== '') {
+                            try {
+                                args = JSON.parse('[' + argsString + ']');
+                            } catch (e) {
+                                args = [argsString];
+                            }
+                        }
+                        
+                        currentComponent.call(method, ...args).then(() => {
+                            const modalInstance = bootstrap.Modal.getInstance(actionModal);
+                            if (modalInstance) {
+                                modalInstance.hide();
+                            }
+                        });
+                    }
                 }
             });
         }

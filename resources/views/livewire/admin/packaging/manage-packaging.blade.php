@@ -51,7 +51,7 @@
                                         <td class="text-end">
                                             <div class="table-actions justify-content-end">
                                                 <button class="btn btn-sm btn-phoenix-secondary" wire:click="edit({{ $unit->id }})"><span class="fas fa-pen"></span></button>
-                                                <button class="btn btn-sm btn-phoenix-danger" wire:click="delete({{ $unit->id }})" wire:confirm="Remove this packaging unit?"><span class="fas fa-xmark"></span></button>
+                                                <button type="button" class="btn btn-sm btn-phoenix-danger" data-bs-toggle="modal" data-bs-target="#actionModal" data-livewire-click="delete({{ $unit->id }})" data-title="Delete Packaging Unit" data-message="Are you sure you want to delete this packaging unit? This cannot be undone." data-confirm-text="Yes, delete it" data-variant="danger"><span class="fas fa-xmark"></span></button>
                                             </div>
                                         </td>
                                     </tr>
