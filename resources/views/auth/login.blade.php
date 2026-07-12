@@ -39,6 +39,8 @@
                                 <button class="btn btn-primary w-100 mb-3" type="submit">Sign in</button>
                                 <p class="text-center mb-0 fs-9">New to gobuy? <a href="{{ route('register') }}">Create an account</a></p>
                             </form>
+
+                            <x-social-auth-buttons />
                         </div>
                     </div>
                 </div>

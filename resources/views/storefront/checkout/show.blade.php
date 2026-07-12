@@ -25,6 +25,26 @@
                 <div class="alert alert-subtle-danger">{{ session('error') }}</div>
             @endif
 
+            @guest
+                @php
+                    $socialEnabled = collect(config('social.providers', []))->contains(fn ($p) => $p['enabled'] ?? false);
+                @endphp
+                @if ($socialEnabled)
+                    <div class="card border border-translucent mb-4" style="border-radius:.75rem;">
+                        <div class="card-body">
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                                <div>
+                                    <h5 class="mb-0">Faster checkout</h5>
+                                    <p class="fs-9 text-body-tertiary mb-0">Sign in to reuse your saved addresses — or continue as a guest below.</p>
+                                </div>
+                                <a href="{{ route('login') }}" class="btn btn-sm btn-phoenix-secondary">Sign in</a>
+                            </div>
+                            <x-social-auth-buttons :divider="false" :return="request()->path()" />
+                        </div>
+                    </div>
+                @endif
+            @endguest
+
             <form action="{{ route('checkout.store') }}" method="POST">
                 @csrf
                 <input type="hidden" name="checkout_token" value="{{ $checkoutToken }}">

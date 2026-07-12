@@ -5,6 +5,7 @@ namespace App\Modules\Customer\Services;
 use App\Models\User;
 use App\Modules\Customer\Mail\OtpCodeMail;
 use App\Modules\Customer\Models\OtpCode;
+use Illuminate\Auth\Events\Verified;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 
@@ -61,6 +62,8 @@ class OtpService
 
         if ($purpose === OtpCode::PURPOSE_EMAIL_VERIFICATION && ! $user->hasVerifiedEmail()) {
             $user->markEmailAsVerified();
+            // Fires guest-order adoption + any other verification side effects.
+            event(new Verified($user));
         }
 
         return true;

@@ -21,12 +21,14 @@ use App\Modules\Order\Events\OrderCancelled;
 use App\Modules\Order\Events\OrderPaid;
 use App\Modules\Order\Events\OrderPlaced;
 use App\Modules\Order\Events\OrderStatusChanged;
+use App\Modules\Order\Listeners\ClaimGuestOrders;
 use App\Modules\Order\Listeners\NotifyCustomerOfCancellation;
 use App\Modules\Order\Listeners\NotifyCustomerOfCompletion;
 use App\Modules\Order\Listeners\SendOrderAcceptedNotifications;
 use App\Modules\Order\Models\Order;
 use App\Support\Commerce\CommerceModules;
 use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Verified;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -58,6 +60,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::before(fn ($user, string $ability) => $user instanceof Admin && $user->isSuperAdmin() ? true : null);
 
         Event::listen(Login::class, MergeGuestCart::class);
+        Event::listen(Verified::class, ClaimGuestOrders::class);
         Event::listen(OrderPlaced::class, ReserveInventoryForOrder::class);
         Event::listen(OrderPaid::class, DeductInventoryForOrder::class);
         Event::listen(OrderPaid::class, SendOrderAcceptedNotifications::class);

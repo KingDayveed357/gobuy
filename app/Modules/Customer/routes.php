@@ -3,6 +3,7 @@
 use App\Modules\Customer\Http\Controllers\AccountController;
 use App\Modules\Customer\Http\Controllers\AddressController;
 use App\Modules\Customer\Http\Controllers\Auth\PasswordResetController;
+use App\Modules\Customer\Http\Controllers\Auth\SocialAuthController;
 use App\Modules\Customer\Http\Controllers\Auth\VerifyEmailController;
 use App\Modules\Customer\Http\Controllers\LoginController;
 use App\Modules\Customer\Http\Controllers\RegisterController;
@@ -21,6 +22,12 @@ Route::middleware('guest')->group(function (): void {
     Route::post('/forgot-password', [PasswordResetController::class, 'sendLink'])->middleware('throttle:6,1')->name('password.email');
     Route::get('/reset-password/{token}', [PasswordResetController::class, 'resetForm'])->name('password.reset');
     Route::post('/reset-password', [PasswordResetController::class, 'reset'])->name('password.update');
+
+    // Social login (Google, Facebook, …) — provider validated against config/social.php.
+    Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect'])
+        ->middleware('throttle:15,1')->name('social.redirect');
+    Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])
+        ->middleware('throttle:15,1')->name('social.callback');
 });
 
 Route::middleware('auth')->group(function (): void {

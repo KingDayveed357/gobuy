@@ -98,7 +98,7 @@
         </div>
         <div class="col-12 col-xl-4">
             <x-admin.card title="Order pipeline" subtitle="Current distribution by lifecycle status." class="h-100">
-                <div id="chartOrderStatus" style="min-height: 300px;"></div>
+                <div id="chartOrderStatus" style="min-height: 350px;"></div>
             </x-admin.card>
         </div>
     </div>

@@ -49,6 +49,8 @@
                                 <button class="btn btn-primary w-100 mb-3" type="submit">Create account</button>
                                 <p class="text-center mb-0 fs-9">Already have an account? <a href="{{ route('login') }}">Sign in</a></p>
                             </form>
+
+                            <x-social-auth-buttons />
                         </div>
                     </div>
                 </div>
