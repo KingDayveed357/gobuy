@@ -27,9 +27,15 @@ class SendOrderAcceptedNotifications
     {
         $order = $event->order;
 
-        Mail::to($order->customer_email)->queue(new OrderConfirmationMail($order));
+        // A walk-in / in-store sale may have no customer contact details — skip
+        // the customer-facing channels, but always record the admin alert.
+        if ($order->customer_email) {
+            Mail::to($order->customer_email)->queue(new OrderConfirmationMail($order));
+        }
 
-        $this->notifier->orderAccepted($order);
+        if ($order->customer_email || $order->customer_phone) {
+            $this->notifier->orderAccepted($order);
+        }
 
         Notification::send(Admin::withAbility('manage_orders'), new NewPaidOrderNotification($order));
     }

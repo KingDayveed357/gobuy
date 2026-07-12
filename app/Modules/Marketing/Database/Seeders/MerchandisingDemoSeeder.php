@@ -44,16 +44,17 @@ class MerchandisingDemoSeeder extends Seeder
     }
 
     /**
+     * The real supermarket categories (seeded by CatalogSeeder) this demo
+     * merchandises against. Keyed for the banners/editorial below.
+     *
      * @return array<string, Category>
      */
     private function categories(): array
     {
-        $names = ['Groceries', 'Electronics', 'Home & Kitchen', 'Fashion'];
+        $names = ['beer' => 'Beer', 'soft-drinks' => 'Soft Drinks', 'dairy' => 'Dairy', 'spirits' => 'Spirits'];
 
-        return collect($names)->mapWithKeys(function (string $name) {
-            $slug = Str::slug($name);
-
-            return [$slug => Category::firstOrCreate(['slug' => $slug], ['name' => $name])];
+        return collect($names)->mapWithKeys(function (string $name, string $key) {
+            return [$key => Category::firstOrCreate(['slug' => Str::slug($name)], ['name' => $name, 'is_active' => true])];
         })->all();
     }
 
@@ -62,19 +63,18 @@ class MerchandisingDemoSeeder extends Seeder
      */
     private function brands(): array
     {
-        $names = ['GoBuy Basics', 'SafeGuard Pro', 'PowerMax', 'UrbanLiving'];
+        $names = ['nb' => 'Nigerian Breweries', 'coke' => 'Coca-Cola', 'peak' => 'FrieslandCampina', 'diageo' => 'Diageo'];
 
-        return collect($names)->mapWithKeys(function (string $name) {
-            $slug = Str::slug($name);
-
-            return [$slug => Brand::firstOrCreate(['slug' => $slug], ['name' => $name, 'is_active' => true])];
+        return collect($names)->mapWithKeys(function (string $name, string $key) {
+            return [$key => Brand::firstOrCreate(['slug' => Str::slug($name)], ['name' => $name, 'is_active' => true])];
         })->all();
     }
 
     /**
-     * A handful of named, photographed "hero" products spanning every category
-     * — these anchor the flash sale, clearance, collections and editorial
-     * blocks below so the storefront tells one coherent story.
+     * A handful of real "hero" products spanning the store — these anchor the
+     * flash sale, clearance, collections and editorial blocks below so the
+     * storefront tells one coherent story. They already exist (seeded by
+     * CatalogSeeder with imagery), so this just resolves them by name.
      *
      * @param  array<string, Category>  $categories
      * @param  array<string, Brand>  $brands
@@ -83,17 +83,19 @@ class MerchandisingDemoSeeder extends Seeder
     private function heroProducts(array $categories, array $brands): array
     {
         $specs = [
-            'headphones' => ['gobuy Studio Monitor Headphones', $categories['electronics'], $brands['powermax'], 65000, 54000, '3.png'],
-            'led_strip' => ['gobuy Smart LED Strip Lights 5m', $categories['electronics'], $brands['powermax'], 18000, 15000, '16.png'],
-            'air_fryer' => ['gobuy Air Fryer XL 8L', $categories['home-kitchen'], $brands['urbanliving'], 95000, 82000, '8.png'],
-            'cookware' => ['gobuy Non-Stick Cookware Set (10pc)', $categories['home-kitchen'], $brands['urbanliving'], 72000, 61000, '21.png'],
-            'tote_bag' => ['gobuy Designer Tote Bag', $categories['fashion'], $brands['gobuy-basics'], 32000, 27000, '12.png'],
-            'sneakers' => ['gobuy Running Sneakers Elite', $categories['fashion'], $brands['gobuy-basics'], 48000, 40000, '19.png'],
+            'star' => ['Star Lager', $categories['beer'], $brands['nb'], 1200, 1050],
+            'guinness' => ['Guinness Foreign Extra Stout', $categories['beer'], $brands['nb'], 1400, 1250],
+            'coke' => ['Coca-Cola', $categories['soft-drinks'], $brands['coke'], 400, 360],
+            'peak' => ['Peak Milk Powder', $categories['dairy'], $brands['peak'], 2600, 2350],
+            'indomie' => ['Indomie Chicken', $categories['soft-drinks'], $brands['coke'], 200, 180],
+            'jameson' => ['Jameson Irish Whiskey', $categories['spirits'], $brands['diageo'], 18000, 16500],
         ];
 
         return collect($specs)->mapWithKeys(function (array $spec, string $key) {
-            [$name, $category, $brand, $retail, $wholesale, $image] = $spec;
+            [$name, $category, $brand, $retail, $wholesale] = $spec;
 
+            // Real products already exist; the factory fallback only guards a
+            // partial/empty catalogue and is not expected to run in practice.
             $product = Product::firstWhere('name', $name) ?? Product::factory()
                 ->for($category)
                 ->for($brand, 'brand')
@@ -102,22 +104,8 @@ class MerchandisingDemoSeeder extends Seeder
                 ->stock(fake()->numberBetween(30, 150))
                 ->create(['name' => $name]);
 
-            $this->attachImage($product, $image);
-
             return [$key => $product];
         })->all();
-    }
-
-    private function attachImage(Product $product, string $file): void
-    {
-        $path = public_path("theme/img/products/{$file}");
-
-        if (is_file($path) && $product->getMedia(Product::MEDIA_COLLECTION)->isEmpty()) {
-            $product->addMedia($path)
-                ->preservingOriginal()
-                ->usingFileName(Str::uuid().'.png')
-                ->toMediaCollection(Product::MEDIA_COLLECTION);
-        }
     }
 
     /**
@@ -134,7 +122,7 @@ class MerchandisingDemoSeeder extends Seeder
             ['name' => "Editor's Picks", 'description' => 'Hand-picked favourites from our merchandising team.', 'is_active' => true],
         );
         $this->populateCollection($editors, [
-            $products['headphones'], $products['tote_bag'], $products['air_fryer'], $products['sneakers'],
+            $products['star'], $products['coke'], $products['peak'], $products['jameson'],
         ]);
 
         $trending = ProductCollection::firstOrCreate(
@@ -142,14 +130,14 @@ class MerchandisingDemoSeeder extends Seeder
             ['name' => 'Trending Now', 'description' => 'What shoppers are adding to cart this week.', 'is_active' => true],
         );
         $this->populateCollection($trending, [
-            $products['led_strip'], $products['sneakers'], $products['air_fryer'], $products['headphones'],
+            $products['guinness'], $products['jameson'], $products['coke'], $products['star'],
         ]);
 
         $clearance = ProductCollection::firstOrCreate(
             ['slug' => 'clearance-picks'],
             ['name' => 'Clearance Picks', 'description' => 'Deep-discounted stock clearing out.', 'is_active' => true],
         );
-        $this->populateCollection($clearance, [$products['cookware'], $products['sneakers']]);
+        $this->populateCollection($clearance, [$products['indomie'], $products['coke']]);
 
         return ['editors-picks' => $editors, 'trending-now' => $trending, 'clearance-picks' => $clearance];
     }
@@ -176,9 +164,9 @@ class MerchandisingDemoSeeder extends Seeder
     private function homeStripBanners(array $categories): void
     {
         $cards = [
-            ['title' => 'Electronics Edit', 'subtitle' => 'Power, sound & smart home', 'theme' => 'sky', 'category' => $categories['electronics']],
-            ['title' => 'Home & Kitchen Refresh', 'subtitle' => 'Upgrade the everyday', 'theme' => 'emerald', 'category' => $categories['home-kitchen']],
-            ['title' => 'Fashion Drop', 'subtitle' => 'New season, new look', 'theme' => 'rose', 'category' => $categories['fashion']],
+            ['title' => 'Beer & Stout', 'subtitle' => 'Chilled crates, delivered', 'theme' => 'sky', 'category' => $categories['beer']],
+            ['title' => 'Soft Drinks & Juice', 'subtitle' => 'By the bottle or the pack', 'theme' => 'emerald', 'category' => $categories['soft-drinks']],
+            ['title' => 'Milk & Provisions', 'subtitle' => 'Everyday family staples', 'theme' => 'rose', 'category' => $categories['dairy']],
         ];
 
         foreach ($cards as $i => $card) {
@@ -205,7 +193,7 @@ class MerchandisingDemoSeeder extends Seeder
      */
     private function homepageSections(array $collections): void
     {
-        $electronics = Category::where('slug', 'electronics')->first();
+        $drinks = Category::where('slug', 'beer')->first();
 
         $sections = [
             6 => [
@@ -247,17 +235,17 @@ class MerchandisingDemoSeeder extends Seeder
             ],
             13 => [
                 'type' => 'editorial_media',
-                'title' => 'Home Office, Upgraded',
+                'title' => 'Party & Provisions, Sorted',
                 'settings' => [
-                    'eyebrow' => 'Lifestyle',
-                    'body' => 'A tidy desk, better light, and power that keeps up with your day — everything you need to make working from home feel intentional.',
+                    'eyebrow' => 'Stock up',
+                    'body' => 'Crates of beer, cartons of malt and juice, and the everyday provisions your household runs on — bought by the unit or by the case, delivered cold.',
                     // Root-relative path — do NOT use asset() here; it bakes
                     // in the server URL at seed-time (e.g. http:/127.0.0.1:8000)
                     // which then breaks on any other host or port.
                     'image_url' => '/theme/img/products/27.png', 'align' => 'right',
                 ],
-                'cta_label' => 'Shop electronics',
-                'cta_link' => $electronics ? ['type' => 'category', 'ref' => $electronics->id, 'label' => 'Shop electronics'] : null,
+                'cta_label' => 'Shop drinks',
+                'cta_link' => $drinks ? ['type' => 'category', 'ref' => $drinks->id, 'label' => 'Shop drinks'] : null,
             ],
         ];
 
@@ -291,12 +279,12 @@ class MerchandisingDemoSeeder extends Seeder
      */
     private function onSaleEvergreen(array $products): void
     {
-        $variant = $products['air_fryer']->primaryVariant();
+        $variant = $products['coke']->primaryVariant();
 
         if ($variant) {
             PromotionalPrice::firstOrCreate(
                 ['product_variant_id' => $variant->id, 'label' => 'Member Price'],
-                ['price' => Money::fromNaira(85000), 'is_active' => true],
+                ['price' => Money::fromNaira(350), 'is_active' => true],
             );
         }
     }
@@ -361,7 +349,7 @@ class MerchandisingDemoSeeder extends Seeder
             'eligibility' => 'both', 'campaign_id' => $campaign->id, 'is_active' => false,
         ]);
 
-        foreach (['headphones', 'led_strip'] as $key) {
+        foreach (['star', 'guinness'] as $key) {
             $variant = $products[$key]->primaryVariant();
             if ($variant) {
                 PromotionalPrice::create([
@@ -472,7 +460,7 @@ class MerchandisingDemoSeeder extends Seeder
             'eligibility' => 'both', 'campaign_id' => $campaign->id, 'is_active' => false,
         ]);
 
-        $variant = $products['tote_bag']->primaryVariant();
+        $variant = $products['indomie']->primaryVariant();
         if ($variant) {
             PromotionalPrice::create([
                 'product_variant_id' => $variant->id, 'label' => 'Festive Price',

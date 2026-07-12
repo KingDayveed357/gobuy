@@ -25,6 +25,7 @@ use App\Modules\Order\Listeners\NotifyCustomerOfCancellation;
 use App\Modules\Order\Listeners\NotifyCustomerOfCompletion;
 use App\Modules\Order\Listeners\SendOrderAcceptedNotifications;
 use App\Modules\Order\Models\Order;
+use App\Support\Commerce\CommerceModules;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Auth;
@@ -41,7 +42,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // The single authority on optional Commerce Operations modules.
+        $this->app->singleton(CommerceModules::class);
     }
 
     /**

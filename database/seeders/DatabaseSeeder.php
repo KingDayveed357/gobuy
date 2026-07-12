@@ -37,13 +37,13 @@ class DatabaseSeeder extends Seeder
         $this->call(CatalogSeeder::class);
         $this->call(LogisticsSeeder::class);
 
-        Banner::firstOrCreate(['title' => 'Industrial safety, delivered fast'], [
-            'subtitle' => 'Helmets, boots and gloves — sourced direct, priced right.',
-            'cta_label' => 'Shop safety gear', 'link_url' => '/products', 'placement' => 'home_hero',
+        Banner::firstOrCreate(['title' => 'Drinks, provisions & more — delivered fast'], [
+            'subtitle' => 'Beer, malt, juice, water and groceries — sourced direct, priced right.',
+            'cta_label' => 'Shop the store', 'link_url' => '/products', 'placement' => 'home_hero',
             'layout' => 'hero', 'theme' => 'indigo', 'text_theme' => 'light', 'sort_order' => 1,
         ]);
-        Banner::firstOrCreate(['title' => 'Wholesale pricing for your business'], [
-            'subtitle' => 'Apply for a wholesale account and unlock tiered prices.',
+        Banner::firstOrCreate(['title' => 'Buy by the carton and save'], [
+            'subtitle' => 'Apply for a wholesale account and unlock crate & carton pricing.',
             'cta_label' => 'Become a wholesaler', 'link_url' => '/account/wholesale', 'placement' => 'home_hero',
             'layout' => 'split', 'theme' => 'emerald', 'text_theme' => 'light', 'sort_order' => 2,
         ]);

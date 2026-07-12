@@ -4,6 +4,7 @@ namespace App\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use App\Support\Commerce\CommerceModules;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,12 +37,43 @@ class SettingsController extends Controller
         ]);
     }
 
-    public function store(): View
+    public function store(CommerceModules $modules): View
     {
         return view('admin.settings.store', [
             'settings' => Setting::all(),
             'defaults' => ['store_name' => config('app.name', 'GoBuy')],
+            'modules' => $modules,
         ]);
+    }
+
+    /**
+     * Turn optional Commerce Operations modules on/off. Dependencies are pulled
+     * on with the module that needs them; nothing else is touched. Super-admin
+     * only (this route sits in the super_admin group).
+     */
+    public function updateModules(Request $request, CommerceModules $modules): RedirectResponse
+    {
+        $requested = collect($request->input('modules', []))
+            ->filter(fn ($key) => is_string($key) && $modules->isShipped($key));
+
+        // A module implies its dependencies — expand the desired set to include them.
+        $desired = collect();
+        $expand = function (string $key) use (&$expand, $modules, $desired): void {
+            if ($desired->contains($key)) {
+                return;
+            }
+            $desired->push($key);
+            foreach ($modules->dependencies($key) as $dependency) {
+                $expand($dependency);
+            }
+        };
+        $requested->each($expand);
+
+        foreach (array_keys($modules->available()) as $key) {
+            $desired->contains($key) ? $modules->enable($key) : $modules->disable($key);
+        }
+
+        return back()->with('status', 'Modules updated.');
     }
 
     public function updateStore(Request $request): RedirectResponse

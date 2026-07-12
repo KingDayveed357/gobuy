@@ -8,6 +8,7 @@ use App\Modules\Order\Database\Factories\OrderFactory;
 use App\Modules\Order\Enums\OrderStatus;
 use App\Modules\Order\Enums\PaymentMethod;
 use App\Modules\Order\Enums\PaymentStatus;
+use App\Modules\Order\Enums\SalesChannel;
 use App\Modules\Payment\Models\BankTransferProof;
 use App\Modules\Payment\Models\Payment;
 use App\Modules\Payment\Models\Refund;
@@ -39,6 +40,7 @@ class Order extends Model
         'status',
         'payment_status',
         'payment_method',
+        'channel',
         'subtotal',
         'discount_amount',
         'tax_amount',
@@ -57,6 +59,7 @@ class Order extends Model
     protected $attributes = [
         'status' => 'pending',
         'payment_status' => 'unpaid',
+        'channel' => 'web',
         'delivery_fee' => 0,
         'discount_amount' => 0,
     ];
@@ -78,6 +81,12 @@ class Order extends Model
             'delivered_at' => 'datetime',
             'expires_at' => 'datetime',
         ];
+    }
+
+    /** Human label for the channel this order came through (default Website). */
+    public function channelLabel(): string
+    {
+        return SalesChannel::labelFor($this->channel);
     }
 
     /**

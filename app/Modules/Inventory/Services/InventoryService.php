@@ -4,17 +4,20 @@ namespace App\Modules\Inventory\Services;
 
 use App\Admin\Models\Admin;
 use App\Modules\Catalog\Models\ProductVariant;
-use App\Modules\Inventory\Models\StockAdjustment;
+use App\Modules\Inventory\Models\InventoryMovement;
 use App\Modules\Inventory\Models\StockReservation;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Owns availability, soft reservations, and the manual stock-adjustment audit
- * trail. "Available" stock is on-hand stock minus active (unexpired) holds, so
- * concurrent shoppers cannot oversell before payment.
+ * Owns availability and soft reservations. Manual stock changes are delegated to
+ * the {@see InventoryLedger} so they join the one audit trail. "Available" stock
+ * is on-hand minus active (unexpired) holds, so concurrent shoppers cannot
+ * oversell before payment.
  */
 class InventoryService
 {
+    public function __construct(private readonly InventoryLedger $ledger) {}
+
     /** Total quantity actively reserved for a variant, optionally excluding one holder. */
     public function reservedQuantity(ProductVariant $variant, ?string $excludeHolder = null): int
     {
@@ -79,28 +82,13 @@ class InventoryService
      * Apply a signed manual stock change and record it. Stock never goes below
      * zero; the logged delta reflects the actual change applied.
      */
-    public function adjust(ProductVariant $variant, int $delta, ?string $reason = null, ?Admin $admin = null): StockAdjustment
+    public function adjust(ProductVariant $variant, int $delta, ?string $reason = null, ?Admin $admin = null): InventoryMovement
     {
-        return DB::transaction(function () use ($variant, $delta, $reason, $admin): StockAdjustment {
-            $fresh = ProductVariant::query()->lockForUpdate()->findOrFail($variant->id);
-
-            $newStock = max(0, $fresh->stock + $delta);
-            $appliedDelta = $newStock - $fresh->stock;
-
-            $fresh->update(['stock' => $newStock]);
-
-            return StockAdjustment::create([
-                'product_variant_id' => $fresh->id,
-                'admin_id' => $admin?->id,
-                'delta' => $appliedDelta,
-                'quantity_after' => $newStock,
-                'reason' => $reason,
-            ]);
-        });
+        return $this->ledger->recordAdjustment($variant, $delta, $reason, $admin);
     }
 
     /** Set on-hand stock to an absolute target, recording the difference. */
-    public function setStock(ProductVariant $variant, int $target, ?string $reason = null, ?Admin $admin = null): StockAdjustment
+    public function setStock(ProductVariant $variant, int $target, ?string $reason = null, ?Admin $admin = null): InventoryMovement
     {
         return $this->adjust($variant, $target - $variant->stock, $reason, $admin);
     }

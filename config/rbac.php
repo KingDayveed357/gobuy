@@ -48,6 +48,16 @@ return [
         'Insights' => [
             'view_analytics' => 'View analytics & reports',
         ],
+        'Operations' => [
+            'manage_walk_in_sales' => 'Record walk-in & in-store sales',
+            'manage_register' => 'Open, close & reconcile the cash register',
+            'manage_inventory_ops' => 'Manage stock locations & multi-location inventory',
+            'manage_transfers' => 'Move stock between locations',
+            'manage_purchasing' => 'Manage suppliers, purchase orders & receiving',
+            'manage_packaging' => 'Manage packaging units (cartons, packs, crates)',
+            'manage_stock_counts' => 'Run stock counts & write off damaged goods',
+            'view_ops_reports' => 'View operations dashboards & reports',
+        ],
     ],
 
     /*

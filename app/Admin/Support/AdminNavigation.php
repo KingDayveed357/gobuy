@@ -3,10 +3,13 @@
 namespace App\Admin\Support;
 
 use App\Admin\Models\Admin;
+use App\Support\Commerce\CommerceModules;
 use Illuminate\Support\Facades\Route;
 
 class AdminNavigation
 {
+    public function __construct(private readonly CommerceModules $modules) {}
+
     /**
      * @return list<array<string, mixed>>
      */
@@ -19,6 +22,11 @@ class AdminNavigation
 
             // Owner-only entries (staff & role management) — never shown to delegated staff.
             if (($entry['super_admin'] ?? false) && ! $admin->isSuperAdmin()) {
+                continue;
+            }
+
+            // Entries owned by an optional module vanish while that module is off.
+            if (isset($entry['module']) && ! $this->modules->enabled($entry['module'])) {
                 continue;
             }
 
@@ -61,7 +69,34 @@ class AdminNavigation
             }
         }
 
-        return $items;
+        return $this->pruneEmptySections($items);
+    }
+
+    /**
+     * Drop section headers that end up with no groups or links beneath them —
+     * e.g. an "Operations" section whose modules are all disabled. Keeps the
+     * sidebar free of orphaned labels regardless of which modules are on.
+     *
+     * @param  list<array<string, mixed>>  $items
+     * @return list<array<string, mixed>>
+     */
+    private function pruneEmptySections(array $items): array
+    {
+        $pruned = [];
+
+        foreach ($items as $index => $entry) {
+            if (($entry['type'] ?? null) === 'section') {
+                $next = $items[$index + 1] ?? null;
+
+                if ($next === null || ($next['type'] ?? null) === 'section') {
+                    continue; // nothing renders under this section
+                }
+            }
+
+            $pruned[] = $entry;
+        }
+
+        return array_values($pruned);
     }
 
     /**
@@ -110,6 +145,10 @@ class AdminNavigation
 
         foreach ($items as $item) {
             if (isset($item['permission']) && ! $admin->can($item['permission'])) {
+                continue;
+            }
+
+            if (isset($item['module']) && ! $this->modules->enabled($item['module'])) {
                 continue;
             }
 

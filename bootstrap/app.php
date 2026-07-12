@@ -1,9 +1,11 @@
 <?php
 
 use App\Admin\Http\Middleware\EnsureAdminIsActive;
+use App\Admin\Http\Middleware\EnsureModuleEnabled;
 use App\Admin\Http\Middleware\EnsureSuperAdmin;
 use App\Admin\Http\Middleware\RecordAdminActivity;
 use App\Modules\Customer\Http\Middleware\EnsureEmailVerified;
+use App\Modules\Inventory\Console\ReconcileInventory;
 use App\Modules\Marketing\Console\AuditLinksCommand;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -21,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withCommands([
         AuditLinksCommand::class,
+        ReconcileInventory::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->validateCsrfTokens(except: [
@@ -40,6 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
+            'module' => EnsureModuleEnabled::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

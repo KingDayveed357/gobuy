@@ -237,7 +237,7 @@ class PaymentService
                     $variant = $item->product_variant_id ? ProductVariant::find($item->product_variant_id) : null;
 
                     if ($variant) {
-                        $this->catalog->decrementStock($variant, $item->quantity);
+                        $this->catalog->decrementStock($variant, $item->quantity, $order);
                     }
                 }
 

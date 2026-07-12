@@ -12,8 +12,8 @@
         <p class="text-body-tertiary mb-0">Manage your personal details, security, and preferences</p>
     </div>
 
-    <div class="card border-0 shadow-sm overflow-hidden">
-        <div class="card-body p-0">
+    <!-- <div class="card border-0 shadow-sm overflow-hidden"> -->
+        <!-- <div class="card-body p-0"> -->
             {{-- Vertical wizard (horizontal on mobile via CSS) --}}
             <x-wizard.engine id="customerSettingsWizard" type="vertical">
                 <x-slot:nav>
@@ -49,7 +49,7 @@
                     @csrf
                     <div class="gb-form-section">
                         <div class="gb-form-section-header px-4 pt-4 pb-0">
-                            <h5 class="mb-0">Personal Information</h5>
+                            <h5 class="mb-2">Personal Information</h5>
                         </div>
                         <div class="gb-form-section-body p-4">
                             <div class="row g-3">
@@ -232,8 +232,8 @@
                     </div>
                 </x-slot:footer>
             </x-wizard.engine>
-        </div>
-    </div>
+        <!-- </div> -->
+    <!-- </div> -->
 @endsection
 
 @push('scripts')

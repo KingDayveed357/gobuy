@@ -43,11 +43,13 @@ class InventoryTest extends TestCase
         ])->assertRedirect();
 
         $this->assertSame(15, $variant->fresh()->stock);
-        $this->assertDatabaseHas('stock_adjustments', [
+        // Adjustments are now audited on the inventory-movement ledger.
+        $this->assertDatabaseHas('inventory_movements', [
             'product_variant_id' => $variant->id,
-            'delta' => 5,
+            'type' => 'adjustment',
+            'quantity' => 5,
             'quantity_after' => 15,
-            'reason' => 'Canton Fair restock',
+            'note' => 'Canton Fair restock',
         ]);
     }
 

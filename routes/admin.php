@@ -75,6 +75,7 @@ Route::middleware(['auth:admin', 'admin.active', 'admin.activity'])->group(funct
     Route::middleware('super_admin')->group(function (): void {
         Route::get('settings/store', [SettingsController::class, 'store'])->name('settings.store');
         Route::post('settings/store', [SettingsController::class, 'updateStore'])->name('settings.store.update');
+        Route::post('settings/modules', [SettingsController::class, 'updateModules'])->name('settings.modules.update');
 
         // Roles: reusable permission templates.
         Route::get('roles', [RoleController::class, 'index'])->name('roles.index');

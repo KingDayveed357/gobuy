@@ -3,12 +3,22 @@
 /**
  * Admin sidebar navigation structure.
  *
- * Groups use Phoenix dropdown-indicator / Bootstrap collapse patterns.
- * Permissions mirror routes/admin.php middleware — items are filtered at render time.
+ * Information architecture: a small set of always-visible quick actions followed
+ * by logical dropdown groups (Phoenix dropdown-indicator / Bootstrap collapse).
+ * This keeps daily drivers one click away while folding the long tail of features
+ * into predictable sections, so the sidebar stays legible as modules are added.
+ *
+ * Gating (resolved at render time by App\Admin\Support\AdminNavigation):
+ *   permission   — string OR array (any-of). On a GROUP it decides whether the
+ *                  header renders; on an ITEM it filters that item out precisely.
+ *                  In mixed-permission groups every item carries its own
+ *                  permission so staff never see links they cannot open.
+ *   module       — the entry vanishes while that optional module is disabled.
+ *   super_admin  — owner-only; never shown to delegated staff.
  *
  * Search metadata (keywords, aliases, priority, subtitle, breadcrumb) is co-located
- * here so navigation and search stay in sync automatically. The AdminSearchIndex
- * service reads this config alongside config/admin-search-index.php (actions only).
+ * here so navigation and search stay in sync. AdminSearchIndex reads this config
+ * alongside config/admin-search-index.php (actions only).
  *
  * Search fields:
  *   keywords  — array of extra search terms (do not repeat the label)
@@ -19,13 +29,15 @@
  *   search    — false to exclude this entry from search entirely
  */
 return [
+
+    // ── Quick actions ──────────────────────────────────────────────────────
+    // The handful of destinations used every day, kept at the top level.
     [
         'type'       => 'link',
         'label'      => 'Dashboard',
         'route'      => 'admin.dashboard',
         'icon'       => 'pie-chart',
         'active'     => ['admin.dashboard'],
-        // search metadata
         'subtitle'   => 'Overview, KPIs, and quick stats',
         'breadcrumb' => 'Dashboard',
         'keywords'   => ['home', 'overview', 'kpi', 'stats', 'summary', 'metrics'],
@@ -33,17 +45,53 @@ return [
         'priority'   => 95,
     ],
     [
+        'type'       => 'link',
+        'label'      => 'New sale',
+        'route'      => 'admin.walk-in.index',
+        'icon'       => 'shopping-bag',
+        'active'     => ['admin.walk-in.*'],
+        'permission' => 'manage_walk_in_sales',
+        'module'     => 'ops.walk_in',
+        'subtitle'   => 'Record an in-store or phone sale',
+        'breadcrumb' => 'New sale',
+        'keywords'   => ['pos', 'walk-in', 'walk in', 'in-store', 'counter', 'cash', 'till', 'point of sale'],
+        'aliases'    => ['pos', 'till', 'sell'],
+        'priority'   => 92,
+    ],
+    [
+        'type'       => 'link',
+        'label'      => 'Register',
+        'route'      => 'admin.register.index',
+        'icon'       => 'lock',
+        'active'     => ['admin.register.*'],
+        'permission' => 'manage_register',
+        'module'     => 'ops.register',
+        'subtitle'   => 'Open & close the business day',
+        'breadcrumb' => 'Register',
+        'keywords'   => ['cash', 'day close', 'reconcile', 'drawer', 'shift', 'till', 'end of day', 'z-report'],
+        'aliases'    => ['day close', 'shift', 'drawer'],
+        'priority'   => 91,
+    ],
+
+    // ── Catalog ────────────────────────────────────────────────────────────
+    [
+        'type'       => 'section',
+        'label'      => 'Catalog',
+        'permission' => ['manage_products', 'manage_packaging'],
+        'search'     => false,
+    ],
+    [
         'type'       => 'group',
         'id'         => 'nv-catalog',
-        'label'      => 'Catalog',
+        'label'      => 'Products',
         'icon'       => 'box',
-        'permission' => 'manage_products',
-        // group-level search metadata (the group itself is not searchable; only items are)
+        'permission' => ['manage_products', 'manage_packaging'],
         'items'      => [
             [
-                'label'      => 'Products',
+                'label'      => 'All products',
                 'route'      => 'admin.products.index',
                 'active'     => ['admin.products.*'],
+                'permission' => 'manage_products',
                 'subtitle'   => 'Manage all products in your catalog',
                 'breadcrumb' => 'Catalog > Products',
                 'keywords'   => ['catalog', 'sku', 'listing', 'goods', 'merchandise', 'shop'],
@@ -51,19 +99,10 @@ return [
                 'priority'   => 90,
             ],
             [
-                'label'      => 'Inventory',
-                'route'      => 'admin.inventory.index',
-                'active'     => ['admin.inventory.*'],
-                'subtitle'   => 'Track and adjust stock levels',
-                'breadcrumb' => 'Catalog > Inventory',
-                'keywords'   => ['stock', 'quantity', 'warehouse', 'levels', 'adjustments', 'variants'],
-                'aliases'    => ['stock', 'warehouse', 'quantities'],
-                'priority'   => 85,
-            ],
-            [
                 'label'      => 'Categories',
                 'route'      => 'admin.categories.index',
                 'active'     => ['admin.categories.*'],
+                'permission' => 'manage_products',
                 'subtitle'   => 'Organize products into hierarchical categories',
                 'breadcrumb' => 'Catalog > Categories',
                 'keywords'   => ['taxonomy', 'classification', 'groups', 'tree', 'hierarchy'],
@@ -71,39 +110,10 @@ return [
                 'priority'   => 80,
             ],
             [
-                'label'      => 'Reviews',
-                'route'      => 'admin.reviews.index',
-                'active'     => ['admin.reviews.*'],
-                'subtitle'   => 'Moderate customer product reviews',
-                'breadcrumb' => 'Catalog > Reviews',
-                'keywords'   => ['ratings', 'feedback', 'moderation', 'approve', 'reject', 'testimonials'],
-                'aliases'    => ['ratings', 'testimonials', 'feedback'],
-                'priority'   => 60,
-            ],
-            [
-                'label'      => 'Campaigns',
-                'route'      => 'admin.campaigns.index',
-                'active'     => ['admin.campaigns.*'],
-                'subtitle'   => 'Create and manage time-limited sales campaigns',
-                'breadcrumb' => 'Catalog > Campaigns',
-                'keywords'   => ['sale', 'promo', 'event', 'flash sale', 'deal', 'seasonal'],
-                'aliases'    => ['sale', 'promo', 'event', 'promotions'],
-                'priority'   => 80,
-            ],
-            [
-                'label'      => 'Pages',
-                'route'      => 'admin.pages.index',
-                'active'     => ['admin.pages.*'],
-                'subtitle'   => 'Manage storefront CMS pages and landing pages',
-                'breadcrumb' => 'Catalog > Pages',
-                'keywords'   => ['cms', 'landing', 'content', 'static page', 'storefront'],
-                'aliases'    => ['cms pages', 'landing pages', 'content pages'],
-                'priority'   => 65,
-            ],
-            [
                 'label'      => 'Collections',
                 'route'      => 'admin.collections.index',
                 'active'     => ['admin.collections.*'],
+                'permission' => 'manage_products',
                 'subtitle'   => 'Curated product groupings for merchandising',
                 'breadcrumb' => 'Catalog > Collections',
                 'keywords'   => ['curated', 'featured', 'groups', 'product sets'],
@@ -111,21 +121,64 @@ return [
                 'priority'   => 65,
             ],
             [
-                'label'      => 'Banners',
-                'route'      => 'admin.banners.index',
-                'active'     => ['admin.banners.*'],
-                'subtitle'   => 'Homepage and promotional banner management',
-                'breadcrumb' => 'Catalog > Banners',
-                'keywords'   => ['hero', 'slider', 'image', 'homepage banner', 'ads', 'carousel'],
-                'aliases'    => ['hero images', 'sliders', 'ads'],
-                'priority'   => 65,
+                'label'      => 'Inventory',
+                'route'      => 'admin.inventory.index',
+                'active'     => ['admin.inventory.*'],
+                'permission' => 'manage_products',
+                'subtitle'   => 'Track and adjust stock levels',
+                'breadcrumb' => 'Catalog > Inventory',
+                'keywords'   => ['stock', 'quantity', 'warehouse', 'levels', 'adjustments', 'variants'],
+                'aliases'    => ['stock', 'warehouse', 'quantities'],
+                'priority'   => 85,
+            ],
+            [
+                'label'      => 'Packaging',
+                'route'      => 'admin.packaging.index',
+                'active'     => ['admin.packaging.*'],
+                'permission' => 'manage_packaging',
+                'module'     => 'ops.packaging',
+                'subtitle'   => 'Cartons, packs & crates per product',
+                'breadcrumb' => 'Catalog > Packaging',
+                'keywords'   => ['packaging', 'carton', 'pack', 'crate', 'bottle', 'case', 'unit of measure'],
+                'aliases'    => ['cartons', 'packs', 'units'],
+                'priority'   => 70,
+            ],
+            [
+                'label'      => 'Reviews',
+                'route'      => 'admin.reviews.index',
+                'active'     => ['admin.reviews.*'],
+                'permission' => 'manage_products',
+                'subtitle'   => 'Moderate customer product reviews',
+                'breadcrumb' => 'Catalog > Reviews',
+                'keywords'   => ['ratings', 'feedback', 'moderation', 'approve', 'reject', 'testimonials'],
+                'aliases'    => ['ratings', 'testimonials', 'feedback'],
+                'priority'   => 60,
+            ],
+        ],
+    ],
+    [
+        'type'       => 'group',
+        'id'         => 'nv-marketing',
+        'label'      => 'Marketing',
+        'icon'       => 'tag',
+        'permission' => 'manage_products',
+        'items'      => [
+            [
+                'label'      => 'Campaigns',
+                'route'      => 'admin.campaigns.index',
+                'active'     => ['admin.campaigns.*'],
+                'subtitle'   => 'Create and manage time-limited sales campaigns',
+                'breadcrumb' => 'Marketing > Campaigns',
+                'keywords'   => ['sale', 'promo', 'event', 'flash sale', 'deal', 'seasonal'],
+                'aliases'    => ['sale', 'promo', 'event', 'promotions'],
+                'priority'   => 80,
             ],
             [
                 'label'      => 'Coupons',
                 'route'      => 'admin.coupons.index',
                 'active'     => ['admin.coupons.*'],
                 'subtitle'   => 'Discount codes and coupon management',
-                'breadcrumb' => 'Catalog > Coupons',
+                'breadcrumb' => 'Marketing > Coupons',
                 'keywords'   => ['discount', 'promo code', 'voucher', 'redemption', 'code'],
                 'aliases'    => ['discount codes', 'vouchers', 'promo codes'],
                 'priority'   => 75,
@@ -135,7 +188,7 @@ return [
                 'route'      => 'admin.promotions.index',
                 'active'     => ['admin.promotions.*'],
                 'subtitle'   => 'Scheduled promotional pricing on products',
-                'breadcrumb' => 'Catalog > Sale Prices',
+                'breadcrumb' => 'Marketing > Sale Prices',
                 'keywords'   => ['promotions', 'discount price', 'flash price', 'scheduled price', 'sale'],
                 'aliases'    => ['promotions', 'promotional pricing', 'discounts'],
                 'priority'   => 70,
@@ -145,74 +198,77 @@ return [
                 'route'      => 'admin.pricing.bulk.create',
                 'active'     => ['admin.pricing.bulk.*'],
                 'subtitle'   => 'Adjust prices across categories or whole catalog',
-                'breadcrumb' => 'Catalog > Bulk Pricing',
+                'breadcrumb' => 'Marketing > Bulk Pricing',
                 'keywords'   => ['mass price', 'price adjustment', 'catalog pricing', 'bulk discount'],
                 'aliases'    => ['mass pricing', 'price adjustment', 'catalog pricing'],
                 'priority'   => 55,
+            ],
+            [
+                'label'      => 'Banners',
+                'route'      => 'admin.banners.index',
+                'active'     => ['admin.banners.*'],
+                'subtitle'   => 'Homepage and promotional banner management',
+                'breadcrumb' => 'Marketing > Banners',
+                'keywords'   => ['hero', 'slider', 'image', 'homepage banner', 'ads', 'carousel'],
+                'aliases'    => ['hero images', 'sliders', 'ads'],
+                'priority'   => 60,
             ],
         ],
     ],
     [
         'type'       => 'group',
+        'id'         => 'nv-content',
+        'label'      => 'Content',
+        'icon'       => 'layout',
+        'permission' => 'manage_products',
+        'items'      => [
+            [
+                'label'      => 'Pages',
+                'route'      => 'admin.pages.index',
+                'active'     => ['admin.pages.*'],
+                'subtitle'   => 'Manage storefront CMS pages and landing pages',
+                'breadcrumb' => 'Content > Pages',
+                'keywords'   => ['cms', 'landing', 'content', 'static page', 'storefront'],
+                'aliases'    => ['cms pages', 'landing pages', 'content pages'],
+                'priority'   => 65,
+            ],
+            [
+                'label'      => 'Homepage sections',
+                'route'      => 'admin.merchandising.index',
+                'active'     => ['admin.merchandising.*'],
+                'subtitle'   => 'Homepage sections and storefront layout builder',
+                'breadcrumb' => 'Content > Homepage Sections',
+                'keywords'   => ['homepage', 'sections', 'layout', 'storefront builder', 'featured', 'merchandising'],
+                'aliases'    => ['homepage builder', 'storefront sections', 'merchandising'],
+                'priority'   => 60,
+            ],
+        ],
+    ],
+
+    // ── Sales ──────────────────────────────────────────────────────────────
+    [
+        'type'       => 'section',
+        'label'      => 'Sales',
+        'permission' => ['manage_orders', 'manage_returns', 'manage_refunds'],
+        'search'     => false,
+    ],
+    [
+        'type'       => 'group',
         'id'         => 'nv-orders',
-        'label'      => 'Orders & fulfillment',
+        'label'      => 'Orders',
         'icon'       => 'shopping-cart',
         'permission' => ['manage_orders', 'manage_returns', 'manage_refunds'],
         'items'      => [
             [
-                'label'      => 'Orders',
+                'label'      => 'All orders',
                 'route'      => 'admin.orders.index',
                 'active'     => ['admin.orders.*'],
                 'permission' => 'manage_orders',
                 'subtitle'   => 'View and manage all customer orders',
-                'breadcrumb' => 'Orders & Fulfillment > Orders',
+                'breadcrumb' => 'Orders > All Orders',
                 'keywords'   => ['purchase', 'transaction', 'checkout', 'order list', 'sales'],
                 'aliases'    => ['purchases', 'transactions', 'sales'],
                 'priority'   => 90,
-            ],
-            [
-                'label'      => 'Logistics Hub',
-                'route'      => 'admin.logistics.index',
-                'active'     => ['admin.logistics.index'],
-                'permission' => 'manage_orders',
-                'subtitle'   => 'Dispatch console and fulfillment overview',
-                'breadcrumb' => 'Orders & Fulfillment > Logistics',
-                'keywords'   => ['dispatch', 'fulfillment', 'shipping', 'delivery', 'hub'],
-                'aliases'    => ['dispatch', 'fulfillment center'],
-                'priority'   => 70,
-            ],
-            [
-                'label'      => 'Shipments',
-                'route'      => 'admin.shipments.index',
-                'active'     => ['admin.shipments.*'],
-                'permission' => 'manage_orders',
-                'subtitle'   => 'Track and advance shipment statuses',
-                'breadcrumb' => 'Orders & Fulfillment > Shipments',
-                'keywords'   => ['tracking', 'courier', 'parcel', 'delivery', 'dispatch'],
-                'aliases'    => ['parcels', 'tracking', 'deliveries'],
-                'priority'   => 75,
-            ],
-            [
-                'label'      => 'Delivery Zones',
-                'route'      => 'admin.delivery-zones.index',
-                'active'     => ['admin.delivery-zones.*'],
-                'permission' => 'manage_orders',
-                'subtitle'   => 'Define geographic delivery zones and rates',
-                'breadcrumb' => 'Orders & Fulfillment > Delivery Zones',
-                'keywords'   => ['shipping zones', 'coverage', 'geography', 'rates', 'regions'],
-                'aliases'    => ['shipping zones', 'coverage areas', 'delivery regions'],
-                'priority'   => 60,
-            ],
-            [
-                'label'      => 'Locations',
-                'route'      => 'admin.locations.index',
-                'active'     => ['admin.locations.*'],
-                'permission' => 'manage_orders',
-                'subtitle'   => 'Manage warehouses and pickup locations',
-                'breadcrumb' => 'Orders & Fulfillment > Locations',
-                'keywords'   => ['warehouse', 'pickup', 'address', 'store location', 'depot'],
-                'aliases'    => ['warehouses', 'pickup points', 'depots'],
-                'priority'   => 60,
             ],
             [
                 'label'      => 'Returns',
@@ -220,7 +276,7 @@ return [
                 'active'     => ['admin.returns.*'],
                 'permission' => 'manage_returns',
                 'subtitle'   => 'Process customer return requests and inspections',
-                'breadcrumb' => 'Orders & Fulfillment > Returns',
+                'breadcrumb' => 'Orders > Returns',
                 'keywords'   => ['refund', 'rma', 'return request', 'reverse logistics', 'exchange'],
                 'aliases'    => ['rma', 'return requests', 'exchanges'],
                 'priority'   => 75,
@@ -230,9 +286,8 @@ return [
                 'route'      => 'admin.store-credits.index',
                 'active'     => ['admin.store-credits.*'],
                 'permission' => 'manage_refunds',
-                'icon'       => 'award',
                 'subtitle'   => 'Issue and manage customer store credits',
-                'breadcrumb' => 'Orders & Fulfillment > Store Credit',
+                'breadcrumb' => 'Orders > Store Credit',
                 'keywords'   => ['wallet', 'credit', 'refund credit', 'balance', 'compensation'],
                 'aliases'    => ['wallet credits', 'customer balance'],
                 'priority'   => 65,
@@ -241,13 +296,168 @@ return [
     ],
     [
         'type'       => 'group',
-        'id'         => 'nv-finance',
+        'id'         => 'nv-fulfillment',
+        'label'      => 'Fulfillment',
+        'icon'       => 'truck',
+        'permission' => 'manage_orders',
+        'items'      => [
+            [
+                'label'      => 'Logistics hub',
+                'route'      => 'admin.logistics.index',
+                'active'     => ['admin.logistics.index'],
+                'subtitle'   => 'Dispatch console and fulfillment overview',
+                'breadcrumb' => 'Fulfillment > Logistics',
+                'keywords'   => ['dispatch', 'fulfillment', 'shipping', 'delivery', 'hub'],
+                'aliases'    => ['dispatch', 'fulfillment center'],
+                'priority'   => 70,
+            ],
+            [
+                'label'      => 'Shipments',
+                'route'      => 'admin.shipments.index',
+                'active'     => ['admin.shipments.*'],
+                'subtitle'   => 'Track and advance shipment statuses',
+                'breadcrumb' => 'Fulfillment > Shipments',
+                'keywords'   => ['tracking', 'courier', 'parcel', 'delivery', 'dispatch'],
+                'aliases'    => ['parcels', 'tracking', 'deliveries'],
+                'priority'   => 72,
+            ],
+            [
+                'label'      => 'Delivery zones',
+                'route'      => 'admin.delivery-zones.index',
+                'active'     => ['admin.delivery-zones.*'],
+                'subtitle'   => 'Define geographic delivery zones and rates',
+                'breadcrumb' => 'Fulfillment > Delivery Zones',
+                'keywords'   => ['shipping zones', 'coverage', 'geography', 'rates', 'regions'],
+                'aliases'    => ['shipping zones', 'coverage areas', 'delivery regions'],
+                'priority'   => 60,
+            ],
+            [
+                'label'      => 'Pickup locations',
+                'route'      => 'admin.locations.index',
+                'active'     => ['admin.locations.*'],
+                'subtitle'   => 'Manage pickup and return centres',
+                'breadcrumb' => 'Fulfillment > Pickup Locations',
+                'keywords'   => ['pickup', 'return centre', 'collection point', 'depot'],
+                'aliases'    => ['pickup points', 'collection points', 'depots'],
+                'priority'   => 58,
+            ],
+        ],
+    ],
+
+    // ── Operations (optional retail modules) ───────────────────────────────
+    [
+        'type'       => 'section',
+        'label'      => 'Operations',
+        'permission' => ['manage_inventory_ops', 'manage_transfers', 'manage_purchasing', 'manage_stock_counts', 'view_ops_reports'],
+        'search'     => false,
+    ],
+    [
+        'type'       => 'group',
+        'id'         => 'nv-operations',
+        'label'      => 'Inventory ops',
+        'icon'       => 'package',
+        'permission' => ['manage_inventory_ops', 'manage_transfers', 'manage_stock_counts'],
+        'items'      => [
+            [
+                'label'      => 'Stock locations',
+                'route'      => 'admin.stock-locations.index',
+                'active'     => ['admin.stock-locations.*'],
+                'permission' => 'manage_inventory_ops',
+                'module'     => 'ops.inventory_ledger',
+                'subtitle'   => 'Stock on hand at each location',
+                'breadcrumb' => 'Operations > Stock Locations',
+                'keywords'   => ['location', 'warehouse', 'shop', 'home', 'storage', 'stock on hand', 'inventory by location'],
+                'aliases'    => ['locations', 'warehouses', 'where is my stock'],
+                'priority'   => 74,
+            ],
+            [
+                'label'      => 'Stock transfers',
+                'route'      => 'admin.stock-transfers.index',
+                'active'     => ['admin.stock-transfers.*'],
+                'permission' => 'manage_transfers',
+                'module'     => 'ops.transfers',
+                'subtitle'   => 'Move stock between your locations',
+                'breadcrumb' => 'Operations > Stock Transfers',
+                'keywords'   => ['transfer', 'move stock', 'restock', 'home', 'shop', 'warehouse', 'between locations'],
+                'aliases'    => ['transfer stock', 'move stock', 'restock'],
+                'priority'   => 73,
+            ],
+            [
+                'label'      => 'Stock counts',
+                'route'      => 'admin.stock-counts.index',
+                'active'     => ['admin.stock-counts.*'],
+                'permission' => 'manage_stock_counts',
+                'module'     => 'ops.stock_counts',
+                'subtitle'   => 'Reconcile counted stock & write off damage',
+                'breadcrumb' => 'Operations > Stock Counts',
+                'keywords'   => ['stock count', 'stocktake', 'count', 'audit', 'damage', 'write off', 'shrinkage', 'variance'],
+                'aliases'    => ['stocktake', 'count', 'damage'],
+                'priority'   => 72,
+            ],
+        ],
+    ],
+    [
+        'type'       => 'group',
+        'id'         => 'nv-purchasing',
+        'label'      => 'Purchasing',
+        'icon'       => 'file-text',
+        'permission' => ['manage_purchasing', 'view_ops_reports'],
+        'items'      => [
+            [
+                'label'      => 'Purchase orders',
+                'route'      => 'admin.purchase-orders.index',
+                'active'     => ['admin.purchase-orders.*'],
+                'permission' => 'manage_purchasing',
+                'module'     => 'ops.purchasing',
+                'subtitle'   => 'Order stock from suppliers & receive it',
+                'breadcrumb' => 'Operations > Purchase Orders',
+                'keywords'   => ['purchase', 'po', 'buy', 'restock', 'receive', 'goods received', 'ordering', 'procurement'],
+                'aliases'    => ['po', 'buying', 'procurement', 'restock'],
+                'priority'   => 71,
+            ],
+            [
+                'label'      => 'Suppliers',
+                'route'      => 'admin.suppliers.index',
+                'active'     => ['admin.suppliers.*'],
+                'permission' => 'manage_purchasing',
+                'module'     => 'ops.purchasing',
+                'subtitle'   => 'Wholesalers & distributors you buy from',
+                'breadcrumb' => 'Operations > Suppliers',
+                'keywords'   => ['supplier', 'vendor', 'wholesaler', 'distributor', 'importer'],
+                'aliases'    => ['vendors', 'wholesalers'],
+                'priority'   => 70,
+            ],
+            [
+                'label'      => 'Operations report',
+                'route'      => 'admin.ops-dashboard.index',
+                'active'     => ['admin.ops-dashboard.*'],
+                'permission' => 'view_ops_reports',
+                'module'     => 'ops.dashboards',
+                'subtitle'   => 'Inventory, sales by channel & movers',
+                'breadcrumb' => 'Operations > Report',
+                'keywords'   => ['operations', 'dashboard', 'reports', 'inventory value', 'sales by channel', 'movers', 'business health'],
+                'aliases'    => ['ops', 'ops report', 'business health'],
+                'priority'   => 69,
+            ],
+        ],
+    ],
+
+    // ── Finance & insights ─────────────────────────────────────────────────
+    [
+        'type'       => 'section',
         'label'      => 'Finance',
+        'permission' => ['manage_payments', 'view_analytics'],
+        'search'     => false,
+    ],
+    [
+        'type'       => 'group',
+        'id'         => 'nv-finance',
+        'label'      => 'Payments',
         'icon'       => 'credit-card',
         'permission' => 'manage_payments',
         'items'      => [
             [
-                'label'      => 'Payments',
+                'label'      => 'All payments',
                 'route'      => 'admin.payments.index',
                 'active'     => ['admin.payments.index', 'admin.payments.*'],
                 'subtitle'   => 'Payment verification and reconciliation',
@@ -257,11 +467,11 @@ return [
                 'priority'   => 80,
             ],
             [
-                'label'      => 'Transfers',
+                'label'      => 'Bank transfers',
                 'route'      => 'admin.transfers.index',
                 'active'     => ['admin.transfers.*'],
                 'subtitle'   => 'Manual bank transfer reconciliation',
-                'breadcrumb' => 'Finance > Transfers',
+                'breadcrumb' => 'Finance > Bank Transfers',
                 'keywords'   => ['bank transfer', 'wire', 'manual payment', 'bank slip', 'reconcile'],
                 'aliases'    => ['bank transfers', 'wire transfers'],
                 'priority'   => 65,
@@ -279,12 +489,6 @@ return [
         ],
     ],
     [
-        'type'       => 'section',
-        'label'      => 'Insights',
-        'permission' => 'view_analytics',
-        'search'     => false, // section labels not searchable
-    ],
-    [
         'type'       => 'link',
         'label'      => 'Analytics',
         'route'      => 'admin.analytics',
@@ -292,11 +496,13 @@ return [
         'active'     => ['admin.analytics'],
         'permission' => 'view_analytics',
         'subtitle'   => 'Sales analytics, revenue reports, and insights',
-        'breadcrumb' => 'Insights > Analytics',
+        'breadcrumb' => 'Finance > Analytics',
         'keywords'   => ['reports', 'revenue', 'charts', 'graphs', 'data', 'kpi', 'sales data'],
         'aliases'    => ['reports', 'revenue analytics', 'insights', 'statistics'],
         'priority'   => 85,
     ],
+
+    // ── People ─────────────────────────────────────────────────────────────
     [
         'type'       => 'section',
         'label'      => 'People',
@@ -343,11 +549,17 @@ return [
         ],
     ],
 
-    // Owner-only: staff & role management.
+    // ── Administration (owner-only) ────────────────────────────────────────
+    [
+        'type'        => 'section',
+        'label'       => 'Administration',
+        'super_admin' => true,
+        'search'      => false,
+    ],
     [
         'type'        => 'group',
         'id'          => 'nv-team',
-        'label'       => 'Team',
+        'label'       => 'Team & access',
         'icon'        => 'shield',
         'super_admin' => true,
         'items'       => [
@@ -355,20 +567,18 @@ return [
                 'label'      => 'Staff',
                 'route'      => 'admin.staff.index',
                 'active'     => ['admin.staff.*'],
-                'icon'       => 'user-check',
                 'subtitle'   => 'Manage admin staff accounts and access',
-                'breadcrumb' => 'Team > Staff',
+                'breadcrumb' => 'Administration > Staff',
                 'keywords'   => ['team', 'admins', 'users', 'employees', 'invite', 'members'],
                 'aliases'    => ['admins', 'team members', 'employees'],
                 'priority'   => 75,
             ],
             [
-                'label'      => 'Roles',
+                'label'      => 'Roles & permissions',
                 'route'      => 'admin.roles.index',
                 'active'     => ['admin.roles.*'],
-                'icon'       => 'shield',
                 'subtitle'   => 'Configure permission roles and access levels',
-                'breadcrumb' => 'Team > Roles',
+                'breadcrumb' => 'Administration > Roles',
                 'keywords'   => ['permissions', 'access control', 'rbac', 'acl', 'authorization'],
                 'aliases'    => ['permissions', 'access control', 'rbac'],
                 'priority'   => 70,
@@ -377,9 +587,8 @@ return [
                 'label'      => 'Activity log',
                 'route'      => 'admin.activity.index',
                 'active'     => ['admin.activity.*'],
-                'icon'       => 'activity',
                 'subtitle'   => 'Audit trail of admin actions',
-                'breadcrumb' => 'Team > Activity Log',
+                'breadcrumb' => 'Administration > Activity Log',
                 'keywords'   => ['audit', 'history', 'logs', 'trail', 'security log', 'actions'],
                 'aliases'    => ['audit trail', 'audit log', 'security log'],
                 'priority'   => 65,
@@ -387,23 +596,21 @@ return [
         ],
     ],
 
-    // Settings — personal account (always accessible to authenticated admins)
+    // ── Search-only entries (not rendered in the sidebar) ──────────────────
     [
         'type'       => 'link',
         'label'      => 'Account Settings',
         'route'      => 'admin.settings',
         'icon'       => 'user',
         'active'     => ['admin.settings'],
-        'search'     => true, // shown in search even though not in sidebar
-        'sidebar'    => false, // hide from sidebar nav
+        'search'     => true,
+        'sidebar'    => false,
         'subtitle'   => 'Personal profile, password, and 2FA settings',
         'breadcrumb' => 'Settings > Account',
         'keywords'   => ['profile', 'password', 'security', '2fa', 'two factor', 'personal'],
         'aliases'    => ['my profile', 'my account', 'profile settings'],
         'priority'   => 70,
     ],
-
-    // Store settings — super admin only
     [
         'type'        => 'link',
         'label'       => 'Store Settings',
@@ -415,28 +622,24 @@ return [
         'sidebar'     => false,
         'subtitle'    => 'General store configuration, branding, and policies',
         'breadcrumb'  => 'Settings > Store',
-        'keywords'    => ['configuration', 'store config', 'branding', 'general settings', 'policies'],
+        'keywords'    => ['configuration', 'store config', 'branding', 'general settings', 'policies', 'modules'],
         'aliases'     => ['store config', 'general settings', 'shop settings'],
         'priority'    => 80,
     ],
-
-    // Notifications — available to every admin
     [
-        'type'     => 'link',
-        'label'    => 'Notifications',
-        'route'    => 'admin.notifications.index',
-        'icon'     => 'bell',
-        'active'   => ['admin.notifications.*'],
-        'search'   => true,
-        'sidebar'  => false,
-        'subtitle' => 'All admin notifications and alerts',
+        'type'       => 'link',
+        'label'      => 'Notifications',
+        'route'      => 'admin.notifications.index',
+        'icon'       => 'bell',
+        'active'     => ['admin.notifications.*'],
+        'search'     => true,
+        'sidebar'    => false,
+        'subtitle'   => 'All admin notifications and alerts',
         'breadcrumb' => 'Notifications',
-        'keywords' => ['alerts', 'messages', 'inbox', 'updates'],
-        'aliases'  => ['alerts', 'inbox'],
-        'priority' => 60,
+        'keywords'   => ['alerts', 'messages', 'inbox', 'updates'],
+        'aliases'    => ['alerts', 'inbox'],
+        'priority'   => 60,
     ],
-
-    // Inventory Import — sub-page, not in sidebar
     [
         'type'       => 'link',
         'label'      => 'Import Inventory',
@@ -451,22 +654,5 @@ return [
         'keywords'   => ['csv import', 'bulk upload', 'stock import', 'spreadsheet', 'data import'],
         'aliases'    => ['stock import', 'csv upload', 'bulk import'],
         'priority'   => 60,
-    ],
-
-    // Merchandising — commented out in sidebar but kept searchable
-    [
-        'type'       => 'link',
-        'label'      => 'Merchandising',
-        'route'      => 'admin.merchandising.index',
-        'icon'       => 'layout',
-        'active'     => ['admin.merchandising.*'],
-        'permission' => 'manage_products',
-        'search'     => true,
-        'sidebar'    => false,
-        'subtitle'   => 'Homepage sections and storefront layout builder',
-        'breadcrumb' => 'Catalog > Merchandising',
-        'keywords'   => ['homepage', 'sections', 'layout', 'storefront builder', 'featured'],
-        'aliases'    => ['homepage builder', 'storefront sections'],
-        'priority'   => 65,
     ],
 ];

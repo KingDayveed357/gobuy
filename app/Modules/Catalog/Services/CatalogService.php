@@ -7,12 +7,13 @@ use App\Admin\Notifications\AdminAlertNotification;
 use App\Admin\Notifications\LowStockNotification;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Catalog\Models\ProductVariant;
+use App\Modules\Inventory\Exceptions\InsufficientStock;
+use App\Modules\Inventory\Services\InventoryLedger;
 use App\Support\Money;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
-use RuntimeException;
 
 /**
  * Catalog write operations. Controllers call straight into here (simple flow).
@@ -308,41 +309,28 @@ class CatalogService
     }
 
     /**
-     * Atomically reduce variant stock. Called on confirmed payment.
+     * Atomically reduce variant stock on a confirmed sale. Records an inventory
+     * movement (the audit trail) via the ledger, then fires low/out-of-stock
+     * alerts. $reference (the order) is stamped onto the movement.
      *
-     * @throws RuntimeException when stock is insufficient.
+     * @throws InsufficientStock when overselling.
      */
-    public function decrementStock(ProductVariant $variant, int $quantity): void
+    public function decrementStock(ProductVariant $variant, int $quantity, ?Model $reference = null): void
     {
-        $crossedLowStock = false;
-        $reachedZero = false;
+        $wasAboveThreshold = (int) $variant->fresh()->stock > $variant->low_stock_threshold;
 
-        DB::transaction(function () use ($variant, $quantity, &$crossedLowStock, &$reachedZero): void {
-            $fresh = ProductVariant::query()->lockForUpdate()->findOrFail($variant->id);
+        app(InventoryLedger::class)->recordSale($variant, $quantity, $reference);
 
-            if ($fresh->stock < $quantity) {
-                Log::warning('Stock decrement failed: insufficient stock', [
-                    'variant_id' => $fresh->id,
-                    'requested' => $quantity,
-                    'available' => $fresh->stock,
-                ]);
-
-                throw new RuntimeException("Insufficient stock for variant {$fresh->sku}.");
-            }
-
-            $wasAboveThreshold = $fresh->stock > $fresh->low_stock_threshold;
-            $fresh->decrement('stock', $quantity);
-
-            $reachedZero = $fresh->fresh()->stock <= 0;
-            // Low-stock alert only when the sale pushes the variant to/under its
-            // threshold. Sell-out supersedes it (louder, distinct alert below).
-            $crossedLowStock = ! $reachedZero && $wasAboveThreshold && $fresh->fresh()->isLowStock();
-        });
+        $fresh = $variant->fresh();
+        $reachedZero = $fresh->stock <= 0;
+        // Low-stock alert only when the sale pushes the variant to/under its
+        // threshold. Sell-out supersedes it (louder, distinct alert below).
+        $crossedLowStock = ! $reachedZero && $wasAboveThreshold && $fresh->isLowStock();
 
         if ($reachedZero) {
-            $this->alertOutOfStock($variant->fresh());
+            $this->alertOutOfStock($fresh);
         } elseif ($crossedLowStock) {
-            $this->alertLowStock($variant->fresh());
+            $this->alertLowStock($fresh);
         }
     }
 
@@ -374,17 +362,13 @@ class CatalogService
     }
 
     /**
-     * Return stock to a variant (e.g. after a refund).
+     * Return stock to a variant (e.g. after a refund or accepted return). Records
+     * a Return movement; the ledger updates stock and flushes back-in-stock
+     * waiters on a 0 → positive cross.
      */
-    public function restock(ProductVariant $variant, int $quantity): void
+    public function restock(ProductVariant $variant, int $quantity, ?Model $reference = null): void
     {
-        DB::transaction(function () use ($variant, $quantity): void {
-            ProductVariant::query()->lockForUpdate()->findOrFail($variant->id)->increment('stock', $quantity);
-        });
-
-        // increment() bypasses the model observer, so flush waiters explicitly.
-        // Idempotent — a no-op if the observer already handled it.
-        app(BackInStockService::class)->flush($variant->refresh());
+        app(InventoryLedger::class)->recordReturn($variant, $quantity, $reference);
     }
 
     private function uniqueSlug(string $name, ?int $ignoreId = null): string

@@ -4,6 +4,11 @@
     'eyebrow' => null,
     'flush' => false,
     'bodyClass' => '',
+    // Cards size to their content by default. Set `fill` on cards that share a
+    // row and should match their tallest sibling (KPI strips, side-by-side
+    // panels of similar weight) — never on asymmetric rows (a tall form next to
+    // a short table), where equal-height only creates empty whitespace.
+    'fill' => false,
 ])
 
 @php
@@ -18,7 +23,8 @@
             }
         }
     }
-    if (!$hasHeightClass) {
+    // Add h-100 only when the card explicitly opts into filling its row.
+    if ($fill && !$hasHeightClass) {
         $classes .= ' h-100';
     }
 @endphp

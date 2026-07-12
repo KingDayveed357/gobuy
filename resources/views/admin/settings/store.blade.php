@@ -9,7 +9,43 @@
         <p class="text-body-tertiary mb-0">Storefront identity, contact details and social links. These appear across the customer-facing site.</p>
     </div>
 
-   
+    {{-- Commerce Operations modules: optional retail/omnichannel capabilities.
+         Off by default — a plain e-commerce store never sees them. --}}
+    <div class="card mb-4" style="max-width: 760px;">
+        <div class="card-body">
+            <h5 class="mb-1">Commerce modules</h5>
+            <p class="text-body-tertiary fs-9 mb-3">Switch on advanced retail operations — in-store sales, multi-location inventory, purchasing and more. Leave them off to keep the admin focused on your online store.</p>
+            @php($available = $modules->available())
+            @if (empty($available))
+                <div class="alert alert-subtle-info mb-3">Advanced retail operations are on the way. When available you'll enable them here — until then your store stays a clean online shop.</div>
+                <h6 class="text-body-tertiary text-uppercase fs-10 mb-2">Coming soon</h6>
+                <ul class="list-unstyled mb-0">
+                    @foreach ($modules->definitions() as $key => $def)
+                        <li class="d-flex align-items-start gap-2 py-1">
+                            <span class="fas fa-clock text-body-tertiary mt-1"></span>
+                            <span><span class="fw-semibold">{{ $def['label'] }}</span><br><span class="fs-10 text-body-tertiary">{{ $def['description'] }}</span></span>
+                        </li>
+                    @endforeach
+                </ul>
+            @else
+                <form action="{{ route('admin.settings.modules.update') }}" method="POST">
+                    @csrf
+                    @foreach ($available as $key => $def)
+                        <div class="form-check form-switch mb-3">
+                            <input type="checkbox" class="form-check-input" role="switch" id="mod-{{ $key }}" name="modules[]" value="{{ $key }}" @checked($modules->enabled($key))>
+                            <label class="form-check-label" for="mod-{{ $key }}">
+                                <span class="fw-semibold">{{ $def['label'] }}</span>
+                                @if ($modules->dependencies($key))<span class="badge badge-phoenix badge-phoenix-secondary fs-10 ms-1">needs {{ implode(', ', array_map(fn ($d) => $modules->definition($d)['label'] ?? $d, $modules->dependencies($key))) }}</span>@endif
+                                <br><span class="fs-10 text-body-tertiary">{{ $def['description'] }}</span>
+                            </label>
+                        </div>
+                    @endforeach
+                    <button type="submit" class="btn btn-phoenix-primary btn-sm"><span class="fas fa-toggle-on me-1"></span>Save modules</button>
+                </form>
+            @endif
+        </div>
+    </div>
+
     <form action="{{ route('admin.settings.store.update') }}" method="POST" style="max-width: 760px;">
         @csrf
         <div class="card mb-4">
