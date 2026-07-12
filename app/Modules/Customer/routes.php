@@ -39,6 +39,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/account/settings', [AccountController::class, 'settings'])->name('account.settings');
     Route::post('/account/settings/profile', [AccountController::class, 'updateProfile'])->name('account.settings.profile');
     Route::post('/account/settings/security', [AccountController::class, 'updateSecurity'])->name('account.settings.security');
+    Route::post('/account/settings/notifications', [AccountController::class, 'updateNotifications'])->name('account.settings.notifications');
 
     // Address book.
     Route::get('/account/addresses', [AddressController::class, 'index'])->name('account.addresses.index');

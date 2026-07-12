@@ -68,7 +68,28 @@
         </div>
     @endif
 
-    {{-- ── Tier 2: Revenue & Orders ─────────────────────────────────────────────── --}}
+    {{-- ── Detail sections behind tabs (progressive disclosure) ─────────────────── --}}
+    <ul class="nav nav-underline mb-3" id="analyticsTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tab-btn-revenue" data-bs-toggle="tab" data-bs-target="#tab-revenue" type="button" role="tab" aria-controls="tab-revenue" aria-selected="true">
+                <span class="fas fa-chart-line me-2"></span>Revenue &amp; orders
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-btn-products" data-bs-toggle="tab" data-bs-target="#tab-products" type="button" role="tab" aria-controls="tab-products" aria-selected="false">
+                <span class="fas fa-box me-2"></span>Products
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-btn-customers" data-bs-toggle="tab" data-bs-target="#tab-customers" type="button" role="tab" aria-controls="tab-customers" aria-selected="false">
+                <span class="fas fa-users me-2"></span>Customers
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="analyticsTabContent">
+    {{-- ── Tab: Revenue & Orders ────────────────────────────────────────────────── --}}
+    <div class="tab-pane fade show active" id="tab-revenue" role="tabpanel" aria-labelledby="tab-btn-revenue" tabindex="0">
     <div class="row g-3 mb-4">
         <div class="col-12 col-xl-8">
             <x-admin.card title="Revenue intelligence" subtitle="Daily paid revenue vs the equivalent prior-period window." class="h-100">
@@ -115,21 +136,71 @@
         </div>
     </div>
 
-    {{-- ── Tier 2: Product Performance ──────────────────────────────────────────── --}}
+    </div>{{-- /tab-revenue --}}
+
+    {{-- ── Tab: Products ────────────────────────────────────────────────────────── --}}
+    <div class="tab-pane fade" id="tab-products" role="tabpanel" aria-labelledby="tab-btn-products" tabindex="0">
+    @php
+        $tpRevenueTotal = (float) $totals['revenue'];
+        $shownRevenue = (float) $topProducts->sum(fn ($p) => (float) $p['revenue']);
+        $topShare = $tpRevenueTotal > 0 ? (int) round($shownRevenue / $tpRevenueTotal * 100) : 0;
+
+        $revenueItems = $topProducts->map(fn ($p) => [
+            'label' => $p['name'],
+            'value' => (float) $p['revenue'],
+            'sub' => number_format($p['quantity']).' units',
+        ])->values()->all();
+
+        // Aggregate the long tail so the ranking never renders hundreds of rows.
+        $othersRevenue = max(0, $tpRevenueTotal - $shownRevenue);
+        if ($othersRevenue > 0) {
+            $revenueItems[] = ['label' => 'All other products', 'value' => $othersRevenue, 'sub' => '', 'others' => true];
+        }
+
+        $unitItems = $topProductsByUnits->map(fn ($p) => [
+            'label' => $p['name'],
+            'value' => (float) $p['quantity'],
+            'sub' => money($p['revenue']),
+        ])->values()->all();
+    @endphp
     <div class="row g-3 mb-4">
         <div class="col-12 col-xl-6">
-            <x-admin.card title="Top products by revenue" subtitle="Best-performing SKUs in paid orders.">
-                <div id="chartTopProducts" style="min-height: 280px;"></div>
+            <x-admin.card flush class="h-100">
+                <div x-data="{ view: 'revenue' }">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 px-3 pt-3 pb-2">
+                        <div class="min-w-0">
+                            <h5 class="mb-0">Top products</h5>
+                            <p class="fs-9 text-body-tertiary mb-0">
+                                Top {{ $topProducts->count() }} drive <strong class="text-body-emphasis">{{ $topShare }}%</strong> of paid revenue
+                            </p>
+                        </div>
+                        <div class="btn-group btn-group-sm flex-shrink-0" role="group" aria-label="Rank products by">
+                            <button type="button" class="btn" :class="view === 'revenue' ? 'btn-primary' : 'btn-phoenix-secondary'" @click="view = 'revenue'">Revenue</button>
+                            <button type="button" class="btn" :class="view === 'units' ? 'btn-primary' : 'btn-phoenix-secondary'" @click="view = 'units'">Units</button>
+                        </div>
+                    </div>
+                    <div class="px-3 pb-3">
+                        <div x-show="view === 'revenue'">
+                            <x-admin.ranked-bar-list :items="$revenueItems" :total="$tpRevenueTotal" format="money" empty-text="No sales data yet for this period." empty-icon="fa-box" />
+                        </div>
+                        <div x-show="view === 'units'" x-cloak>
+                            <x-admin.ranked-bar-list :items="$unitItems" format="number" empty-text="No sales data yet for this period." empty-icon="fa-box" />
+                        </div>
+                    </div>
+                </div>
             </x-admin.card>
         </div>
         <div class="col-12 col-xl-6">
-            <x-admin.card title="Category performance" subtitle="Revenue contribution by category.">
+            <x-admin.card title="Category performance" subtitle="Revenue contribution by category." class="h-100">
                 <div id="chartTopCategories" style="min-height: 280px;"></div>
             </x-admin.card>
         </div>
     </div>
 
-    {{-- ── Tier 3: Customer Intelligence ────────────────────────────────────────── --}}
+    </div>{{-- /tab-products --}}
+
+    {{-- ── Tab: Customers ───────────────────────────────────────────────────────── --}}
+    <div class="tab-pane fade" id="tab-customers" role="tabpanel" aria-labelledby="tab-btn-customers" tabindex="0">
     {{-- Customer KPI strip --}}
     <div class="row g-3 mb-3">
         <div class="col-6 col-lg-3">
@@ -200,27 +271,8 @@
             </x-admin.card>
         </div>
     </div>
-
-    {{-- ── Product performance table ────────────────────────────────────────────── --}}
-    <x-admin.card title="Product performance table" subtitle="Ranked by revenue with unit velocity." flush>
-        <div class="table-responsive">
-            <table class="table admin-table mb-0">
-                <thead><tr><th>#</th><th>Product</th><th class="text-end">Units</th><th class="text-end">Revenue</th></tr></thead>
-                <tbody>
-                    @forelse ($topProducts as $rank => $product)
-                        <tr>
-                            <td class="text-body-tertiary fw-semibold" style="width: 2rem;">{{ $rank + 1 }}</td>
-                            <td class="text-body-emphasis">{{ $product['name'] }}</td>
-                            <td class="text-end">{{ number_format($product['quantity']) }}</td>
-                            <td class="text-end fw-semibold">{{ money($product['revenue']) }}</td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="4"><x-admin.empty-state icon="fa-box" text="No sales data yet for this period." compact /></td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </x-admin.card>
+    </div>{{-- /tab-customers --}}
+    </div>{{-- /tab-content --}}
 @endsection
 
 @push('scripts')
@@ -273,4 +325,13 @@
     <script>window.adminAnalytics = @json($chartPayload);</script>
     <script src="{{ asset('theme/vendors/echarts/echarts.min.js') }}"></script>
     <script src="{{ asset('theme/js/admin-analytics.js') }}"></script>
+    <script>
+        // Charts in a hidden tab pane initialise at 0 width; resize them the first
+        // time their tab is shown so they render at full size.
+        document.querySelectorAll('#analyticsTabs [data-bs-toggle="tab"]').forEach(function (btn) {
+            btn.addEventListener('shown.bs.tab', function () {
+                window.dispatchEvent(new Event('resize'));
+            });
+        });
+    </script>
 @endpush

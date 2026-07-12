@@ -77,60 +77,68 @@
         </div>
     </x-wizard.step-content>
 
-    {{-- Step 2: Security --}}
-    <x-wizard.step-content id="pane-admin-security" step="2" formId="form-admin-security">
-        @csrf
-        <div class="gb-form-section">
-            <div class="gb-form-section-header">
-                <h5>Change Password</h5>
-            </div>
-            <div class="gb-form-section-body">
-                <div class="row g-3">
-                    <div class="col-12">
-                        <label class="form-label" for="admin_current_password">Current Password</label>
-                        <input class="form-control"
-                               type="password"
-                               name="current_password"
-                               id="admin_current_password"
-                               placeholder="Enter current password"
-                               required>
-                        <div class="invalid-feedback">Please enter your current password.</div>
-                    </div>
-                    <div class="col-sm-6">
-                        <label class="form-label" for="admin_password">New Password</label>
-                        <input class="form-control"
-                               type="password"
-                               name="password"
-                               id="admin_password"
-                               data-wizard-password="true"
-                               placeholder="Min. 8 characters"
-                               required>
-                        <div class="invalid-feedback">Please enter a new password.</div>
-                    </div>
-                    <div class="col-sm-6">
-                        <label class="form-label" for="admin_password_confirmation">Confirm Password</label>
-                        <input class="form-control"
-                               type="password"
-                               name="password_confirmation"
-                               id="admin_password_confirmation"
-                               data-wizard-confirm-password="true"
-                               placeholder="Repeat new password"
-                               required>
-                        <div class="invalid-feedback">Passwords must match.</div>
+    {{-- Step 2: Security. No wizard `formId` here — this pane holds TWO independent
+         forms (password + 2FA). Nesting them in one <form> is invalid HTML and was
+         why the 2FA toggle silently submitted the password form. --}}
+    <x-wizard.step-content id="pane-admin-security" step="2">
+        <form id="form-admin-security"
+              action="{{ route('admin.settings.security') }}"
+              method="POST"
+              novalidate
+              class="wizard-step-form"
+              data-wizard-step-form="2">
+            @csrf
+            <div class="gb-form-section">
+                <div class="gb-form-section-header">
+                    <h5>Change Password</h5>
+                </div>
+                <div class="gb-form-section-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label" for="admin_current_password">Current Password</label>
+                            <input class="form-control"
+                                   type="password"
+                                   name="current_password"
+                                   id="admin_current_password"
+                                   placeholder="Enter current password"
+                                   required>
+                            <div class="invalid-feedback">Please enter your current password.</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label" for="admin_password">New Password</label>
+                            <input class="form-control"
+                                   type="password"
+                                   name="password"
+                                   id="admin_password"
+                                   data-wizard-password="true"
+                                   placeholder="Min. 8 characters"
+                                   required>
+                            <div class="invalid-feedback">Please enter a new password.</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label" for="admin_password_confirmation">Confirm Password</label>
+                            <input class="form-control"
+                                   type="password"
+                                   name="password_confirmation"
+                                   id="admin_password_confirmation"
+                                   data-wizard-confirm-password="true"
+                                   placeholder="Repeat new password"
+                                   required>
+                            <div class="invalid-feedback">Passwords must match.</div>
+                        </div>
                     </div>
                 </div>
+                <div class="gb-form-section-footer">
+                    <button type="submit" class="btn btn-primary btn-sm px-4">
+                        <i class="fas fa-lock me-1"></i> Update Password
+                    </button>
+                </div>
             </div>
-            <div class="gb-form-section-footer">
-                <button type="submit"
-                        formaction="{{ route('admin.settings.security') }}"
-                        formmethod="POST"
-                        class="btn btn-primary btn-sm px-4">
-                    <i class="fas fa-lock me-1"></i> Update Password
-                </button>
-            </div>
+        </form>
 
-            @php($me = auth('admin')->user())
-            <div class="border-top border-translucent mt-4 pt-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
+        @php($me = auth('admin')->user())
+        <div class="gb-form-section mt-4">
+            <div class="gb-form-section-body border-top border-translucent d-flex flex-wrap justify-content-between align-items-center gap-3">
                 <div>
                     <h6 class="mb-1">Two-factor authentication
                         <span class="badge badge-phoenix badge-phoenix-{{ $me->two_factor_enabled ? 'success' : 'secondary' }} ms-1">{{ $me->two_factor_enabled ? 'On' : 'Off' }}</span>
@@ -139,7 +147,7 @@
                 </div>
                 <form action="{{ route('admin.settings.two-factor') }}" method="POST" class="d-inline">
                     @csrf
-                    <button class="btn btn-sm {{ $me->two_factor_enabled ? 'btn-phoenix-danger' : 'btn-phoenix-success' }}">
+                    <button type="submit" class="btn btn-sm {{ $me->two_factor_enabled ? 'btn-phoenix-danger' : 'btn-phoenix-success' }}">
                         {{ $me->two_factor_enabled ? 'Turn off' : 'Turn on' }}
                     </button>
                 </form>

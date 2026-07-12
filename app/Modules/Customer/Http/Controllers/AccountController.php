@@ -3,6 +3,7 @@
 namespace App\Modules\Customer\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Modules\Cart\Services\CartService;
 use App\Modules\Catalog\Models\ProductVariant;
 use App\Modules\Order\Models\Order;
@@ -165,5 +166,20 @@ class AccountController extends Controller
         ]);
 
         return back()->with('status', 'Password updated successfully.');
+    }
+
+    public function updateNotifications(Request $request): RedirectResponse
+    {
+        $user = Auth::user();
+
+        $preferences = [];
+        foreach (array_keys(User::NOTIFICATION_PREFERENCES) as $key) {
+            // Unchecked switches don't post, so absence means opted-out.
+            $preferences[$key] = $request->boolean("notifications.{$key}");
+        }
+
+        $user->update(['notification_preferences' => $preferences]);
+
+        return back()->with('status', 'Notification preferences saved.');
     }
 }

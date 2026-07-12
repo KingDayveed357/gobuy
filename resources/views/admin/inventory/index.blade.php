@@ -27,7 +27,7 @@
             </form>
         </div>
 
-        <div class="table-responsive">
+        <div class="table-responsive position-relative" data-admin-table>
             <table class="table admin-table mb-0 align-middle">
                 <thead>
                     <tr>
@@ -77,7 +77,15 @@
                     @endforelse
                 </tbody>
             </table>
+
+            <div class="admin-table-loading" aria-hidden="true">
+                <x-admin.skeleton type="table" :rows="8" :cols="7" />
+            </div>
         </div>
+
+        @push('scripts')
+            <script src="{{ asset('theme/js/table-loading.js') }}" defer></script>
+        @endpush
 
         @if ($variants->hasPages())
             <div class="p-3">{{ $variants->links() }}</div>

@@ -1,0 +1,63 @@
+/* =============================================================================
+   gobuy admin — Product image uploader (drag-and-drop, progress, cancel, retry)
+   Layered over the existing .admin-gallery-item tiles.
+   ============================================================================= */
+
+.gb-up-item { position: relative; overflow: hidden; }
+
+.gb-up-overlay {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0.5rem;
+    background: rgba(0, 0, 0, 0.45);
+}
+
+/* Progress track + bar */
+.gb-up-progress {
+    width: 74%;
+    height: 5px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.35);
+    overflow: hidden;
+}
+.gb-up-bar {
+    height: 100%;
+    width: 0;
+    border-radius: 999px;
+    background: var(--phoenix-primary, #3874ff);
+    transition: width 0.15s ease;
+}
+
+/* Overlay action buttons */
+.gb-up-btn {
+    display: none;
+    width: 30px; height: 30px;
+    padding: 0; border: 0; border-radius: 50%;
+    color: #fff; font-size: 1rem; line-height: 1;
+    background: rgba(0, 0, 0, 0.55);
+    cursor: pointer;
+}
+.gb-up-btn:hover { background: rgba(0, 0, 0, 0.8); }
+
+.gb-up-remove { display: none; }
+
+/* ── State: uploading ──────────────────────────────────────────────────────── */
+.gb-up-item[data-state="uploading"] .gb-up-overlay { display: flex; }
+.gb-up-item[data-state="uploading"] .gb-up-cancel { display: inline-flex; align-items: center; justify-content: center; }
+
+/* ── State: error ──────────────────────────────────────────────────────────── */
+.gb-up-item[data-state="error"] .gb-up-overlay { display: flex; background: rgba(180, 42, 55, 0.6); }
+.gb-up-item[data-state="error"] .gb-up-progress { display: none; }
+.gb-up-item[data-state="error"] .gb-up-retry { display: inline-flex; align-items: center; justify-content: center; }
+.gb-up-item[data-state="error"] .gb-up-remove { display: inline-flex; }
+
+/* ── State: done ───────────────────────────────────────────────────────────── */
+.gb-up-item[data-state="done"] .gb-up-overlay { display: none; }
+.gb-up-item[data-state="done"] .gb-up-remove { display: inline-flex; }
+
+/* Two overlay buttons side by side (error state) */
+.gb-up-item[data-state="error"] .gb-up-overlay { flex-direction: row; }

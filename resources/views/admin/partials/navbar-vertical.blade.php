@@ -5,7 +5,7 @@
 
 <nav class="navbar navbar-vertical navbar-expand-lg">
     <div class="collapse navbar-collapse" id="navbarVerticalCollapse">
-        <div class="navbar-vertical-content">
+        <div class="navbar-vertical-content scrollbar">
             <ul class="navbar-nav flex-column" id="navbarVerticalNav">
                 @php
                     $i = 0;

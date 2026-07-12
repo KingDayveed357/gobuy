@@ -12,3 +12,9 @@
         {{ $nav }}
     </ol>
 </div>
+
+@once
+    @push('scripts')
+        <script src="{{ asset('theme/js/wizard-engine.js') }}" defer></script>
+    @endpush
+@endonce

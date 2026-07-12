@@ -17,10 +17,23 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'phone', 'role', 'customer_type', 'wholesale_status'])]
+#[Fillable(['name', 'email', 'password', 'phone', 'role', 'customer_type', 'wholesale_status', 'notification_preferences'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
+    /**
+     * Customer email-notification categories and their opt-in defaults. A sender
+     * consults {@see wantsNotification()} before dispatching.
+     *
+     * @var array<string, bool>
+     */
+    public const NOTIFICATION_PREFERENCES = [
+        'order_updates' => true,
+        'promotions' => true,
+        'back_in_stock' => true,
+        'newsletter' => false,
+    ];
+
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
@@ -50,7 +63,19 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'notification_preferences' => 'array',
         ];
+    }
+
+    /**
+     * Whether the customer opted in to a notification category (defaulting to the
+     * category's default when they've never touched their preferences).
+     */
+    public function wantsNotification(string $key): bool
+    {
+        $prefs = $this->notification_preferences ?? [];
+
+        return (bool) ($prefs[$key] ?? self::NOTIFICATION_PREFERENCES[$key] ?? false);
     }
 
     public function wholesaleProfile(): HasOne
@@ -76,6 +101,19 @@ class User extends Authenticatable implements MustVerifyEmail
     public function wishlistItems(): HasMany
     {
         return $this->hasMany(WishlistItem::class)->latest();
+    }
+
+    public function socialAccounts(): HasMany
+    {
+        return $this->hasMany(\App\Modules\Customer\Models\SocialAccount::class);
+    }
+
+    /**
+     * Whether the customer can sign in with an email + password (vs. social-only).
+     */
+    public function hasPassword(): bool
+    {
+        return $this->password !== null && $this->password !== '';
     }
 
     public function defaultShippingAddress(): ?Address

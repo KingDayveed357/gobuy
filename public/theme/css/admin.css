@@ -236,7 +236,10 @@
 
 .admin-chart { height: 220px; display: flex; align-items: flex-end; gap: 0.5rem; }
 
-/* ---------- Layout Bug Fixes ---------- */
+/* ============================================================
+   COLLAPSED SIDEBAR — Bug Fixes & Enhancements
+   ============================================================ */
+
 /* Fix sidebar scrolling with page when collapsed. */
 html.navbar-vertical-collapsed .navbar-vertical {
   position: fixed !important;
@@ -255,11 +258,266 @@ html.navbar-vertical-collapsed .navbar-vertical .navbar-collapse {
   flex-direction: column !important;
 }
 
-/* Enable scrolling for the collapsed sidebar's content */
+/*
+ * FIX 1: Overflow / Horizontal Scrollbar Elimination
+ *
+ * The theme's CSS hover mechanism positions .parent-wrapper.label-1 absolutely
+ * at `left: 100%` which briefly causes the collapsed sidebar to compute a
+ * wider scrollWidth and produce a horizontal scrollbar. We lock overflow-x
+ * on both the content area and the nav list to prevent this entirely.
+ * overflow-y:auto is preserved for the premium scrollbar below.
+ */
 html.navbar-vertical-collapsed .navbar-vertical .navbar-vertical-content {
   flex: 1 1 auto !important;
   min-height: 0 !important;
-  height: auto !important;
+  height: calc(100vh - var(--phoenix-navbar-top-height) - 4rem) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+html.navbar-vertical-collapsed .navbar-vertical .navbar-vertical-content > .navbar-nav {
+  overflow: visible; /* allow JS portal to render outside without clipping */
+}
+
+/*
+ * FIX 2: Neutralise the theme's native CSS hover flyout in collapsed state.
+ *
+ * The Phoenix theme uses pure :hover CSS to slide .parent-wrapper.label-1
+ * to `position: absolute; left: 100%`. This conflicts with our JS portal
+ * flyout system (gb-navbar-flyout-portal), producing double flyouts and
+ * flicker. We suppress the theme's built-in mechanism so only the JS portal
+ * renders — giving us full control over positioning, animation, and scrollbar.
+ *
+ * We target all responsive breakpoints that the theme generates
+ * (xxl, xl, lg, md, sm) to ensure total coverage.
+ */
+html.navbar-vertical-collapsed .navbar-vertical .nav-item-wrapper:hover .parent-wrapper.label-1,
+html.navbar-vertical-collapsed .navbar-vertical .nav-item-wrapper:hover .nav-link-text-wrapper {
+  position: static !important;
+  display: none !important;
+  left: auto !important;
+  top: auto !important;
+  padding-bottom: 0 !important;
+  background: transparent !important;
+}
+
+html.navbar-vertical-collapsed .navbar-vertical .nav-item-wrapper:hover .parent-wrapper.label-1 > .parent,
+html.navbar-vertical-collapsed .navbar-vertical .nav-item-wrapper:hover .nav-link-text-wrapper .nav-link-text {
+  width: auto !important;
+  margin-left: 0 !important;
+  border-radius: 0 !important;
+  border: none !important;
+}
+
+html.navbar-vertical-collapsed .navbar-vertical .nav-item-wrapper:hover .parent-wrapper.label-1 > .parent::after,
+html.navbar-vertical-collapsed .navbar-vertical .nav-item-wrapper:hover .nav-link-text-wrapper .nav-link-text::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* Also suppress the .collapsed-nav-item-title that the theme shows inline on :hover */
+html.navbar-vertical-collapsed .navbar-vertical .nav-item-wrapper:hover .collapsed-nav-item-title {
+  display: none !important;
+}
+
+/*
+ * FIX 3: Hover Flickering Elimination
+ *
+ * The theme renders .label-1.nav-link with `pointer-events: none` in
+ * collapsed state. This means only the wrapper catches hover events, but
+ * there's a 16px gap between the sidebar right-edge and the portal panel's
+ * left-edge (the `margin-left: 16px` bridge). If the mouse crosses the gap
+ * quickly the mouseout fires and hides the panel.
+ *
+ * Our JS already uses a 120ms hide-delay timer with cancel-on-re-enter.
+ * We add a CSS `pointer-events` bridge: the invisible pseudo-element on
+ * .nav-item-wrapper fills the gap so the mouse never truly leaves
+ * the hover zone while traversing toward the portal panel.
+ */
+html.navbar-vertical-collapsed .navbar-vertical .nav-item-wrapper {
+  position: relative;
+}
+
+/*
+ * Invisible bridge pseudo-element: extends the hover capture area to the right
+ * by 28px (16px gap + a little slack) so mouse-movement toward the panel
+ * doesn't fire mouseleave. Height matches a typical nav row.
+ */
+html.navbar-vertical-collapsed .navbar-vertical .nav-item-wrapper::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 100%;
+  width: 28px;
+  pointer-events: auto;
+  /* Invisible: no background, no border */
+}
+
+/*
+ * ENHANCEMENT 1: Premium Scrollbar — Collapsed State
+ *
+ * The theme's scrollbar CSS only targets:
+ *   html:not(.navbar-vertical-collapsed) .navbar-vertical .navbar-vertical-content
+ * ...which deliberately excludes the collapsed state. We replicate the same
+ * scrollbar styling for the collapsed sidebar content area so it is visually
+ * identical to the open state's smooth scrollbar.
+ */
+
+/* Firefox */
+html.navbar-vertical-collapsed .navbar-vertical .navbar-vertical-content {
+  scrollbar-width: thin;
+  scrollbar-color: var(--phoenix-scrollbar-bg) transparent;
+}
+
+/* WebKit / Blink (Chrome, Edge, Safari) */
+html.navbar-vertical-collapsed .navbar-vertical .navbar-vertical-content::-webkit-scrollbar,
+html.navbar-vertical-collapsed .navbar-vertical .navbar-vertical-content:hover::-webkit-scrollbar,
+html.navbar-vertical-collapsed .navbar-vertical .navbar-vertical-content:focus::-webkit-scrollbar {
+  width: 0.3125rem;
+  height: 0.3125rem;
+}
+
+html.navbar-vertical-collapsed .navbar-vertical .navbar-vertical-content::-webkit-scrollbar-thumb,
+html.navbar-vertical-collapsed .navbar-vertical .navbar-vertical-content:hover::-webkit-scrollbar-thumb,
+html.navbar-vertical-collapsed .navbar-vertical .navbar-vertical-content:focus::-webkit-scrollbar-thumb {
+  background-color: var(--phoenix-scrollbar-bg);
+  border-radius: 9999px;
+}
+
+/* Vibrant navbar variant */
+html.navbar-vertical-collapsed .navbar-vibrant .navbar-vertical .navbar-vertical-content {
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+html.navbar-vertical-collapsed .navbar-vibrant .navbar-vertical .navbar-vertical-content::-webkit-scrollbar-thumb,
+html.navbar-vertical-collapsed .navbar-vibrant .navbar-vertical .navbar-vertical-content:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* ============================================================
+   FLYOUT PORTAL — Styled tooltip/menu panel (JS-rendered)
+   ============================================================ */
+
+/* Portal container — positioned via JS, appended to <body> */
+.gb-navbar-flyout-portal {
+  position: fixed;
+  z-index: 1035;
+  display: none;
+  pointer-events: auto;
+  /* Hardware-accelerated opacity fade-in */
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.gb-navbar-flyout-portal.is-open {
+  display: block;
+  opacity: 1;
+}
+
+/*
+ * The flyout panel itself.
+ * Matches the Phoenix reference template's collapsed-hover menu appearance:
+ * a 220px rounded card with border, matching the sidebar's bg variable.
+ */
+.gb-navbar-flyout-menu {
+  display: block;
+  width: 220px;
+  max-height: calc(100vh - var(--phoenix-navbar-top-height) - 1rem);
+  margin: 0;
+  padding: 0.25rem 0 0.5rem;
+  background: var(--phoenix-navbar-vertical-collapsed-menu-bg);
+  border: 1px solid var(--phoenix-navbar-vertical-border-color);
+  border-radius: 0.5rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.10), 0 2px 6px rgba(0, 0, 0, 0.06);
+  /* Premium scrollbar inside the flyout (Firefox) */
+  scrollbar-width: thin;
+  scrollbar-color: var(--phoenix-scrollbar-bg) transparent;
+}
+
+/* Premium scrollbar inside the flyout (WebKit) */
+.gb-navbar-flyout-menu::-webkit-scrollbar,
+.gb-navbar-flyout-menu:hover::-webkit-scrollbar {
+  width: 0.3125rem;
+}
+.gb-navbar-flyout-menu::-webkit-scrollbar-thumb,
+.gb-navbar-flyout-menu:hover::-webkit-scrollbar-thumb {
+  background-color: var(--phoenix-scrollbar-bg);
+  border-radius: 9999px;
+}
+
+/* Group section title inside flyout */
+.gb-navbar-flyout-menu .collapsed-nav-item-title {
+  display: block !important;
+  padding: 15px 16px 14px;
+  border-bottom: 1px solid var(--phoenix-navbar-vertical-border-color);
+  color: var(--phoenix-navbar-vertical-link-hover-color);
+  font-size: 12.8px;
+  font-weight: 600;
+  line-height: 1.2;
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Nav items inside flyout */
+.gb-navbar-flyout-menu .nav-item {
+  display: block;
+  width: 100%;
+  position: relative;
+}
+
+.gb-navbar-flyout-menu .nav-link {
+  display: block;
+  margin: 0;
+  padding: 8px 16px;
+  line-height: 1.4;
+  font-size: 0.875rem;
+  color: var(--phoenix-navbar-vertical-link-color, var(--phoenix-secondary-color));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background-color 0.1s ease, color 0.1s ease;
+  border-radius: 0;
+}
+
+.gb-navbar-flyout-menu .nav-link:hover {
+  background-color: var(--phoenix-navbar-vertical-link-hover-bg);
+  color: var(--phoenix-navbar-vertical-link-hover-color);
+  border-radius: 0;
+}
+
+.gb-navbar-flyout-menu .nav-link.active {
+  color: var(--phoenix-navbar-vertical-link-active-color, var(--phoenix-primary));
+  font-weight: 600;
+}
+
+/*
+ * ENHANCEMENT 2: Single-link tooltip style
+ *
+ * For nav items that have no sub-menu (a direct route link), the flyout
+ * renders as a compact, beautifully styled tooltip-like panel showing only
+ * the route title. We add a left accent border and remove the title divider.
+ */
+.gb-navbar-flyout-menu.gb-flyout--tooltip {
+  padding: 0;
+  min-width: 140px;
+  width: auto;
+  max-width: 220px;
+}
+
+.gb-navbar-flyout-menu.gb-flyout--tooltip .gb-flyout-tooltip-label {
+  display: block;
+  padding: 10px 16px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--phoenix-navbar-vertical-link-hover-color);
+  white-space: nowrap;
+  line-height: 1.3;
+  border-left: 3px solid var(--phoenix-primary);
+  border-radius: 0.5rem;
 }
 
 /* Rotate toggle icon when collapsed */
@@ -269,7 +527,6 @@ html.navbar-vertical-collapsed .navbar-vertical .navbar-vertical-content {
 html.navbar-vertical-collapsed .navbar-vertical-toggle-icon {
   transform: rotate(180deg);
 }
-
 
 
 /* RBAC: permission-row hover (role form) + drawer polish */
@@ -445,5 +702,3 @@ html.navbar-vertical-collapsed .navbar-vertical-toggle-icon {
 .gcp-backdrop {
   display: none;
 }
-
-

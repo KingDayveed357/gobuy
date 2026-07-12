@@ -12,8 +12,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class Product extends Model implements HasMedia
 {
@@ -79,6 +81,27 @@ class Product extends Model implements HasMedia
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection(self::MEDIA_COLLECTION);
+    }
+
+    /**
+     * Auto-optimised derivatives generated on upload (and for the bulk image
+     * importer): a square gallery thumbnail and a resized web image, both
+     * compressed WebP with EXIF orientation applied by the driver. Non-queued so
+     * they exist immediately without depending on a running queue worker.
+     */
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        $this->addMediaConversion('thumb')
+            ->fit(Fit::Crop, 400, 400)
+            ->format('webp')
+            ->quality(80)
+            ->nonQueued();
+
+        $this->addMediaConversion('web')
+            ->fit(Fit::Max, 1400, 1400)
+            ->format('webp')
+            ->quality(82)
+            ->nonQueued();
     }
 
     public function category(): BelongsTo
@@ -151,11 +174,30 @@ class Product extends Model implements HasMedia
         return $this->stock > 0;
     }
 
-    public function imageUrl(): string
+    /**
+     * The primary image, preferring the optimised WebP conversion and falling
+     * back to the original when a conversion hasn't been generated (e.g. legacy
+     * uploads or SVG placeholders, which aren't rasterised).
+     */
+    public function imageUrl(string $conversion = 'web'): string
     {
-        $url = $this->getFirstMediaUrl(self::MEDIA_COLLECTION);
+        $media = $this->getFirstMedia(self::MEDIA_COLLECTION);
 
-        return $url !== '' ? $url : asset('theme/img/placeholder.svg');
+        if (! $media) {
+            return asset('theme/img/placeholder.svg');
+        }
+
+        return $media->hasGeneratedConversion($conversion)
+            ? $media->getUrl($conversion)
+            : $media->getUrl();
+    }
+
+    /**
+     * Square thumbnail URL for lists and cards (optimised WebP, original as fallback).
+     */
+    public function thumbUrl(): string
+    {
+        return $this->imageUrl('thumb');
     }
 
     /**

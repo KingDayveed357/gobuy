@@ -5,6 +5,12 @@
 @section('content')
     <x-admin.page-header title="Bulk product import" subtitle="Upload a CSV to create and update products in bulk">
         <x-slot:actions>
+            <a href="{{ route('admin.inventory.import.template') }}" class="btn btn-phoenix-primary">
+                <span class="fas fa-download me-2"></span>Download template
+            </a>
+            <a href="{{ route('admin.inventory.import.images') }}" class="btn btn-phoenix-secondary">
+                <span class="fas fa-images me-2"></span>Import images
+            </a>
             <a href="{{ route('admin.inventory.index') }}" class="btn btn-phoenix-secondary">Back to inventory</a>
         </x-slot:actions>
     </x-admin.page-header>
@@ -22,6 +28,10 @@
                             <input class="form-control mt-3" style="max-width: 360px;" type="file" id="importFile" name="file" accept=".csv,text/csv" required>
                         </label>
                         @error('file')<p class="text-danger fs-9">{{ $message }}</p>@enderror
+                        <div class="alert alert-subtle-info fs-9 d-flex align-items-center gap-2 py-2">
+                            <span class="fas fa-circle-info"></span>
+                            <span>New here? <a href="{{ route('admin.inventory.import.template') }}">Download the starter template</a> — it opens in Excel, pre-filled with a sample Nigerian catalogue you can edit or import as-is.</span>
+                        </div>
                         <button type="submit" class="btn btn-primary"><span class="fas fa-eye me-2"></span>Preview import</button>
                     </form>
                 </x-admin.card>
@@ -76,12 +86,14 @@
 
         <div class="col-12 col-xl-4">
             <x-admin.card title="CSV format">
-                <p class="fs-9 text-body-tertiary mb-2">First row must be a header. Recognised columns:</p>
+                <p class="fs-9 text-body-tertiary mb-2">First row must be a header. Recognised columns (the <a href="{{ route('admin.inventory.import.template') }}">template</a> has them all):</p>
                 <ul class="fs-9 mb-3">
-                    <li><code>sku</code> <span class="text-body-tertiary">(required — matches an existing variant to update)</span></li>
-                    <li><code>name</code>, <code>category</code>, <code>brand</code></li>
-                    <li><code>retail_price</code>, <code>sale_price</code>, <code>wholesale_price</code> <span class="text-body-tertiary">(Naira)</span></li>
-                    <li><code>stock</code>, <code>status</code> <span class="text-body-tertiary">(draft/active/archived)</span></li>
+                    <li><code>SKU</code> <span class="text-body-tertiary">(required — matches an existing variant to update)</span></li>
+                    <li><code>Product Name</code>, <code>Category</code>, <code>Brand</code>, <code>Description</code></li>
+                    <li><code>Cost Price</code>, <code>Retail Price</code>, <code>Wholesale Price</code> <span class="text-body-tertiary">(Naira)</span></li>
+                    <li><code>Initial Stock</code>, <code>Reorder Level</code></li>
+                    <li><code>Weight</code>, <code>Length</code>, <code>Width</code>, <code>Height</code>, <code>Tax Exempt</code></li>
+                    <li><code>Status</code> <span class="text-body-tertiary">(draft/active/archived)</span></li>
                 </ul>
                 <p class="fs-10 text-body-tertiary mb-0">Unknown SKUs create a new product; known SKUs update price &amp; stock. Categories and brands are created automatically by name. Stock changes are written to the adjustment log.</p>
             </x-admin.card>

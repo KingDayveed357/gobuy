@@ -18,12 +18,33 @@ use Illuminate\Support\Str;
  * are audited through {@see InventoryService}.
  *
  * Expected header columns (case-insensitive, order-independent):
- *   sku, name, category, brand, retail_price, sale_price, wholesale_price, stock, status
+ *   sku, name, category, brand, description, cost_price, retail_price, sale_price,
+ *   wholesale_price, low_stock_threshold, stock, weight_g, length_mm, width_mm,
+ *   height_mm, tax_exempt, status
+ *
+ * Friendlier headers from the downloadable template (Product Name, Initial Stock,
+ * Reorder Level, Weight, …) are accepted too — see {@see HEADER_ALIASES}.
  */
 class ProductCsvImporter
 {
     /** @var list<string> */
     public const COLUMNS = ['sku', 'name', 'category', 'brand', 'retail_price', 'sale_price', 'wholesale_price', 'stock', 'status'];
+
+    /**
+     * Human-friendly header → canonical key, so the generated template
+     * ({@see ProductImportTemplate}) imports without renaming a single column.
+     *
+     * @var array<string, string>
+     */
+    public const HEADER_ALIASES = [
+        'product_name' => 'name',
+        'initial_stock' => 'stock',
+        'reorder_level' => 'low_stock_threshold',
+        'weight' => 'weight_g',
+        'length' => 'length_mm',
+        'width' => 'width_mm',
+        'height' => 'height_mm',
+    ];
 
     public function __construct(
         private readonly CatalogService $catalog,
@@ -51,7 +72,11 @@ class ProductCsvImporter
             $line++;
 
             if ($header === null) {
-                $header = array_map(fn ($h) => Str::of($h)->trim()->lower()->snake()->value(), $cells);
+                $header = array_map(function ($h) {
+                    $key = Str::of($h)->trim()->lower()->snake()->value();
+
+                    return self::HEADER_ALIASES[$key] ?? $key;
+                }, $cells);
 
                 continue;
             }
@@ -177,14 +202,25 @@ class ProductCsvImporter
             'category_id' => $this->resolveCategoryId($data['category'] ?? ''),
             'brand_id' => $this->resolveBrandId($data['brand'] ?? ''),
             'name' => $data['name'],
+            'description' => ($data['description'] ?? '') !== '' ? $data['description'] : null,
             'condition' => 'new',
             'sku' => $data['sku'],
             'retail_price' => (float) $data['retail_price'],
             'sale_price' => $this->numericOrNull($data['sale_price'] ?? ''),
             'wholesale_price' => $this->numericOrNull($data['wholesale_price'] ?? ''),
+            'cost_price_usd' => $this->numericOrNull($data['cost_price'] ?? ''),
+            'weight_g' => $this->intOrNull($data['weight_g'] ?? ''),
+            'length_mm' => $this->intOrNull($data['length_mm'] ?? ''),
+            'width_mm' => $this->intOrNull($data['width_mm'] ?? ''),
+            'height_mm' => $this->intOrNull($data['height_mm'] ?? ''),
+            'is_tax_exempt' => $this->boolish($data['tax_exempt'] ?? ''),
             'stock' => (int) ($data['stock'] ?? 0),
             'status' => $data['status'] ?: 'active',
         ]);
+
+        if (($data['low_stock_threshold'] ?? '') !== '' && ctype_digit((string) $data['low_stock_threshold'])) {
+            $product->primaryVariant()?->update(['low_stock_threshold' => (int) $data['low_stock_threshold']]);
+        }
 
         // Re-record the opening stock as an audited adjustment.
         if (($data['stock'] ?? '') !== '') {
@@ -249,5 +285,18 @@ class ProductCsvImporter
     private function numericOrNull(string $value): ?float
     {
         return $value === '' ? null : (float) $value;
+    }
+
+    private function intOrNull(string $value): ?int
+    {
+        return $value === '' || ! is_numeric($value) ? null : (int) round((float) $value);
+    }
+
+    /**
+     * Parse a truthy cell — "yes", "true", "1", "y" (case-insensitive) → true.
+     */
+    private function boolish(string $value): bool
+    {
+        return in_array(mb_strtolower(trim($value)), ['yes', 'true', '1', 'y'], true);
     }
 }

@@ -1,4 +1,4 @@
-@props(['cols' => [], 'empty' => false, 'emptyText' => 'Nothing here yet.', 'emptyIcon' => 'fa-inbox'])
+@props(['cols' => [], 'empty' => false, 'emptyText' => 'Nothing here yet.', 'emptyIcon' => 'fa-inbox', 'loading' => true])
 
 <div {{ $attributes->merge(['class' => 'card admin-card']) }}>
     @if (isset($toolbar))
@@ -6,7 +6,7 @@
             {{ $toolbar }}
         </div>
     @endif
-    <div class="table-responsive scrollbar">
+    <div class="table-responsive scrollbar position-relative" @if ($loading) data-admin-table @endif>
         <table class="table admin-table mb-0">
             <thead>
                 <tr>
@@ -28,5 +28,19 @@
                 @endif
             </tbody>
         </table>
+
+        {{-- Navigation loading skeleton — revealed by table-loading.js the instant a
+             filter/pagination/tab reload starts, so the list never blanks out mid-request. --}}
+        @if ($loading)
+            <div class="admin-table-loading" aria-hidden="true">
+                <x-admin.skeleton type="table" :rows="8" :cols="max(count($cols), 1)" />
+            </div>
+        @endif
     </div>
 </div>
+
+@once
+    @push('scripts')
+        <script src="{{ asset('theme/js/table-loading.js') }}" defer></script>
+    @endpush
+@endonce

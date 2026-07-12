@@ -65,7 +65,7 @@
         @foreach ($products as $product)
             @php($variant = $product->primaryVariant())
             <tr>
-                <td style="width:56px;"><div class="admin-thumb"><img src="{{ $product->imageUrl() }}" alt=""></div></td>
+                <td style="width:56px;"><div class="admin-thumb"><img src="{{ $product->thumbUrl() }}" alt="" width="40" height="40" loading="lazy" decoding="async"></div></td>
                 <td>
                     <a class="fw-semibold text-body-emphasis text-decoration-none line-clamp-1" href="{{ route('admin.products.edit', $product) }}">{{ $product->name }}</a>
                     @if ($product->hasVariants())<span class="badge badge-phoenix badge-phoenix-info ms-1">{{ $product->variants->count() }} variants</span>@endif

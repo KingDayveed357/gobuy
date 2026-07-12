@@ -62,6 +62,9 @@ class StoreProductRequest extends FormRequest
             'images.*' => ['image', 'max:5120'],
             'remove_media' => ['nullable', 'array'],
             'remove_media.*' => ['integer'],
+            // Tokens for images uploaded asynchronously via the drag-and-drop uploader.
+            'uploaded_tokens' => ['nullable', 'array', 'max:8'],
+            'uploaded_tokens.*' => ['string', 'max:80'],
 
             // Additional variants.
             'variants' => ['nullable', 'array'],

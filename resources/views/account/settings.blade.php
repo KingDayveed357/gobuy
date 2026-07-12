@@ -37,10 +37,10 @@
                         subtitle="Theme & display"
                         step="3" />
                     <x-wizard.step-nav
-                        id="pane-done"
-                        icon="fas fa-check"
-                        title="Done"
-                        subtitle="All set!"
+                        id="pane-notifications"
+                        icon="fas fa-bell"
+                        title="Notifications"
+                        subtitle="Email alerts"
                         step="4" />
                 </x-slot:nav>
 
@@ -209,20 +209,49 @@
                     </div>
                 </x-wizard.step-content>
 
-                {{-- Step 4: Done --}}
-                <x-wizard.step-content id="pane-done" step="4">
-                    <div class="text-center py-6 px-4">
-                        <div class="mb-4">
-                            <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success-subtle shadow-sm"
-                                  style="width:5rem;height:5rem;">
-                                <i class="fas fa-check text-success" style="font-size:2rem;"></i>
-                            </span>
+                {{-- Step 4: Notification preferences --}}
+                <x-wizard.step-content id="pane-notifications" step="4" formId="form-customer-notifications">
+                    @csrf
+                    @php
+                        $notificationOptions = [
+                            'order_updates' => ['Order updates', 'Confirmations, shipping and delivery emails for your orders.'],
+                            'back_in_stock' => ['Back-in-stock alerts', 'Tell me when a product I asked about is available again.'],
+                            'promotions' => ['Promotions & offers', 'Discounts, flash sales and special deals.'],
+                            'newsletter' => ['Newsletter', 'Occasional product news and roundups.'],
+                        ];
+                    @endphp
+                    <div class="gb-form-section">
+                        <div class="gb-form-section-header px-4 pt-4 pb-0">
+                            <h5 class="mb-0">Email Notifications</h5>
                         </div>
-                        <h4 class="mb-2 text-body-emphasis">All done!</h4>
-                        <p class="text-body-tertiary mb-4">Your account is fully configured and up to date.</p>
-                        <a href="{{ route('account.dashboard') }}" class="btn btn-primary px-5">
-                            <i class="fas fa-home me-2"></i> Back to Dashboard
-                        </a>
+                        <div class="gb-form-section-body p-4">
+                            <p class="text-body-tertiary fs-9 mb-4">Choose which emails you'd like to receive. Order-related emails keep you informed about purchases you've made.</p>
+                            <div class="d-flex flex-column gap-1">
+                                @foreach ($notificationOptions as $key => [$label, $description])
+                                    <div class="d-flex align-items-center justify-content-between gap-3 py-3 border-bottom border-translucent">
+                                        <div class="min-w-0">
+                                            <label class="mb-0 fw-bold text-body-emphasis fs-9" for="notif_{{ $key }}">{{ $label }}</label>
+                                            <p class="text-body-tertiary fs-10 mb-0">{{ $description }}</p>
+                                        </div>
+                                        <div class="form-check form-switch mb-0 flex-shrink-0">
+                                            <input class="form-check-input" type="checkbox" role="switch"
+                                                   id="notif_{{ $key }}"
+                                                   name="notifications[{{ $key }}]"
+                                                   value="1"
+                                                   @checked($user->wantsNotification($key))>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                        <div class="gb-form-section-footer px-4 pb-4 border-top border-translucent pt-3">
+                            <button type="submit"
+                                    formaction="{{ route('account.settings.notifications') }}"
+                                    formmethod="POST"
+                                    class="btn btn-primary px-4">
+                                <i class="fas fa-save me-1"></i> Save Preferences
+                            </button>
+                        </div>
                     </div>
                 </x-wizard.step-content>
 

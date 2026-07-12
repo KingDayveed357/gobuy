@@ -27,6 +27,10 @@ class RoutePermissionCoverageTest extends TestCase
      */
     private const BASELINE = [
         'admin.dashboard',
+        // Read-only catalog lookup behind the shared Product Picker combobox —
+        // every operational role (packaging, walk-in, register) needs it and they
+        // share no single permission, so it is open to any signed-in admin.
+        'admin.products.search',
         'admin.logout',
         'admin.settings',
         'admin.settings.profile',

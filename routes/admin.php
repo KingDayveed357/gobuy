@@ -28,6 +28,7 @@ use App\Admin\Controllers\OrderController;
 use App\Admin\Controllers\PageController;
 use App\Admin\Controllers\PaymentController;
 use App\Admin\Controllers\ProductController;
+use App\Admin\Controllers\ProductSearchController;
 use App\Admin\Controllers\PromotionController;
 use App\Admin\Controllers\QuantityDiscountController;
 use App\Admin\Controllers\ReturnController;
@@ -64,6 +65,11 @@ Route::middleware(['auth:admin', 'admin.active', 'admin.activity'])->group(funct
     Route::post('logout', [LoginController::class, 'destroy'])->name('logout');
 
     Route::get('/', DashboardController::class)->name('dashboard');
+
+    // Product Picker search — shared search-as-you-type backend for the packaging,
+    // walk-in and register screens. Read-only catalog lookup, available to any
+    // signed-in admin (every operational role needs to find a product).
+    Route::get('products/search', [ProductSearchController::class, 'search'])->name('products.search');
 
     // Personal account settings — any signed-in admin manages their own.
     Route::get('settings', [SettingsController::class, 'index'])->name('settings');
@@ -104,6 +110,9 @@ Route::middleware(['auth:admin', 'admin.active', 'admin.activity'])->group(funct
 
     Route::middleware('permission:manage_products,admin')->group(function (): void {
         Route::post('products/bulk-delete', [ProductController::class, 'bulkDestroy'])->name('products.bulk-destroy');
+        // Drag-and-drop uploader: async stage / discard of gallery images.
+        Route::post('products/media/upload', [ProductController::class, 'uploadMedia'])->name('products.media.upload');
+        Route::delete('products/media/upload', [ProductController::class, 'deleteMedia'])->name('products.media.delete');
         Route::resource('products', ProductController::class)->except('show');
         Route::resource('coupons', CouponController::class)->except('show');
         // We will manage quantity discounts within the product edit view or a dedicated controller
@@ -123,8 +132,13 @@ Route::middleware(['auth:admin', 'admin.active', 'admin.activity'])->group(funct
         Route::get('inventory', [InventoryController::class, 'index'])->name('inventory.index');
         Route::post('inventory/{variant}/adjust', [InventoryController::class, 'adjust'])->name('inventory.adjust');
         Route::get('inventory/import', [InventoryImportController::class, 'create'])->name('inventory.import.create');
+        Route::get('inventory/import/template', [InventoryImportController::class, 'template'])->name('inventory.import.template');
         Route::post('inventory/import/preview', [InventoryImportController::class, 'preview'])->name('inventory.import.preview');
         Route::post('inventory/import', [InventoryImportController::class, 'store'])->name('inventory.import.store');
+        // Bulk product images — a ZIP whose files are named by SKU.
+        Route::get('inventory/import/images', [InventoryImportController::class, 'imagesCreate'])->name('inventory.import.images');
+        Route::post('inventory/import/images/preview', [InventoryImportController::class, 'imagesPreview'])->name('inventory.import.images.preview');
+        Route::post('inventory/import/images', [InventoryImportController::class, 'imagesStore'])->name('inventory.import.images.store');
 
         Route::get('categories', [CategoryController::class, 'index'])->name('categories.index');
         Route::post('categories', [CategoryController::class, 'store'])->name('categories.store');

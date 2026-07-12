@@ -41,6 +41,8 @@
 
             {{-- New, not-yet-saved selections (rendered by JS) --}}
             <div id="imagePreviewGrid" class="admin-gallery-grid mt-3 d-none"></div>
+            {{-- Hidden tokens for images staged by the async uploader --}}
+            <div id="uploadedTokens" class="d-none"></div>
 
             @if ($existingMedia->isNotEmpty())
                 <p class="fs-9 fw-semibold text-body-tertiary mt-3 mb-2">Current images</p>
@@ -417,60 +419,27 @@
     </div>
 </template>
 
+@push('styles')
+    <link href="{{ asset('theme/css/product-uploader.css') }}" rel="stylesheet">
+@endpush
+<script src="{{ asset('theme/js/product-uploader.js') }}"></script>
 <script>
     (function () {
-        // ---- Image dropzone preview ----
-        var input = document.getElementById('productImages');
-        var dz = document.getElementById('productDropzone');
-        var grid = document.getElementById('imagePreviewGrid');
-
-        function renderPreviews() {
-            grid.innerHTML = '';
-            var files = Array.prototype.slice.call(input.files || []);
-            if (!files.length) { grid.classList.add('d-none'); return; }
-            grid.classList.remove('d-none');
-            files.forEach(function (file) {
-                if (!file.type.startsWith('image/')) { return; }
-                var item = document.createElement('div');
-                item.className = 'admin-gallery-item';
-                var img = document.createElement('img');
-                img.src = URL.createObjectURL(file);
-                img.onload = function () { URL.revokeObjectURL(img.src); };
-                item.appendChild(img);
-                var badge = document.createElement('span');
-                badge.className = 'admin-gallery-badge admin-gallery-badge--new';
-                badge.textContent = 'New';
-                item.appendChild(badge);
-                grid.appendChild(item);
+        // ---- Async drag-and-drop image uploader ----
+        if (window.GbProductUploader) {
+            window.GbProductUploader.init({
+                dropzone: document.getElementById('productDropzone'),
+                input: document.getElementById('productImages'),
+                grid: document.getElementById('imagePreviewGrid'),
+                tokens: document.getElementById('uploadedTokens'),
+                uploadUrl: '{{ route('admin.products.media.upload') }}',
+                deleteUrl: '{{ route('admin.products.media.delete') }}',
+                csrf: '{{ csrf_token() }}',
+                maxFiles: 8,
+                maxBytes: 8 * 1024 * 1024,
+                existingCount: {{ $existingMedia->count() }},
             });
         }
-
-        if (input) {
-            input.addEventListener('change', renderPreviews);
-            ['dragover', 'dragenter'].forEach(function (e) {
-                dz.addEventListener(e, function (ev) { ev.preventDefault(); dz.classList.add('is-dragging'); });
-            });
-            ['dragleave', 'drop'].forEach(function (e) {
-                dz.addEventListener(e, function (ev) { ev.preventDefault(); dz.classList.remove('is-dragging'); });
-            });
-            dz.addEventListener('drop', function (ev) {
-                if (ev.dataTransfer && ev.dataTransfer.files.length) {
-                    input.files = ev.dataTransfer.files;
-                    renderPreviews();
-                }
-            });
-        }
-
-        // ---- Existing image removal toggle ----
-        document.querySelectorAll('.admin-gallery-remove').forEach(function (label) {
-            var cb = label.querySelector('input[type="checkbox"]');
-            label.addEventListener('click', function () {
-                // let the checkbox toggle, then reflect state
-                setTimeout(function () {
-                    label.closest('.admin-gallery-item').classList.toggle('is-removed', cb.checked);
-                }, 0);
-            });
-        });
 
         // ---- Generic repeater ----
         function setupRepeater(opts) {

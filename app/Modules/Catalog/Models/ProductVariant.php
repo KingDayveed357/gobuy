@@ -4,6 +4,7 @@ namespace App\Modules\Catalog\Models;
 
 use App\Modules\Catalog\Database\Factories\ProductVariantFactory;
 use App\Modules\Catalog\Observers\ProductVariantObserver;
+use App\Modules\Operations\Packaging\Models\PackagingUnit;
 use App\Modules\Pricing\Concerns\RecordsPriceHistory;
 use App\Modules\Pricing\Models\PromotionalPrice;
 use App\Support\Money;
@@ -79,6 +80,15 @@ class ProductVariant extends Model
     public function promotionalPrices(): HasMany
     {
         return $this->hasMany(PromotionalPrice::class);
+    }
+
+    /**
+     * Sellable packaging multiples layered over this variant's base unit
+     * (a carton of 12, a pack of 24). Stock is only ever tracked in base units.
+     */
+    public function packagingUnits(): HasMany
+    {
+        return $this->hasMany(PackagingUnit::class);
     }
 
     /**

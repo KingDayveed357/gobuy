@@ -1,0 +1,151 @@
+/* =============================================================================
+   gobuy admin — Product Picker combobox
+   Colours come from the Phoenix/gobuy CSS custom-property system so dark-mode
+   and theme changes are handled automatically.
+   ============================================================================= */
+
+.gb-pp { position: relative; }
+
+[x-cloak] { display: none !important; }
+
+/* ── Field ─────────────────────────────────────────────────────────────────── */
+.gb-pp-field { position: relative; display: flex; align-items: center; }
+
+.gb-pp-icon {
+    position: absolute;
+    left: 0.75rem;
+    width: 16px; height: 16px;
+    color: var(--phoenix-secondary-color, #6c757d);
+    pointer-events: none;
+}
+
+.gb-pp-input { padding-left: 2.25rem; padding-right: 2.25rem; }
+
+.gb-pp-clear {
+    position: absolute;
+    right: 0.6rem;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px;
+    padding: 0; border: 0; border-radius: 50%;
+    color: var(--phoenix-body-color, #333);
+    background: var(--phoenix-secondary-bg, #e9ecef);
+    cursor: pointer;
+}
+.gb-pp-clear:hover { background: var(--phoenix-border-color, #ced4da); }
+
+.gb-pp-spinner {
+    position: absolute;
+    right: 2rem;
+    width: 14px; height: 14px;
+    border: 2px solid var(--phoenix-border-color, #ced4da);
+    border-top-color: var(--phoenix-primary, #3874ff);
+    border-radius: 50%;
+    animation: gb-pp-spin 0.6s linear infinite;
+}
+@keyframes gb-pp-spin { to { transform: rotate(360deg); } }
+
+/* ── Panel ─────────────────────────────────────────────────────────────────── */
+.gb-pp-panel {
+    position: absolute;
+    z-index: 1080;
+    top: calc(100% + 0.35rem);
+    left: 0; right: 0;
+    max-height: 340px;
+    overflow-y: auto;
+    padding: 0.35rem;
+    background: var(--phoenix-body-bg, #fff);
+    border: 1px solid var(--phoenix-border-color-translucent, rgba(0,0,0,.1));
+    border-radius: 0.75rem;
+    box-shadow:
+        0 0 0 1px rgba(0,0,0,.02),
+        0 12px 32px -8px rgba(0,0,0,.22);
+}
+
+.gb-pp-note {
+    padding: 0.35rem 0.6rem 0.2rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--phoenix-secondary-color, #6c757d);
+}
+.gb-pp-note--warn { color: var(--phoenix-warning, #e5780b); text-transform: none; letter-spacing: 0; }
+
+/* ── Option row ────────────────────────────────────────────────────────────── */
+.gb-pp-opt {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.6rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+}
+.gb-pp-opt.is-active { background: var(--phoenix-primary-bg-subtle, #ebf2ff); }
+.gb-pp-opt--skel { cursor: default; }
+
+.gb-pp-thumb {
+    flex: 0 0 auto;
+    width: 40px; height: 40px;
+    object-fit: cover;
+    border-radius: 0.4rem;
+    background: var(--phoenix-secondary-bg, #f0f1f3);
+    border: 1px solid var(--phoenix-border-color-translucent, rgba(0,0,0,.08));
+}
+
+.gb-pp-body { min-width: 0; flex: 1 1 auto; }
+
+.gb-pp-title {
+    display: flex; align-items: baseline; gap: 0.4rem;
+    font-size: 0.85rem; font-weight: 600;
+    color: var(--phoenix-emphasis-color, #141824);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.gb-pp-variant {
+    font-weight: 500; font-size: 0.75rem;
+    color: var(--phoenix-secondary-color, #6c757d);
+}
+
+.gb-pp-meta {
+    display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;
+    margin-top: 0.1rem;
+    font-size: 0.72rem;
+    color: var(--phoenix-secondary-color, #6c757d);
+}
+.gb-pp-sku { font-family: var(--phoenix-font-monospace, monospace); }
+
+.gb-pp-pill {
+    padding: 0.05rem 0.4rem;
+    border-radius: 1rem;
+    font-size: 0.65rem; font-weight: 600;
+    color: var(--phoenix-info-text-emphasis, #0c63a4);
+    background: var(--phoenix-info-bg-subtle, #e7f3fb);
+}
+
+/* ── Right column (price + stock) ──────────────────────────────────────────── */
+.gb-pp-right { flex: 0 0 auto; text-align: right; }
+
+.gb-pp-price {
+    font-size: 0.82rem; font-weight: 700;
+    color: var(--phoenix-emphasis-color, #141824);
+}
+.gb-pp-wholesale {
+    display: block;
+    font-size: 0.65rem; font-weight: 500;
+    color: var(--phoenix-secondary-color, #6c757d);
+}
+
+.gb-pp-stock {
+    display: inline-block; margin-top: 0.15rem;
+    font-size: 0.65rem; font-weight: 600;
+    color: var(--phoenix-success-text-emphasis, #1a7d47);
+}
+.gb-pp-stock.is-low { color: var(--phoenix-warning-text-emphasis, #b45309); }
+.gb-pp-stock.is-out { color: var(--phoenix-danger-text-emphasis, #b02a37); }
+
+/* ── Empty ─────────────────────────────────────────────────────────────────── */
+.gb-pp-empty {
+    padding: 0.9rem 0.6rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--phoenix-secondary-color, #6c757d);
+}

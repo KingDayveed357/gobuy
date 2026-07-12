@@ -1,0 +1,94 @@
+/* =============================================================================
+   gobuy admin — Skeleton loaders
+   Theme-aware shimmer for "loading should never feel empty" surfaces.
+   Honours prefers-reduced-motion (static tint, no animation).
+   ============================================================================= */
+
+.gb-skel {
+    display: block;
+    position: relative;
+    overflow: hidden;
+    border-radius: 0.5rem;
+    background-color: var(--phoenix-secondary-bg, #eaecef);
+}
+
+/* Shimmer sweep */
+.gb-skel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+        90deg,
+        transparent 0,
+        var(--phoenix-body-bg, rgba(255, 255, 255, 0.55)) 55%,
+        transparent 100%
+    );
+    opacity: 0.6;
+    animation: gb-skel-sweep 1.25s ease-in-out infinite;
+}
+
+@keyframes gb-skel-sweep {
+    100% { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gb-skel::after { animation: none; opacity: 0; }
+    .gb-skel { animation: gb-skel-pulse 1.6s ease-in-out infinite; }
+    @keyframes gb-skel-pulse { 50% { opacity: 0.55; } }
+}
+
+/* ── Lines ─────────────────────────────────────────────────────────────────── */
+.gb-skel-lines { display: flex; flex-direction: column; gap: 0.55rem; }
+.gb-skel-line { height: 0.85rem; }
+.gb-skel-line-sm { height: 0.65rem; }
+
+/* ── Table ─────────────────────────────────────────────────────────────────── */
+.gb-skel-table { display: flex; flex-direction: column; gap: 0.9rem; padding: 0.25rem 0; }
+.gb-skel-tr { display: flex; align-items: center; gap: 1rem; }
+.gb-skel-cell { height: 0.8rem; flex: 1 1 0; }
+
+/* ── List (avatar + two lines + trailing) ──────────────────────────────────── */
+.gb-skel-list { display: flex; flex-direction: column; gap: 1rem; }
+.gb-skel-li { display: flex; align-items: center; gap: 0.85rem; }
+.gb-skel-li-body { flex: 1 1 auto; display: flex; flex-direction: column; gap: 0.45rem; }
+.gb-skel-avatar { width: 40px; height: 40px; border-radius: 0.5rem; flex: 0 0 auto; }
+
+/* ── Card (media + lines) ──────────────────────────────────────────────────── */
+.gb-skel-card { display: flex; flex-direction: column; gap: 0.6rem; }
+.gb-skel-media { width: 100%; aspect-ratio: 1 / 1; border-radius: 0.75rem; }
+
+/* ── Stat tiles ────────────────────────────────────────────────────────────── */
+.gb-skel-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+}
+.gb-skel-stat {
+    display: flex; flex-direction: column; gap: 0.55rem;
+    padding: 1.1rem 1.25rem;
+    border: 1px solid var(--phoenix-border-color-translucent, rgba(0, 0, 0, 0.08));
+    border-radius: 0.75rem;
+}
+.gb-skel-stat-value { height: 1.6rem; margin: 0.15rem 0; }
+
+/* ── Circle ────────────────────────────────────────────────────────────────── */
+.gb-skel-circle { border-radius: 50%; }
+
+/* ── Table navigation-loading overlay ──────────────────────────────────────────
+   Covers a server-rendered list the instant a filter/pagination/tab reload
+   fires (class toggled by table-loading.js), so the table never blanks out. */
+.admin-table-loading {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    padding: 3rem 1.25rem 1rem;
+    background: var(--phoenix-body-bg, #fff);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.12s ease;
+}
+[data-admin-table].is-navigating .admin-table-loading {
+    opacity: 1;
+    pointer-events: all;
+}

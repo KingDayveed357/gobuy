@@ -38,8 +38,17 @@ class BackInStockService
         $variant->loadMissing('product');
 
         StockNotification::where('product_variant_id', $variant->id)
+            ->with('user')
             ->get()
             ->each(function (StockNotification $waiter) use ($variant): void {
+                // Respect a registered customer's notification preference; guests
+                // (no account) always get the alert they explicitly asked for.
+                if ($waiter->user && ! $waiter->user->wantsNotification('back_in_stock')) {
+                    $waiter->delete();
+
+                    return;
+                }
+
                 Mail::to($waiter->email)->queue(new BackInStockMail($variant));
                 $waiter->delete();
             });

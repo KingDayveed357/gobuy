@@ -13,7 +13,7 @@
                         <span class="fas fa-heart d-block-hover" data-fa-transform="down-1"></span>
                         <span class="far fa-heart d-none-hover" data-fa-transform="down-1"></span>
                     </button>
-                    <img class="img-fluid" src="{{ $product->imageUrl() }}" alt="{{ $product->name }}" width="300" height="300" loading="lazy">
+                    <img class="img-fluid gb-lazy-img" src="{{ $product->thumbUrl() }}" alt="{{ $product->name }}" width="300" height="300" loading="lazy" decoding="async">
                     @if ($product->is_featured)
                         <span class="badge text-bg-success fs-10 product-verified-badge">Featured<span class="fas fa-check ms-1"></span></span>
                     @endif

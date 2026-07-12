@@ -1123,6 +1123,16 @@ nav[aria-label="Category and page links"] .container-small > div::-webkit-scroll
 }
 
 /* =====================================================================
+   Lazy images — reserve the box with a neutral tint so lazy/async
+   decoding never flashes empty and never shifts layout (CLS = 0).
+   Dimensions are set inline (width/height) on each <img>.
+   ===================================================================== */
+.gb-lazy-img {
+  background-color: var(--phoenix-gray-200, #eff2f6);
+  object-fit: cover;
+}
+
+/* =====================================================================
    Brand Rail — premium treatment
    ===================================================================== */
 .gb-brand-rail {

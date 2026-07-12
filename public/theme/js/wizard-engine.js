@@ -64,8 +64,11 @@
                 active.pane.classList.add('is-active');
             }
 
-            // Update focus for a11y
-            active.nav.focus({ preventScroll: true });
+            // Move focus to the active tab only on a user-initiated switch —
+            // never on first paint (that would yank focus/scroll on page load).
+            if (animate) {
+                active.nav.focus({ preventScroll: true });
+            }
 
             currentStep = index;
             saveStep(currentStep);

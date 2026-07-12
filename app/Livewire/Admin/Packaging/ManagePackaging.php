@@ -7,6 +7,7 @@ use App\Modules\Operations\Packaging\Models\PackagingUnit;
 use App\Support\Money;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 /**
@@ -16,8 +17,7 @@ use Livewire\Component;
  */
 class ManagePackaging extends Component
 {
-    public string $search = '';
-
+    #[Locked]
     public ?int $variantId = null;
 
     public ?int $editingId = null;
@@ -29,29 +29,6 @@ class ManagePackaging extends Component
     public string $barcode = '';
 
     public string $price = '';
-
-    public function updatedSearch(): void
-    {
-        $this->variantId = null;
-    }
-
-    /**
-     * @return Collection<int, ProductVariant>
-     */
-    #[Computed]
-    public function results()
-    {
-        $term = trim($this->search);
-        if ($this->variantId || mb_strlen($term) < 2) {
-            return collect();
-        }
-
-        return ProductVariant::query()
-            ->where(fn ($q) => $q->where('sku', 'like', "%{$term}%")
-                ->orWhereHas('product', fn ($p) => $p->where('name', 'like', "%{$term}%")))
-            ->with('product:id,name')
-            ->limit(8)->get();
-    }
 
     #[Computed]
     public function variant(): ?ProductVariant
@@ -74,8 +51,8 @@ class ManagePackaging extends Component
 
     public function choose(int $variantId): void
     {
-        $this->variantId = $variantId;
-        $this->search = '';
+        $this->variantId = ProductVariant::whereKey($variantId)->value('id');
+        unset($this->variant, $this->units);
         $this->resetForm();
     }
 
