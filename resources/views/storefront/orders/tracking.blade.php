@@ -1,6 +1,6 @@
 @extends('layouts.storefront')
 
-@section('title', 'Order '.$order->order_number.' status — gobuy')
+@section('title', 'Order '.$order->order_number.' status — Quintessential Mart')
 
 @php
     use App\Modules\Order\Enums\OrderStatus;

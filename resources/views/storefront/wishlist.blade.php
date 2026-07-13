@@ -1,6 +1,6 @@
 @extends('layouts.storefront')
 
-@section('title', 'Wishlist — gobuy')
+@section('title', 'Wishlist — Quintessential Mart')
 
 @section('content')
 <section class="pt-5 pb-9">

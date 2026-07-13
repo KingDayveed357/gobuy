@@ -1,6 +1,6 @@
 @extends('layouts.account')
 
-@section('title', 'Order history — gobuy')
+@section('title', 'Order history — Quintessential Mart')
 
 @php
     $pageTitle = 'Order History';

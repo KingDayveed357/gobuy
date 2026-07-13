@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Activity log — gobuy admin')
+@section('title', 'Activity log — Quintessential Mart admin')
 @section('page-title', 'Activity log')
 
 @php($tones = ['primary', 'info', 'success', 'warning'])

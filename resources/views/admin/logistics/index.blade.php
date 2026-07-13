@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Logistics — gobuy admin')
+@section('title', 'Logistics — Quintessential Mart admin')
 @section('page-title', 'Logistics')
 
 @section('content')
@@ -32,7 +32,7 @@
                         <span class="fas fa-location-dot fs-3"></span>
                     </div>
                     <h4 class="mb-2 text-body-emphasis">Locations</h4>
-                    <p class="text-body-tertiary fs-9 mb-0">Manage physical GoBuy locations, configured as pickup points or return centres.</p>
+                    <p class="text-body-tertiary fs-9 mb-0">Manage physical Quintessential Mart locations, configured as pickup points or return centres.</p>
                 </div>
             </a>
         </div>

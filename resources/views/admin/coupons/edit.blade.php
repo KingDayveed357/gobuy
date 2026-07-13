@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Edit coupon — gobuy admin')
+@section('title', 'Edit coupon — Quintessential Mart admin')
 
 @section('content')
     <form action="{{ route('admin.coupons.update', $coupon) }}" method="POST" class="mb-6">

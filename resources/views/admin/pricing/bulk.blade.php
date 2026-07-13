@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Bulk pricing — gobuy admin')
+@section('title', 'Bulk pricing — Quintessential Mart admin')
 @section('page-title', 'Bulk pricing')
 
 @php($input = $input ?? [])

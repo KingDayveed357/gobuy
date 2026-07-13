@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Bulk import — gobuy admin')
+@section('title', 'Bulk import — Quintessential Mart admin')
 
 @section('content')
     <x-admin.page-header title="Bulk product import" subtitle="Upload a CSV to create and update products in bulk">

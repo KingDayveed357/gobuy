@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Dispatch — gobuy admin')
+@section('title', 'Dispatch — Quintessential Mart admin')
 @section('page-title', 'Dispatch')
 
 @use('App\Modules\Logistics\Enums\ShipmentStatus')

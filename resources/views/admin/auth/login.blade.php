@@ -8,8 +8,8 @@
 <body>
     <main class="d-flex flex-center min-vh-100 py-5">
         <div class="container-small" style="max-width: 420px;">
-            <div class="text-center mb-4">
-                <h3 class="logo-text text-primary mb-1">gobuy <span class="fs-9 text-body-tertiary">admin</span></h3>
+            <div class="text-center mb-2">
+                <x-brand-logo class="text-primary mb-4 justify-content-center" sub="admin" :size="50" />
                 <p class="text-body-tertiary mb-0">Sign in to the admin console</p>
             </div>
 

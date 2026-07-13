@@ -1,6 +1,6 @@
 @extends('layouts.storefront')
 
-@section('title', 'Proforma invoice — gobuy')
+@section('title', 'Proforma invoice — Quintessential Mart')
 
 @section('content')
     <section class="pt-5 pb-9">
@@ -14,7 +14,7 @@
                 <div class="card-body p-4 p-md-5">
                     <div class="d-flex flex-between-center flex-wrap mb-4">
                         <div>
-                            <h2 class="mb-0">GoBuy</h2>
+                            <h2 class="mb-0">Quintessential Mart</h2>
                             <p class="fs-9 text-body-tertiary mb-0">Port Harcourt, Nigeria</p>
                         </div>
                         <div class="text-end">

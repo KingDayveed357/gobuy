@@ -9,6 +9,6 @@ Popular items sell out quickly, so grab yours while it lasts.
 View product
 @endcomponent
 
-Thanks for shopping with GoBuy,<br>
-The GoBuy Team
+Thanks for shopping with Quintessential Mart,<br>
+The Quintessential Mart Team
 @endcomponent

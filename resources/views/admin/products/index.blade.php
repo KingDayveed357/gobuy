@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Products — gobuy admin')
+@section('title', 'Products — Quintessential Mart admin')
 
 @php($currentStatus = request('status', 'all'))
 @php($tabs = ['all' => 'All', 'active' => 'Active', 'draft' => 'Drafts', 'archived' => 'Archived'])

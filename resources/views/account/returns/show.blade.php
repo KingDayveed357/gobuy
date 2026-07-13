@@ -1,6 +1,6 @@
 @extends('layouts.storefront')
 
-@section('title', 'Return '.$return->reference.' — gobuy')
+@section('title', 'Return '.$return->reference.' — Quintessential Mart')
 
 @section('content')
     <section class="pt-5 pb-9">

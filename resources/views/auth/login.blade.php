@@ -1,6 +1,6 @@
 @extends('layouts.storefront')
 
-@section('title', 'Sign in — gobuy')
+@section('title', 'Sign in — Quintessential Mart')
 
 @section('content')
     <section class="pt-6 pb-9">
@@ -10,7 +10,7 @@
                     <div class="card">
                         <div class="card-body p-4 p-sm-5">
                             <h3 class="mb-1 text-center">Welcome back</h3>
-                            <p class="text-body-tertiary text-center mb-4">Sign in to your gobuy account.</p>
+                            <p class="text-body-tertiary text-center mb-4">Sign in to your Quintessential Mart account.</p>
 
                             @if (session('status'))
                                 <div class="alert alert-subtle-success">{{ session('status') }}</div>
@@ -37,7 +37,7 @@
                                     <label class="form-check-label fs-9" for="remember">Keep me signed in</label>
                                 </div>
                                 <button class="btn btn-primary w-100 mb-3" type="submit">Sign in</button>
-                                <p class="text-center mb-0 fs-9">New to gobuy? <a href="{{ route('register') }}">Create an account</a></p>
+                                <p class="text-center mb-0 fs-9">New to Quintessential Mart? <a href="{{ route('register') }}">Create an account</a></p>
                             </form>
 
                             <x-social-auth-buttons />

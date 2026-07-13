@@ -26,6 +26,6 @@ Hi {{ $order->customer_name }}, we've received your payment and your order is co
 View your order
 @endcomponent
 
-Thanks for shopping with gobuy,
-The gobuy team
+Thanks for shopping with Quintessential Mart,
+The Quintessential Mart team
 @endcomponent

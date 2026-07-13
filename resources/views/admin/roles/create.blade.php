@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'New role — gobuy admin')
+@section('title', 'New role — Quintessential Mart admin')
 
 @section('content')
     <form action="{{ route('admin.roles.store') }}" method="POST" class="mb-6">

@@ -1,6 +1,6 @@
 @extends('layouts.storefront')
 
-@section('title', $product->name.' — gobuy')
+@section('title', $product->name.' — Quintessential Mart')
 
 @php
     $selected = $product->primaryVariant();

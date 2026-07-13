@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Return '.$return->reference.' — gobuy admin')
+@section('title', 'Return '.$return->reference.' — Quintessential Mart admin')
 @section('page-title', 'Return '.$return->reference)
 
 @section('content')

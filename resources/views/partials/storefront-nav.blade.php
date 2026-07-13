@@ -10,10 +10,8 @@
         <nav class="navbar navbar-expand px-0 py-2" style="gap:0.75rem;" aria-label="Main navigation">
 
             {{-- Logo area (left) --}}
-            <div class="d-flex align-items-center" style="width: 280px;">
-                <a class="navbar-brand text-decoration-none flex-shrink-0" href="{{ route('home') }}">
-                    <h3 class="logo-text text-primary mb-0 fw-bold" style="letter-spacing: -0.5px;">gobuy</h3>
-                </a>
+            <div class="d-flex align-items-center flex-shrink-0" style="min-width: 0;">
+                <x-brand-logo class="text-primary mb-0 gb-brand--nav" :size="40" />
             </div>
 
             {{-- Spacer for mobile (pushes icons right when search is hidden) --}}
@@ -31,7 +29,7 @@
                 <ul class="navbar-nav flex-row align-items-center flex-shrink-0" style="gap:0.15rem;">
 
                     {{-- Theme toggle --}}
-                    <li class="nav-item d-flex align-items-center">
+                    <li class="nav-item d-none d-md-flex align-items-center">
                         <div class="theme-control-toggle feather-icon-wait px-1">
                             <input class="form-check-input ms-0 theme-control-toggle-input"
                                    type="checkbox"
@@ -145,7 +143,7 @@
                                                 </span>
                                             </div>
                                         </div>
-                                        <h6 class="mt-1 text-body-emphasis mb-0">Welcome to gobuy</h6>
+                                        <h6 class="mt-1 text-body-emphasis mb-0">Welcome to Quintessential Mart</h6>
                                         <p class="fs-10 text-body-tertiary mb-0 px-3">Sign in to track orders &amp; checkout faster</p>
                                     </div>
                                 </div>

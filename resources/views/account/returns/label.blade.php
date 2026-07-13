@@ -1,6 +1,6 @@
 @extends('layouts.storefront')
 
-@section('title', 'Return label '.$shipment->tracking_reference.' — gobuy')
+@section('title', 'Return label '.$shipment->tracking_reference.' — Quintessential Mart')
 
 @section('content')
     <section class="pt-5 pb-9">

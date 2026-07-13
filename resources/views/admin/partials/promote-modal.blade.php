@@ -71,7 +71,7 @@
         dl.style.display = image ? '' : 'none';
         if (image) { img.src = image; dl.href = image; }
 
-        var caption = name + (price ? ' — now ' + price : '') + ' on GoBuy. Shop now:';
+        var caption = name + (price ? ' — now ' + price : '') + ' on Quintessential Mart. Shop now:';
         document.getElementById('promoteLink').value = tagged(url, 'link', campaign);
         document.getElementById('promoteCopy').value = caption + ' ' + tagged(url, 'link', campaign);
 

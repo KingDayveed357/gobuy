@@ -1,6 +1,6 @@
 @extends('layouts.storefront')
 
-@section('title', 'gobuy — Retail & Wholesale, delivered fast')
+@section('title', 'Quintessential Mart — Retail & Wholesale, delivered fast')
 
 @section('content')
     @if ($preview ?? false)

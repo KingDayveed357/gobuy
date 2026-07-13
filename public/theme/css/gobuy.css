@@ -1194,3 +1194,79 @@ nav[aria-label="Category and page links"] .container-small > div::-webkit-scroll
 }
 
 
+
+/* =====================================================================
+   Quintessential Mart — brand lockup (<x-brand-logo>)
+   ===================================================================== */
+.gb-brand { line-height: 0; text-decoration: none; }
+.gb-brand-lockup { width: auto; max-width: 100%; display: block; }
+.gb-brand--dark { display: none; }
+.gb-brand-icon { display: none; flex: 0 0 auto; }
+
+/* Dark theme → show the dark lockup (white wordmark) */
+[data-bs-theme="dark"] .gb-brand--light { display: none; }
+[data-bs-theme="dark"] .gb-brand--dark { display: block; }
+
+/* Phones: the compact variant collapses to the icon mark only */
+/* @media (max-width: 575.98px) 
+{
+  .gb-brand--compact .gb-brand-lockup,
+  [data-bs-theme="dark"] .gb-brand--compact .gb-brand-lockup { display: none !important; }
+  .gb-brand--compact .gb-brand-icon { display: inline-block; }
+} */
+
+/* ---------- Footer polish ---------- */
+.gb-footer-brand {
+  max-width: 220px;
+}
+.gb-footer-brand-copy {
+  max-width: 22rem;
+}
+.gb-footer-categories {
+  margin-bottom: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+.gb-footer-categories li {
+  margin-bottom: 0;
+}
+.gb-footer-subscribe__group {
+  display: flex;
+  gap: 0.75rem;
+}
+.gb-footer-subscribe .form-control,
+.gb-footer-subscribe .btn {
+  min-height: 2.875rem;
+}
+/* Make the storefront brand read stronger on mobile once the theme toggle is removed. */
+@media (max-width: 767.98px) {
+  .gb-brand--nav .gb-brand-lockup {
+    height: 30px !important;
+  }
+}
+
+/* Ultra-compact phones: collapse the wordmark to the icon mark only. */
+@media (max-width: 359.98px) {
+  .gb-brand--nav .gb-brand--light,
+  .gb-brand--nav .gb-brand--dark {
+    display: none !important;
+  }
+
+  .gb-brand--nav .gb-brand-icon {
+    display: block !important;
+  }
+}
+@media (max-width: 575.98px) {
+  .gb-footer-brand {
+    max-width: 240px;
+  }
+  .gb-footer-subscribe__group {
+    flex-direction: column;
+  }
+  .gb-footer-subscribe .form-control,
+  .gb-footer-subscribe .btn {
+    width: 100%;
+    min-height: 3rem;
+  }
+}
+

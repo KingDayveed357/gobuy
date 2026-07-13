@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Quintessential Mart">
+  <!-- Solid Signal-Blue tile + white mark: high contrast, reads at 16px, works on
+       both light and dark browser chrome. -->
+  <rect width="64" height="64" rx="15" fill="#3874ff"/>
+  <circle cx="28" cy="29" r="14" fill="none" stroke="#ffffff" stroke-width="7"/>
+  <path d="M35 36 50 51" stroke="#ffffff" stroke-width="7" stroke-linecap="round"/>
+</svg>

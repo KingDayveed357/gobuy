@@ -1,7 +1,7 @@
 {
-    "name": "GoBuy",
-    "short_name": "GoBuy",
-    "description": "GoBuy — shop online across Nigeria.",
+    "name": "Quintessential Mart",
+    "short_name": "Quintessential",
+    "description": "Quintessential Mart — premium retail & wholesale, delivered fast across Nigeria.",
     "start_url": "/",
     "scope": "/",
     "display": "standalone",
@@ -14,10 +14,28 @@
             "type": "image/png"
         },
         {
-            "src": "/theme/img/favicons/apple-touch-icon.png",
-            "sizes": "180x180",
+            "src": "/theme/img/favicons/android-chrome-192x192.png",
+            "sizes": "192x192",
             "type": "image/png",
-            "purpose": "any maskable"
+            "purpose": "any"
+        },
+        {
+            "src": "/theme/img/favicons/android-chrome-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/theme/img/favicons/maskable-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "/theme/img/favicons/maskable-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
         }
     ]
 }

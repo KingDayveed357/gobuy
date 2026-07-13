@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Banners — gobuy admin')
+@section('title', 'Banners — Quintessential Mart admin')
 @section('page-title', 'Banners')
 
 @use('App\Modules\Marketing\Models\Banner')

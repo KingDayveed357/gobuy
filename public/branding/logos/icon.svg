@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="Quintessential Mart">
+  <!-- The Aperture Q: a complete ring (the marketplace) + a forward tail (speed).
+       Uses currentColor so one file serves light, dark and monochrome contexts. -->
+  <circle cx="28" cy="28" r="17" stroke="#3874FF" stroke-width="8"/>
+  <path d="M37 37 55 55" stroke="#3874FF" stroke-width="8" stroke-linecap="round"/>
+</svg>
+

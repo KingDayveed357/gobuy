@@ -1,6 +1,6 @@
 @extends('layouts.account')
 
-@section('title', 'Account Settings — GoBuy')
+@section('title', 'Account Settings — Quintessential Mart')
 
 @php
     $pageTitle = 'Settings';
@@ -149,7 +149,7 @@
                             <h5 class="mb-0">Display Preferences</h5>
                         </div>
                         <div class="gb-form-section-body p-4">
-                            <p class="text-body-tertiary fs-9 mb-4">Choose how GoBuy looks for you. Your preference is saved in your browser.</p>
+                            <p class="text-body-tertiary fs-9 mb-4">Choose how Quintessential Mart looks for you. Your preference is saved in your browser.</p>
 
                             <div class="d-flex flex-column gap-3" id="themeOptions" role="radiogroup" aria-label="Theme preference">
                                 {{-- Light --}}

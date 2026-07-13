@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Bulk image import — gobuy admin')
+@section('title', 'Bulk image import — Quintessential Mart admin')
 
 @section('content')
     <x-admin.page-header title="Bulk product images" subtitle="Upload a ZIP of images named by SKU to attach them to products in bulk">

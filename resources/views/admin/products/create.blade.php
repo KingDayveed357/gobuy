@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Add a product — gobuy admin')
+@section('title', 'Add a product — Quintessential Mart admin')
 
 @section('content')
     <form action="{{ route('admin.products.store') }}" method="POST" class="mb-6" enctype="multipart/form-data">

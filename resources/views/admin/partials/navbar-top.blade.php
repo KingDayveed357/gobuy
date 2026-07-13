@@ -10,7 +10,7 @@
                 <span class="navbar-toggle-icon"><span class="toggle-line"></span></span>
             </button>
             <a class="navbar-brand me-1 me-sm-3" href="{{ route('admin.dashboard') }}">
-                <h5 class="logo-text text-primary mb-0">gobuy <span class="fs-9 text-body-tertiary">admin</span></h5>
+                <x-brand-logo class="text-primary mb-0" sub="admin" :size="40" />
             </a>
         </div>
 

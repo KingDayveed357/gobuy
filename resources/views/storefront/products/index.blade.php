@@ -1,6 +1,6 @@
 @extends('layouts.storefront')
 
-@section('title', 'Products — gobuy')
+@section('title', 'Products — Quintessential Mart')
 
 @php
     $hasFilters = request()->hasAny(['q', 'category', 'brand', 'in_stock', 'min', 'max']);

@@ -1,6 +1,6 @@
 @extends('layouts.account')
 
-@section('title', 'Apply for wholesale — gobuy')
+@section('title', 'Apply for wholesale — Quintessential Mart')
 
 @php
     $pageTitle = 'Wholesale';

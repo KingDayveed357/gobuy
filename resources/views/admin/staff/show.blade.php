@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', $staff->name.' — gobuy admin')
+@section('title', $staff->name.' — Quintessential Mart admin')
 
 @php
     $badges = ['active' => 'success', 'invited' => 'info', 'suspended' => 'warning', 'archived' => 'secondary'];

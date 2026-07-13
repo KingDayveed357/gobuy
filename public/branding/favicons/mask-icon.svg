@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Safari pinned-tab mask: single solid colour, transparent background. -->
+  <circle cx="28" cy="28" r="17" fill="none" stroke="#000000" stroke-width="8"/>
+  <path d="M37 37 55 55" stroke="#000000" stroke-width="8" stroke-linecap="round"/>
+</svg>

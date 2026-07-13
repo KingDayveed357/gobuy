@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Categories — gobuy admin')
+@section('title', 'Categories — Quintessential Mart admin')
 
 @php($byParent = $categories->groupBy(fn ($c) => $c->parent_id ?? 0))
 

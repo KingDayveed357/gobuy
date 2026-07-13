@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Staff — gobuy admin')
+@section('title', 'Staff — Quintessential Mart admin')
 @section('page-title', 'Staff')
 
 @php

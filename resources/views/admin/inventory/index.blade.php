@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Inventory — gobuy admin')
+@section('title', 'Inventory — Quintessential Mart admin')
 
 @section('content')
     <x-admin.page-header title="Inventory" subtitle="Stock levels, reservations and audited adjustments">

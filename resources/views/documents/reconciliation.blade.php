@@ -153,7 +153,7 @@
     <x-document.footer :document="$document" :branding="$branding">
         <p class="doc-footer__disclaimer" style="margin-top:4px;">
             This report is auto-generated from system records as at {{ now()->format('M j, Y g:i A') }}.
-            Figures represent data recorded in the GoBuy system and may not reflect same-day bank processing delays.
+            Figures represent data recorded in the Quintessential Mart system and may not reflect same-day bank processing delays.
         </p>
     </x-document.footer>
 

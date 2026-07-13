@@ -3,7 +3,7 @@
 @use('App\Modules\Marketing\Enums\SectionType')
 @use('App\Modules\Marketing\Models\Banner')
 
-@section('title', 'Page content — gobuy admin')
+@section('title', 'Page content — Quintessential Mart admin')
 @section('page-title', 'Page content')
 
 @section('content')

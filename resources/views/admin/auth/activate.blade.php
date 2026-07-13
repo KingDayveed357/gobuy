@@ -3,14 +3,14 @@
 
 <head>
     @include('partials.head')
-    <title>Set up your account — gobuy admin</title>
+    <title>Set up your account — Quintessential Mart admin</title>
 </head>
 
 <body>
     <main class="d-flex flex-center min-vh-100 py-5">
         <div class="container-small" style="max-width: 420px;">
             <div class="text-center mb-4">
-                <h3 class="logo-text text-primary mb-1">gobuy <span class="fs-9 text-body-tertiary">admin</span></h3>
+                <x-brand-logo class="text-primary mb-1 justify-content-center" sub="admin" :size="30" />
                 <p class="text-body-tertiary mb-0">Welcome, {{ $staff->name }} — set a password to finish.</p>
             </div>
 

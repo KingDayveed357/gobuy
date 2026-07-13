@@ -6,11 +6,11 @@
     $campaign = $campaign ?? $page->campaign;
     $ogImage = $ogImage ?? null;
     $ogTitle = $page->meta_title ?: $page->title;
-    $ogDesc = $page->meta_description ?: 'Shop '.$page->title.' at gobuy.';
+    $ogDesc = $page->meta_description ?: 'Shop '.$page->title.' at Quintessential Mart.';
     $pageUrl = $page->url();
 @endphp
 
-@section('title', $ogTitle.' — gobuy')
+@section('title', $ogTitle.' — Quintessential Mart')
 
 @push('meta')
     <meta name="description" content="{{ $ogDesc }}">
