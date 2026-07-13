@@ -66,6 +66,7 @@ class ProductSearchController extends Controller
 
         return [
             'id' => $variant->id,
+            'product_id' => $variant->product_id,
             'name' => $product?->name ?? 'Product',
             'variant' => $variant->is_default ? null : $variant->label(),
             'sku' => $variant->sku,

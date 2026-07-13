@@ -2,22 +2,9 @@
     {{-- ─── Products + basket ─────────────────────────────────────────── --}}
     <div class="col-12 col-lg-7">
         <x-admin.card title="Add items">
-            <div class="position-relative mb-3">
-                <input type="text" class="form-control" wire:model.live.debounce.250ms="search" placeholder="Search products by name or SKU…" autofocus>
-                @if (! empty($this->results) && count($this->results))
-                    <div class="list-group position-absolute w-100 shadow-sm" style="z-index:30; max-height:320px; overflow:auto;">
-                        @foreach ($this->results as $variant)
-                            <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2"
-                                    wire:click="addVariant({{ $variant->id }})" wire:key="res-{{ $variant->id }}">
-                                <span class="min-w-0">
-                                    <span class="d-block fw-semibold text-truncate fs-9">{{ $variant->is_default ? $variant->product->name : $variant->product->name.' — '.$variant->label() }}</span>
-                                    <span class="fs-10 text-body-tertiary">SKU {{ $variant->sku }} · {{ $variant->stock }} in stock</span>
-                                </span>
-                                <span class="badge badge-phoenix badge-phoenix-primary"><span class="fas fa-plus"></span></span>
-                            </button>
-                        @endforeach
-                    </div>
-                @endif
+            <div class="mb-3">
+                <x-admin.product-picker scope="walk-in" on-select="addVariant" :in-stock="true" :wholesale="true"
+                    placeholder="Search products by name, SKU or brand…" :autofocus="true" />
             </div>
 
             @php($cart = $this->cart)

@@ -19,8 +19,6 @@ class WriteOffDamage extends Component
 {
     public ?int $locationId = null;
 
-    public string $search = '';
-
     public ?int $variantId = null;
 
     public int $quantity = 1;
@@ -41,24 +39,6 @@ class WriteOffDamage extends Component
         return InventoryLocation::query()->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->get();
     }
 
-    /**
-     * @return Collection<int, ProductVariant>
-     */
-    #[Computed]
-    public function results()
-    {
-        $term = trim($this->search);
-        if ($this->variantId || mb_strlen($term) < 2) {
-            return collect();
-        }
-
-        return ProductVariant::query()
-            ->where(fn ($q) => $q->where('sku', 'like', "%{$term}%")
-                ->orWhereHas('product', fn ($p) => $p->where('name', 'like', "%{$term}%")))
-            ->with('product:id,name')
-            ->limit(8)->get();
-    }
-
     #[Computed]
     public function variant(): ?ProductVariant
     {
@@ -67,8 +47,8 @@ class WriteOffDamage extends Component
 
     public function choose(int $variantId): void
     {
-        $this->variantId = $variantId;
-        $this->search = '';
+        $this->variantId = ProductVariant::whereKey($variantId)->value('id');
+        unset($this->variant);
     }
 
     public function clearVariant(): void

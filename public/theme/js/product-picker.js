@@ -34,14 +34,46 @@
             results: [],
             recents: [],
 
+            // Portal panel position (updated on open/scroll/resize)
+            _panelTop: 0,
+            _panelLeft: 0,
+            _panelWidth: 0,
+
             // Non-reactive helpers (kept off the Alpine proxy).
             _cache: null,
             _controller: null,
             _timer: null,
+            _scrollHandler: null,
+            _resizeHandler: null,
 
             init: function () {
                 this._cache = new Map();
                 this.recents = this.loadRecents();
+
+                // Keep panel anchored to input when the page scrolls or resizes.
+                var self = this;
+                this._scrollHandler = function () { if (self.open) self._positionPanel(); };
+                this._resizeHandler = function () { if (self.open) self._positionPanel(); };
+                window.addEventListener('scroll', this._scrollHandler, true);
+                window.addEventListener('resize', this._resizeHandler);
+            },
+
+            destroy: function () {
+                window.removeEventListener('scroll', this._scrollHandler, true);
+                window.removeEventListener('resize', this._resizeHandler);
+            },
+
+            // ── Portal positioning ─────────────────────────────────────────
+            // Called whenever the panel should open or reposition.
+            // Uses the input element's bounding rect to place the panel in
+            // fixed-position space, so no ancestor overflow:hidden can clip it.
+            _positionPanel: function () {
+                var input = this.$refs.input;
+                if (!input) { return; }
+                var rect = input.getBoundingClientRect();
+                this._panelTop  = rect.bottom + 6;   // 6px gap (≈ 0.375rem)
+                this._panelLeft = rect.left;
+                this._panelWidth = rect.width;
             },
 
             // ── Derived state ──────────────────────────────────────────────
@@ -59,6 +91,7 @@
             // ── Search ─────────────────────────────────────────────────────
             onInput: function () {
                 this.open = true;
+                this._positionPanel();
                 this.active = -1;
                 clearTimeout(this._timer);
 
@@ -113,11 +146,30 @@
                     });
             },
 
+            // ── Match highlighting (XSS-safe: escapes, then wraps the match) ─
+            highlight: function (text) {
+                var s = String(text == null ? '' : text);
+                var esc = function (t) {
+                    return t.replace(/[&<>"']/g, function (c) {
+                        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                    });
+                };
+                var q = this.query.trim();
+                if (q.length < 2) { return esc(s); }
+                var i = s.toLowerCase().indexOf(q.toLowerCase());
+                if (i === -1) { return esc(s); }
+
+                return esc(s.slice(0, i)) +
+                    '<mark class="gb-pp-mark">' + esc(s.slice(i, i + q.length)) + '</mark>' +
+                    esc(s.slice(i + q.length));
+            },
+
             // ── Keyboard navigation ────────────────────────────────────────
             move: function (delta) {
                 var n = this.items.length;
                 if (!n) { return; }
                 this.open = true;
+                this._positionPanel();
                 this.active = (this.active + delta + n) % n;
                 this.scrollActive();
             },
@@ -135,6 +187,12 @@
                 } else if (this.items.length === 1) {
                     this.choose(this.items[0]);
                 }
+            },
+
+            // ── Open on focus ──────────────────────────────────────────────
+            onFocus: function () {
+                this.open = true;
+                this._positionPanel();
             },
 
             // ── Selection ──────────────────────────────────────────────────

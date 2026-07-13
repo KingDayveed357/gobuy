@@ -49,22 +49,24 @@
 
         <div class="col-12 col-lg-4">
             <x-admin.card title="Add a product">
-                @if ($available->isEmpty())
-                    <p class="text-body-tertiary fs-9 mb-0">All active products are already in this collection (showing up to 200).</p>
-                @else
-                    <form action="{{ route('admin.collections.attach', $collection) }}" method="POST">
-                        @csrf
-                        <div class="mb-3">
-                            <select class="form-select" name="product_id" required>
-                                <option value="">Choose a product…</option>
-                                @foreach ($available as $product)
-                                    <option value="{{ $product->id }}">{{ $product->name }}</option>
-                                @endforeach
-                            </select>
+                <form action="{{ route('admin.collections.attach', $collection) }}" method="POST"
+                      x-data="{ picked: null }" @product-picked="picked = $event.detail">
+                    @csrf
+                    <input type="hidden" name="product_id" :value="picked ? picked.product_id : ''">
+                    <x-admin.product-picker scope="collection-{{ $collection->id }}" placeholder="Search products to add…" />
+
+                    <template x-if="picked">
+                        <div class="alert alert-subtle-primary d-flex align-items-center gap-2 py-2 mt-3 mb-0 fs-9">
+                            <img :src="picked.thumb" alt="" width="28" height="28" class="rounded-2 object-fit-cover">
+                            <span class="fw-semibold" x-text="picked.name"></span>
+                            <button type="button" class="btn-close ms-auto" style="font-size:.6rem;" @click="picked = null" aria-label="Clear"></button>
                         </div>
-                        <button class="btn btn-primary w-100" type="submit"><span class="fas fa-plus me-1"></span>Add to collection</button>
-                    </form>
-                @endif
+                    </template>
+
+                    <button class="btn btn-primary w-100 mt-3" type="submit" :disabled="!picked">
+                        <span class="fas fa-plus me-1"></span>Add to collection
+                    </button>
+                </form>
             </x-admin.card>
         </div>
     </div>

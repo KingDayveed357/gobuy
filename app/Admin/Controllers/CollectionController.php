@@ -44,12 +44,8 @@ class CollectionController extends Controller
     {
         return view('admin.collections.show', [
             'collection' => $collection->load(['products.media']),
-            // Active products not already in the collection, for the add picker.
-            'available' => Product::active()
-                ->whereNotIn('id', $collection->products->pluck('id'))
-                ->orderBy('name')
-                ->limit(200)
-                ->get(['id', 'name']),
+            // The add form uses the shared <x-admin.product-picker> (searches the
+            // full catalog via admin.products.search); attach() is idempotent.
         ]);
     }
 

@@ -14,7 +14,7 @@
     <x-admin.card flush>
         <div class="table-responsive">
             <table class="table admin-table mb-0">
-                <thead><tr><th>Reference</th><th>Supplier</th><th>Deliver to</th><th class="text-end">Items</th><th class="text-end">Value</th><th>Status</th><th>Raised</th></tr></thead>
+                <thead><tr><th>Reference</th><th>Supplier</th><th>Deliver to</th><th class="text-end">Items</th><th class="text-end">Value</th><th>Status</th><th>Raised</th><th class="text-end">Actions</th></tr></thead>
                 <tbody>
                     @forelse ($orders as $order)
                         <tr>
@@ -25,9 +25,19 @@
                             <td class="text-end fw-semibold">{{ $order->total()->format() }}</td>
                             <td><span class="badge badge-phoenix badge-phoenix-{{ $order->status->tone() }}">{{ $order->status->label() }}</span></td>
                             <td class="fs-10 text-body-tertiary">{{ $order->created_at->format('M j, Y') }}</td>
+                            <td class="text-end">
+                                <div class="table-actions justify-content-end">
+                                    <a href="{{ route('admin.purchase-orders.show', $order) }}" class="btn btn-sm btn-phoenix-secondary" aria-label="View order"><span class="fas fa-eye"></span></a>
+                                    @if ($order->status === \App\Modules\Operations\Purchasing\Enums\PurchaseOrderStatus::Draft)
+                                        <a href="{{ route('admin.purchase-orders.edit', $order) }}" class="btn btn-sm btn-phoenix-primary" aria-label="Edit order"><span class="fas fa-pen"></span></a>
+                                    @else
+                                        <button type="button" class="btn btn-sm btn-phoenix-secondary" disabled aria-label="Cannot edit placed order"><span class="fas fa-pen"></span></button>
+                                    @endif
+                                </div>
+                            </td>
                         </tr>
                     @empty
-                        <tr><td colspan="7"><x-admin.empty-state icon="fa-file-invoice" text="No purchase orders yet — raise one to restock." /></td></tr>
+                        <tr><td colspan="8"><x-admin.empty-state icon="fa-file-invoice" text="No purchase orders yet — raise one to restock." /></td></tr>
                     @endforelse
                 </tbody>
             </table>

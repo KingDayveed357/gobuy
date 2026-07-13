@@ -20,6 +20,10 @@
         <x-admin.product-picker scope="packaging" on-select="choose" :in-stock="false" />
     On selection it calls $wire.{onSelect}(variantId) and also dispatches a
     `product-picked` DOM event carrying the full row.
+
+    Panel is teleported to <body> via x-teleport so no ancestor overflow:hidden
+    can clip the dropdown — it is positioned with fixed coordinates derived from
+    the input's getBoundingClientRect() inside _positionPanel().
 --}}
 <div
     class="gb-pp"
@@ -52,7 +56,7 @@
             x-model="query"
             x-ref="input"
             @input="onInput()"
-            @focus="open = true"
+            @focus="onFocus()"
             @keydown.arrow-down.prevent="move(1)"
             @keydown.arrow-up.prevent="move(-1)"
             @keydown.enter.prevent="enter()"
@@ -67,65 +71,85 @@
         </button>
     </div>
 
-    <div class="gb-pp-panel" id="gb-pp-list-{{ $scope }}" role="listbox" x-ref="list"
-         x-show="open && (items.length || isEmpty || loading)" x-cloak x-transition.opacity.duration.120ms>
+    {{--
+        Portal: the panel is rendered directly under <body> so it escapes any
+        ancestor overflow:hidden (Bootstrap cards, modals, table-responsive, etc.).
+        Alpine's x-teleport moves the DOM node; the x-data scope is still shared
+        because Alpine walks up the tree to find the parent component data.
+    --}}
+    <template x-teleport="body">
+        <div
+            class="gb-pp-panel"
+            id="gb-pp-list-{{ $scope }}"
+            role="listbox"
+            x-ref="list"
+            x-show="open && (items.length || isEmpty || loading)"
+            x-cloak
+            x-transition.opacity.duration.120ms
+            :style="{
+                position: 'fixed',
+                top:   _panelTop  + 'px',
+                left:  _panelLeft + 'px',
+                width: _panelWidth + 'px',
+            }"
+        >
+            <div class="gb-pp-note" x-show="showRecents" x-cloak>Recent</div>
+            <div class="gb-pp-note gb-pp-note--warn" x-show="offline" x-cloak>
+                <span class="fas fa-wifi-slash me-1"></span>Offline — showing recent products
+            </div>
 
-        <div class="gb-pp-note" x-show="showRecents" x-cloak>Recent</div>
-        <div class="gb-pp-note gb-pp-note--warn" x-show="offline" x-cloak>
-            <span class="fas fa-wifi-slash me-1"></span>Offline — showing recent products
-        </div>
-
-        {{-- Skeleton rows while a fresh (uncached) query is in flight — never an empty panel. --}}
-        <div x-show="loading && !items.length" x-cloak>
-            <template x-for="n in 4" :key="n">
-                <div class="gb-pp-opt gb-pp-opt--skel">
-                    <span class="gb-skel gb-skel-avatar"></span>
-                    <div class="gb-pp-body">
-                        <span class="gb-skel gb-skel-line" style="width: 65%"></span>
-                        <span class="gb-skel gb-skel-line gb-skel-line-sm" style="width: 40%; margin-top: .4rem"></span>
+            {{-- Skeleton rows while a fresh (uncached) query is in flight — never an empty panel. --}}
+            <div x-show="loading && !items.length" x-cloak>
+                <template x-for="n in 4" :key="n">
+                    <div class="gb-pp-opt gb-pp-opt--skel">
+                        <span class="gb-skel gb-skel-avatar"></span>
+                        <div class="gb-pp-body">
+                            <span class="gb-skel gb-skel-line" style="width: 65%"></span>
+                            <span class="gb-skel gb-skel-line gb-skel-line-sm" style="width: 40%; margin-top: .4rem"></span>
+                        </div>
+                        <span class="gb-skel gb-skel-line" style="width: 3rem"></span>
                     </div>
-                    <span class="gb-skel gb-skel-line" style="width: 3rem"></span>
+                </template>
+            </div>
+
+            <template x-for="(item, idx) in items" :key="item.id">
+                <div class="gb-pp-opt" role="option"
+                     :id="'gb-pp-opt-{{ $scope }}-' + idx"
+                     :data-idx="idx"
+                     :class="{ 'is-active': active === idx }"
+                     :aria-selected="(active === idx).toString()"
+                     @mouseenter="active = idx"
+                     @click="choose(item)">
+                    <img class="gb-pp-thumb" :src="item.thumb" alt="" width="40" height="40" loading="lazy"
+                         x-on:error="$el.src='{{ asset('theme/img/placeholder.svg') }}'">
+                    <div class="gb-pp-body">
+                        <div class="gb-pp-title">
+                            <span x-html="highlight(item.name)"></span>
+                            <span class="gb-pp-variant" x-show="item.variant" x-text="item.variant"></span>
+                        </div>
+                        <div class="gb-pp-meta">
+                            <span class="gb-pp-sku" x-html="highlight(item.sku)"></span>
+                            <span x-show="item.brand" x-text="'· ' + item.brand"></span>
+                            <span x-show="item.category" x-text="'· ' + item.category"></span>
+                            <span x-show="item.packaging > 0" class="gb-pp-pill" x-text="item.packaging + ' pack' + (item.packaging === 1 ? '' : 's')"></span>
+                        </div>
+                    </div>
+                    <div class="gb-pp-right">
+                        <div class="gb-pp-price">
+                            <span x-text="item.retail"></span>
+                            <span class="gb-pp-wholesale" x-show="showWholesale && item.wholesale" x-text="item.wholesale + ' whsl'"></span>
+                        </div>
+                        <span class="gb-pp-stock" :class="item.stock <= 0 ? 'is-out' : (item.low_stock ? 'is-low' : '')"
+                              x-text="item.stock <= 0 ? 'Out' : item.stock + ' in stock'"></span>
+                    </div>
                 </div>
             </template>
-        </div>
 
-        <template x-for="(item, idx) in items" :key="item.id">
-            <div class="gb-pp-opt" role="option"
-                 :id="'gb-pp-opt-{{ $scope }}-' + idx"
-                 :data-idx="idx"
-                 :class="{ 'is-active': active === idx }"
-                 :aria-selected="(active === idx).toString()"
-                 @mouseenter="active = idx"
-                 @click="choose(item)">
-                <img class="gb-pp-thumb" :src="item.thumb" alt="" width="40" height="40" loading="lazy"
-                     x-on:error="$el.src='{{ asset('theme/img/placeholder.svg') }}'">
-                <div class="gb-pp-body">
-                    <div class="gb-pp-title">
-                        <span x-text="item.name"></span>
-                        <span class="gb-pp-variant" x-show="item.variant" x-text="item.variant"></span>
-                    </div>
-                    <div class="gb-pp-meta">
-                        <span class="gb-pp-sku" x-text="item.sku"></span>
-                        <span x-show="item.brand" x-text="'· ' + item.brand"></span>
-                        <span x-show="item.category" x-text="'· ' + item.category"></span>
-                        <span x-show="item.packaging > 0" class="gb-pp-pill" x-text="item.packaging + ' pack' + (item.packaging === 1 ? '' : 's')"></span>
-                    </div>
-                </div>
-                <div class="gb-pp-right">
-                    <div class="gb-pp-price">
-                        <span x-text="item.retail"></span>
-                        <span class="gb-pp-wholesale" x-show="showWholesale && item.wholesale" x-text="item.wholesale + ' whsl'"></span>
-                    </div>
-                    <span class="gb-pp-stock" :class="item.stock <= 0 ? 'is-out' : (item.low_stock ? 'is-low' : '')"
-                          x-text="item.stock <= 0 ? 'Out' : item.stock + ' in stock'"></span>
-                </div>
+            <div class="gb-pp-empty" x-show="isEmpty" x-cloak>
+                No products match "<span x-text="query"></span>".
             </div>
-        </template>
-
-        <div class="gb-pp-empty" x-show="isEmpty" x-cloak>
-            No products match “<span x-text="query"></span>”.
         </div>
-    </div>
+    </template>
 </div>
 
 @once

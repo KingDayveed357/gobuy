@@ -45,11 +45,14 @@
 @keyframes gb-pp-spin { to { transform: rotate(360deg); } }
 
 /* ── Panel ─────────────────────────────────────────────────────────────────── */
+/*
+   position:fixed + top/left/width are injected by Alpine via :style binding,
+   calculated from the input's getBoundingClientRect() in _positionPanel().
+   This means the panel escapes any ancestor overflow:hidden completely.
+*/
 .gb-pp-panel {
-    position: absolute;
-    z-index: 1080;
-    top: calc(100% + 0.35rem);
-    left: 0; right: 0;
+    position: fixed; /* overridden by inline style — declaration kept as fallback */
+    z-index: 1090;   /* above Bootstrap modals (1055) and dropdowns (1000) */
     max-height: 340px;
     overflow-y: auto;
     padding: 0.35rem;
@@ -112,6 +115,14 @@
     color: var(--phoenix-secondary-color, #6c757d);
 }
 .gb-pp-sku { font-family: var(--phoenix-font-monospace, monospace); }
+
+/* Matched-text highlight in results */
+.gb-pp-mark {
+    padding: 0 1px;
+    border-radius: 2px;
+    color: inherit;
+    background: var(--phoenix-warning-bg-subtle, #fff3cd);
+}
 
 .gb-pp-pill {
     padding: 0.05rem 0.4rem;

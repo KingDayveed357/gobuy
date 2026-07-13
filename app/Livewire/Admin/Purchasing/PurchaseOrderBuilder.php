@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Purchasing;
 use App\Modules\Catalog\Models\ProductVariant;
 use App\Modules\Inventory\Models\InventoryLocation;
 use App\Modules\Operations\Purchasing\Exceptions\PurchasingException;
+use App\Modules\Operations\Purchasing\Models\PurchaseOrder;
 use App\Modules\Operations\Purchasing\Models\Supplier;
 use App\Modules\Operations\Purchasing\Services\PurchaseOrderService;
 use App\Support\Money;
@@ -19,20 +20,33 @@ use Livewire\Component;
  */
 class PurchaseOrderBuilder extends Component
 {
+    public ?int $orderId = null;
+
     public ?int $supplierId = null;
 
     public ?int $locationId = null;
 
     public string $note = '';
 
-    public string $search = '';
-
     /** @var array<int, array{quantity: int, unit_cost: string}> variant id => line */
     public array $lines = [];
 
-    public function mount(): void
+    public function mount(?PurchaseOrder $order = null): void
     {
-        $this->locationId = InventoryLocation::query()->where('is_default', true)->value('id');
+        if ($order && $order->exists) {
+            $this->orderId = $order->id;
+            $this->supplierId = $order->supplier_id;
+            $this->locationId = $order->inventory_location_id;
+            $this->note = $order->note ?? '';
+            foreach ($order->items as $item) {
+                $this->lines[$item->product_variant_id] = [
+                    'quantity' => $item->quantity_ordered,
+                    'unit_cost' => $item->unit_cost->toNaira(),
+                ];
+            }
+        } else {
+            $this->locationId = InventoryLocation::query()->where('is_default', true)->value('id');
+        }
     }
 
     /**
@@ -53,32 +67,17 @@ class PurchaseOrderBuilder extends Component
         return InventoryLocation::query()->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->get();
     }
 
-    /**
-     * @return Collection<int, ProductVariant>
-     */
-    #[Computed]
-    public function results()
-    {
-        $term = trim($this->search);
-        if (mb_strlen($term) < 2) {
-            return collect();
-        }
-
-        return ProductVariant::query()
-            ->where(fn ($q) => $q->where('sku', 'like', "%{$term}%")
-                ->orWhereHas('product', fn ($p) => $p->where('name', 'like', "%{$term}%")))
-            ->with('product:id,name')
-            ->limit(8)->get();
-    }
-
     public function addVariant(int $variantId): void
     {
+        if (! ProductVariant::whereKey($variantId)->exists()) {
+            return;
+        }
+
         if (! isset($this->lines[$variantId])) {
             $this->lines[$variantId] = ['quantity' => 1, 'unit_cost' => ''];
         } else {
             $this->lines[$variantId]['quantity']++;
         }
-        $this->search = '';
     }
 
     public function removeLine(int $variantId): void
@@ -140,16 +139,21 @@ class PurchaseOrderBuilder extends Component
         }
 
         try {
-            $po = app(PurchaseOrderService::class)->create(
-                InventoryLocation::findOrFail($this->locationId),
-                $lines,
-                [
-                    'supplier_id' => $this->supplierId,
-                    'note' => $this->note ?: null,
-                    'admin' => auth('admin')->user(),
-                    'place' => $place,
-                ],
-            );
+            $service = app(PurchaseOrderService::class);
+            $location = InventoryLocation::findOrFail($this->locationId);
+            $meta = [
+                'supplier_id' => $this->supplierId,
+                'note' => $this->note ?: null,
+                'admin' => auth('admin')->user(),
+                'place' => $place,
+            ];
+
+            if ($this->orderId) {
+                $po = PurchaseOrder::findOrFail($this->orderId);
+                $po = $service->update($po, $location, $lines, $meta);
+            } else {
+                $po = $service->create($location, $lines, $meta);
+            }
         } catch (PurchasingException $e) {
             $this->dispatch('toast', type: 'error', message: $e->getMessage());
 

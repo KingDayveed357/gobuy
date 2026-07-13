@@ -9,7 +9,6 @@ use App\Modules\Operations\WalkIn\Services\WalkInSaleService;
 use App\Modules\Order\Enums\PaymentMethod;
 use App\Modules\Pricing\Services\PricingEngine;
 use App\Support\Money;
-use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
@@ -20,8 +19,6 @@ use Livewire\Component;
  */
 class WalkInSale extends Component
 {
-    public string $search = '';
-
     /** @var array<int, int> variant id => quantity */
     public array $lines = [];
 
@@ -38,9 +35,14 @@ class WalkInSale extends Component
 
     public function addVariant(int $variantId): void
     {
+        // Only accept ids that resolve to a real sellable variant (the picker
+        // posts ids from the shared search endpoint).
+        if (! ProductVariant::whereKey($variantId)->exists()) {
+            return;
+        }
+
         $this->completed = null;
         $this->lines[$variantId] = ($this->lines[$variantId] ?? 0) + 1;
-        $this->search = '';
     }
 
     public function setQuantity(int $variantId, int $quantity): void
@@ -57,28 +59,6 @@ class WalkInSale extends Component
     public function removeLine(int $variantId): void
     {
         unset($this->lines[$variantId]);
-    }
-
-    /**
-     * Product/variant search — in-stock sellable variants matching name or SKU.
-     *
-     * @return Collection<int, ProductVariant>
-     */
-    #[Computed]
-    public function results()
-    {
-        $term = trim($this->search);
-        if (mb_strlen($term) < 2) {
-            return collect();
-        }
-
-        return ProductVariant::query()
-            ->where('stock', '>', 0)
-            ->whereHas('product', fn ($q) => $q->where('status', 'active'))
-            ->where(fn ($q) => $q->where('sku', 'like', "%{$term}%")
-                ->orWhereHas('product', fn ($p) => $p->where('name', 'like', "%{$term}%")))
-            ->with('product:id,name')
-            ->limit(8)->get();
     }
 
     /**
@@ -166,7 +146,7 @@ class WalkInSale extends Component
             'method' => $method->label(),
         ];
 
-        $this->reset(['lines', 'search', 'wholesale', 'customerName', 'customerPhone']);
+        $this->reset(['lines', 'wholesale', 'customerName', 'customerPhone']);
         $this->paymentMethod = 'cash';
         $this->dispatch('toast', type: 'success', message: "Sale {$order->order_number} recorded.");
     }

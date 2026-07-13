@@ -13,19 +13,10 @@
                 </div>
 
                 @if (! $this->variant)
-                    <div class="position-relative mb-2">
+                    <div class="mb-2">
                         <label class="form-label">Item</label>
-                        <input type="text" class="form-control @error('variantId') is-invalid @enderror" wire:model.live.debounce.250ms="search" placeholder="Search a damaged item…" autocomplete="off">
+                        <x-admin.product-picker scope="write-off" on-select="choose" placeholder="Search a damaged item…" />
                         @error('variantId')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                        @if (! empty($this->results) && count($this->results))
-                            <div class="list-group position-absolute w-100 shadow-sm" style="z-index:30; max-height:280px; overflow:auto;">
-                                @foreach ($this->results as $variant)
-                                    <button type="button" class="list-group-item list-group-item-action py-2" wire:click="choose({{ $variant->id }})" wire:key="dm-res-{{ $variant->id }}">
-                                        <span class="d-block fw-semibold text-truncate fs-9">{{ $variant->is_default ? $variant->product->name : $variant->product->name.' — '.$variant->label() }}</span><span class="fs-10 text-body-tertiary">SKU {{ $variant->sku }}</span>
-                                    </button>
-                                @endforeach
-                            </div>
-                        @endif
                     </div>
                 @else
                     <div class="d-flex justify-content-between align-items-center p-2 rounded bg-body-secondary mb-3">

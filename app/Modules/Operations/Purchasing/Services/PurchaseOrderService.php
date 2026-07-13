@@ -66,6 +66,52 @@ class PurchaseOrderService
             return $po->load('items');
         });
     }
+    /**
+     * Update a draft purchase order.
+     *
+     * @param  list<array{variant_id: int, quantity: int, unit_cost?: int}>  $lines  unit_cost in kobo
+     */
+    public function update(PurchaseOrder $po, ?InventoryLocation $location, array $lines, array $meta = []): PurchaseOrder
+    {
+        if ($po->status !== PurchaseOrderStatus::Draft) {
+            throw new PurchasingException('Only a draft purchase order can be edited.');
+        }
+
+        $location ??= InventoryLocation::default();
+
+        $lines = array_values(array_filter($lines, fn ($line): bool => (int) ($line['quantity'] ?? 0) > 0));
+        if ($lines === []) {
+            throw new PurchasingException('Add at least one item to the purchase order.');
+        }
+
+        $place = (bool) ($meta['place'] ?? false);
+
+        return DB::transaction(function () use ($po, $location, $lines, $meta, $place): PurchaseOrder {
+            $po->update([
+                'supplier_id' => $meta['supplier_id'] ?? null,
+                'inventory_location_id' => $location->id,
+                'note' => $meta['note'] ?? null,
+                'status' => $place ? PurchaseOrderStatus::Ordered : PurchaseOrderStatus::Draft,
+                'ordered_at' => $place ? now() : null,
+            ]);
+
+            // Replace all items
+            $po->items()->delete();
+
+            foreach ($lines as $line) {
+                $variant = ProductVariant::findOrFail($line['variant_id']);
+                $po->items()->create([
+                    'product_variant_id' => $variant->id,
+                    'quantity_ordered' => (int) $line['quantity'],
+                    'quantity_received' => 0,
+                    'unit_cost' => Money::fromKobo((int) ($line['unit_cost'] ?? 0)),
+                ]);
+            }
+
+            return $po->load('items');
+        });
+    }
+
 
     /** Place a draft order with the supplier (draft → ordered). */
     public function place(PurchaseOrder $po): PurchaseOrder

@@ -5,6 +5,7 @@
     @include('partials.head')
     <link href="{{ asset('theme/css/admin.css') }}" type="text/css" rel="stylesheet">
     <link href="{{ asset('theme/css/toast.css') }}" type="text/css" rel="stylesheet">
+    @livewireStyles
 </head>
 
 <body>
@@ -39,6 +40,42 @@
                 else if (window.Toast) { Toast.info(p.message); }
             });
         });
+
+        // Use a MutationObserver to instantly restore layout attributes if Livewire strips them during wire:navigate.
+        // This runs synchronously before the browser paints, completely eliminating any theme flash.
+        (function() {
+            var observer = new MutationObserver(function() {
+                var el = document.documentElement;
+                
+                var theme = localStorage.getItem('phoenixTheme');
+                if (theme) {
+                    var expectedTheme = theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme;
+                    if (el.getAttribute('data-bs-theme') !== expectedTheme) {
+                        el.setAttribute('data-bs-theme', expectedTheme);
+                    }
+                }
+                
+                var isCollapsed = JSON.parse(localStorage.getItem('phoenixIsNavbarVerticalCollapsed'));
+                if (isCollapsed && !el.classList.contains('navbar-vertical-collapsed')) {
+                    el.classList.add('navbar-vertical-collapsed');
+                } else if (!isCollapsed && el.classList.contains('navbar-vertical-collapsed')) {
+                    el.classList.remove('navbar-vertical-collapsed');
+                }
+                
+                var navPos = localStorage.getItem('phoenixNavbarPosition');
+                if (navPos) {
+                    var expectedNavPos = (navPos === 'horizontal' || navPos === 'combo') ? navPos : 'default';
+                    if (el.getAttribute('data-navigation-type') !== expectedNavPos) {
+                        el.setAttribute('data-navigation-type', expectedNavPos);
+                    }
+                }
+            });
+
+            observer.observe(document.documentElement, { 
+                attributes: true, 
+                attributeFilter: ['data-bs-theme', 'class', 'data-navigation-type'] 
+            });
+        })();
     </script>
 
     {{-- Trigger Premium Toast Notifications --}}
@@ -78,6 +115,7 @@
         'pushStoreUrl' => route('admin.push-subscriptions.store'),
         'pushDeleteUrl' => route('admin.push-subscriptions.destroy'),
     ])
+    @livewireScripts
 </body>
 
 </html>

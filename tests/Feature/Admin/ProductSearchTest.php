@@ -32,6 +32,8 @@ class ProductSearchTest extends TestCase
             ->assertJsonPath('data.0.name', 'Guinness Stout')
             ->assertJsonPath('data.0.brand', 'Guinness')
             ->assertJsonPath('data.0.stock', 48)
+            // product_id lets Product-based selectors (Collections) reuse the endpoint.
+            ->assertJsonPath('data.0.product_id', fn ($id) => is_int($id) && $id > 0)
             ->assertJsonMissing(['name' => 'Unrelated Widget']);
     }
 

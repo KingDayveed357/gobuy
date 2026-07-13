@@ -31,6 +31,18 @@ class PurchaseOrderController extends Controller
         return view('admin.purchase-orders.create');
     }
 
+    public function edit(PurchaseOrder $purchaseOrder): View|RedirectResponse
+    {
+        if ($purchaseOrder->status !== \App\Modules\Operations\Purchasing\Enums\PurchaseOrderStatus::Draft) {
+            return redirect()->route('admin.purchase-orders.show', $purchaseOrder)
+                ->with('error', 'Only draft purchase orders can be edited.');
+        }
+
+        $purchaseOrder->load(['items']);
+
+        return view('admin.purchase-orders.edit', ['order' => $purchaseOrder]);
+    }
+
     public function show(PurchaseOrder $purchaseOrder): View
     {
         $purchaseOrder->load(['supplier', 'location', 'createdBy', 'items.variant.product']);

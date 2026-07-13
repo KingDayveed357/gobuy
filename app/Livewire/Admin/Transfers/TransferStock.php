@@ -22,8 +22,6 @@ class TransferStock extends Component
 
     public ?int $toId = null;
 
-    public string $search = '';
-
     /** @var array<int, int> variant id => quantity */
     public array $lines = [];
 
@@ -44,28 +42,13 @@ class TransferStock extends Component
         return InventoryLocation::query()->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->get();
     }
 
-    /**
-     * @return Collection<int, ProductVariant>
-     */
-    #[Computed]
-    public function results()
-    {
-        $term = trim($this->search);
-        if (mb_strlen($term) < 2) {
-            return collect();
-        }
-
-        return ProductVariant::query()
-            ->where(fn ($q) => $q->where('sku', 'like', "%{$term}%")
-                ->orWhereHas('product', fn ($p) => $p->where('name', 'like', "%{$term}%")))
-            ->with('product:id,name')
-            ->limit(8)->get();
-    }
-
     public function addVariant(int $variantId): void
     {
+        if (! ProductVariant::whereKey($variantId)->exists()) {
+            return;
+        }
+
         $this->lines[$variantId] = ($this->lines[$variantId] ?? 0) + 1;
-        $this->search = '';
     }
 
     public function setQuantity(int $variantId, int $quantity): void
@@ -157,7 +140,7 @@ class TransferStock extends Component
             return;
         }
 
-        $this->reset(['lines', 'search', 'note']);
+        $this->reset(['lines', 'note']);
         unset($this->rows);
         $this->dispatch('toast', type: 'success', message: 'Stock transferred.');
     }
